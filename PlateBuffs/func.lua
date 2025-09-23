@@ -6,10 +6,10 @@ local _G = _G
 local tostring = tostring
 local getn = table.getn
 local math_floor = math.floor
+local math_ceil = math.ceil
 local string_sub = string.sub
 local string_len = string.len
 local string_match = string.match
-local string_format = string.format
 local GetUnitName = GetUnitName
 
 local L = core.L or LibStub("AceLocale-3.0"):GetLocale(folder, true)
@@ -46,23 +46,23 @@ end
 
 -- zeroes is the number of decimal places. eg 1=*.*, 3=*.***
 function core:Round(num, zeros)
-    return math_floor(num * 10 ^ (zeros or 0) + 0.5) / 10 ^ (zeros or 0)
+    --return math_floor(num * 10 ^ (zeros or 0) + 0.5) / 10 ^ (zeros or 0)
+	return math_ceil(num * 10 ^ (zeros or 0)) / 10 ^ (zeros or 0) 
 end
 
 function core:RedToGreen(current, max)
-    if max == 0 then
-        max = 1
-    end
-    local percentage = (current / max) * 100
-    local red, green = 0, 0
-    if percentage >= 50 then
-        green = 1
-        red = ((100 - percentage) / 100) * 2
-    else
-        red = 1
-        green = ((100 - (100 - percentage)) / 100) * 2
-    end
-    return red, green, 0
+	local red,green = 0,0;
+	if current >= 7 then
+		green	= 1;
+		red	= 1;
+	elseif current >= 3 then
+		red	= 1;
+		green	= (current - 2) / 4;
+	else 
+		red	= 1;
+		green	= 0;
+	end
+	return red, green, 0
 end
 
 do
@@ -80,7 +80,7 @@ do
 	    local msg = ""
 	    maxLenth = maxLenth or 2
 	    if seconds == 0 then
-	        msg = "0s "
+	        msg = "0 "
 	    else
 	        local sYear, sMonth, sDay, sHour, sMinute = 0, 0, 0, 0, 0
 
