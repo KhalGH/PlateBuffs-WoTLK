@@ -1,7 +1,4 @@
---[[
-Author:		Cyprias, Kader
-License:	All Rights Reserved
-]]
+
 local folder, core = ...
 LibStub("AceAddon-3.0"):NewAddon(core, folder, "AceConsole-3.0", "AceEvent-3.0")
 
@@ -21,8 +18,8 @@ if not LSM then
 end
 
 -- local
-core.title = "Plate Buffs"
-core.version = GetAddOnMetadata(folder, "X-Curse-Packaged-Version") or ""
+core.title = "PlateBuffs"
+core.version = GetAddOnMetadata(folder, "X-Packaged-Version") or ""
 core.titleFull = core.title .. " " .. core.version
 core.addonDir = "Interface\\AddOns\\" .. folder .. "\\"
 
@@ -34,102 +31,7 @@ local LDS = LibStub("LibDualSpec-1.0", true)
 local L = LibStub("AceLocale-3.0"):GetLocale(folder, true)
 core.L = L
 
--- Nameplates with these names are totems. By default we ignore totem nameplates.
-local totemList = {
-	2484, --Earthbind Totem
-	8143, --Tremor Totem
-	8177, --Grounding Totem
-	8512, --Windfury Totem
-	6495, --Sentry Totem
-	8170, --Cleansing Totem
-	3738, --Wrath of Air Totem
-	2062, --Earth Elemental Totem
-	2894, --Fire Elemental Totem
-	58734, --Magma Totem
-	58582, --Stoneclaw Totem
-	58753, --Stoneskin Totem
-	58739, --Fire Resistance Totem
-	58656, --Flametongue Totem
-	58745, --Frost Resistance Totem
-	58757, --Healing Stream Totem
-	58774, --Mana Spring Totem
-	58749, --Nature Resistance Totem
-	58704, --Searing Totem
-	58643, --Strength of Earth Totem
-	57722 --Totem of Wrath
-}
-
--- Important spells, add them with huge icons.
-local defaultSpells1 = {
-	118, --Polymorph
-	51514, --Hex
-	710, --Banish
-	6358, --Seduction
-	6770, --Sap
-	605, --Mind Control
-	33786, --Cyclone
-	5782, --Fear
-	5484, --Howl of Terror
-	6789, --Death Coil
-	45438, --Ice Block
-	642, --Divine Shield
-	8122, --Psychic Scream
-	339, --Entangling Roots
-	23335, -- Silverwing Flag (alliance WSG flag)
-	23333, -- Warsong Flag (horde WSG flag)
-	34976, -- Netherstorm Flag (EotS flag)
-	2094, --Blind
-	33206, --Pain Suppression (priest)
-	29166, --Innervate (druid)
-	47585, --Dispersion (priest)
-	19386 --Wyvern Sting (hunter)
-}
-
--- semi-important spells, add them with mid size icons.
-local defaultSpells2 = {
-	15487, --Silence (priest)
-	10060, --Power Infusion (priest)
-	2825, --Bloodlust
-	5246, --Intimidating Shout (warrior)
-	31224, --Cloak of Shadows (rogue)
-	498, --Divine Protection
-	47476, --Strangulate (warlock)
-	31884, --Avenging Wrath (pally)
-	37587, --Bestial Wrath (hunter)
-	12472, --Icy Veins (mage)
-	49039, --Lichborne (DK)
-	48792, --Icebound Fortitude (DK)
-	5277, --Evasion (rogue)
-	53563, --Beacon of Light (pally)
-	22812, --Barkskin (druid)
-	67867, --Trampled (ToC arena spell when you run over someone)
-	1499, --Freezing Trap
-	2637, --Hibernate
-	64044, --Psychic Horror
-	19503, --Scatter Shot (hunter)
-	34490, --Silencing Shot (hunter)
-	10278, --Hand of Protection (pally)
-	10326, --Turn Evil (pally)
-	44572, --Deep Freeze (mage)
-	20066, --Repentance (pally)
-	46968, --Shockwave (warrior)
-	46924, --Bladestorm (warrior)
-	16689, --Nature's Grasp (Druid)
-	2983, --Sprint (rogue)
-	2335, --Swiftness Potion
-	6624, --Free Action Potion
-	3448, --Lesser Invisibility Potion
-	11464, --Invisibility Potion
-	17634, --Potion of Petrification
-	53905, --Indestructible Potion
-	54221, --Potion of Speed
-	1850 --Dash
-}
-
--- used to add spell only by name ( no need spellid )
-local defaultSpells3 = {
-	5782 -- Fear
-}
+local defaultSpells1, defaultSpells2, defaultSpells3, defaultSpells4, CheckIDSpells, totemList = core.defaultSpells1, core.defaultSpells2, core.defaultSpells3, core.defaultSpells4, core.CheckIDSpells, core.totemList
 
 local regEvents = {
 	"PLAYER_TARGET_CHANGED",
@@ -172,52 +74,77 @@ core.iconTestMode = false
 
 local table_getn = table.getn
 
+--Add default spells to defaultSettings table.
+for i = 1, table_getn(defaultSpells1) do
+	local spellID = defaultSpells1[i]
+	local spellName = GetSpellInfo(spellID)
+	if spellName then
+		core.defaultSettings.profile.spellOpts[spellName] = {
+			spellID = spellID,
+			increase = 1.75,
+			cooldownSize = 16,
+			show = 1,
+			stackSize = 13
+		}
+	end
+end
+
+for i = 1, table_getn(defaultSpells2) do
+	local spellID = defaultSpells2[i]
+	local spellName = GetSpellInfo(spellID)
+	if spellName then
+		core.defaultSettings.profile.spellOpts[spellName] = {
+			spellID = spellID,
+			increase = 1.5,
+			cooldownSize = 15,
+			show = 1,
+			stackSize = 12
+		}
+	end
+end
+
+for i = 1, table_getn(defaultSpells3) do
+	local spellID = defaultSpells3[i]
+	local spellName = GetSpellInfo(defaultSpells3[i])
+	if spellName then
+		core.defaultSettings.profile.spellOpts[spellName] = {
+			spellID = defaultSpells3[i],
+			increase = 1.25,
+			cooldownSize = 13,
+			show = 1,
+			stackSize = 10
+		}
+	end
+end
+
+for i = 1, table_getn(defaultSpells4) do
+	local spellID = defaultSpells4[i]
+	local spellName = GetSpellInfo(spellID)
+	if spellName then
+		core.defaultSettings.profile.spellOpts[spellName] = {
+			spellID = spellID,
+			increase = 1,
+			cooldownSize = 11,
+			show = 2,
+			stackSize = 8
+		}
+	end
+end
+
+for i = 1, table_getn(CheckIDSpells) do
+	local spellID = CheckIDSpells[i]
+	local spellName = GetSpellInfo(spellID)
+	if core.defaultSettings.profile.spellOpts[spellName] then
+		core.defaultSettings.profile.spellOpts[spellName].grabid = true
+	end
+end
+
 local totems = {}
 do
 	local name, texture, _
 	for i = 1, table_getn(totemList) do
 		name, _, texture = GetSpellInfo(totemList[i])
 		totems[name] = texture
-	end
-end
-
---Add default spells to defaultSettings table.
-for i = 1, table_getn(defaultSpells1) do
-	local spellName = GetSpellInfo(defaultSpells1[i])
-	if spellName then
-		core.defaultSettings.profile.spellOpts[spellName] = {
-			spellID = defaultSpells1[i],
-			increase = 2,
-			cooldownSize = 18,
-			show = 1,
-			stackSize = 18
-		}
-	end
-end
-
-for i = 1, table_getn(defaultSpells2) do
-	local spellName = GetSpellInfo(defaultSpells2[i])
-	if spellName then
-		core.defaultSettings.profile.spellOpts[spellName] = {
-			spellID = defaultSpells2[i],
-			increase = 1.5,
-			cooldownSize = 14,
-			show = 1,
-			stackSize = 14
-		}
-	end
-end
-
-for i = 1, table_getn(defaultSpells3) do
-	local spellName = GetSpellInfo(defaultSpells3[i])
-	if spellName then
-		core.defaultSettings.profile.spellOpts[spellName] = {
-			spellID = "No SpellID",
-			increase = 1.5,
-			cooldownSize = 14,
-			show = 1,
-			stackSize = 14
-		}
 	end
 end
 
@@ -238,31 +165,29 @@ function core:OnInitialize()
 	local config = LibStub("AceConfig-3.0")
 	local dialog = LibStub("AceConfigDialog-3.0")
 	config:RegisterOptionsTable(self.title, self.CoreOptionsTable)
-	dialog:AddToBlizOptions(self.title, self.titleFull)
+	dialog:AddToBlizOptions(self.title, self.title)
 
-	config:RegisterOptionsTable(self.title .. "Who", self.WhoOptionsTable)
-	dialog:AddToBlizOptions(self.title .. "Who", L["Who"], self.titleFull)
+	config:RegisterOptionsTable(self.title .. "Display", self.DisplayOptionsTable)
+	dialog:AddToBlizOptions(self.title .. "Display", L["Display conditions"], self.title)
+
+	config:RegisterOptionsTable(self.title .. "Style", self.DefaultSpellOptionsTable)
+	dialog:AddToBlizOptions(self.title .. "Style", L["Style settings"], self.title)
+
+	config:RegisterOptionsTable(self.title .. "Position", self.BarOptionsTable)
+	dialog:AddToBlizOptions(self.title .. "Position", L["Position settings"], self.title)
 
 	config:RegisterOptionsTable(self.title .. "Spells", self.SpellOptionsTable)
-	dialog:AddToBlizOptions(self.title .. "Spells", L["Specific Spells"], self.titleFull)
-
-	config:RegisterOptionsTable(self.title .. "dSpells", self.DefaultSpellOptionsTable)
-	dialog:AddToBlizOptions(self.title .. "dSpells", L["Default Spells"], self.titleFull)
-
-	config:RegisterOptionsTable(self.title .. "Rows", self.BarOptionsTable)
-	dialog:AddToBlizOptions(self.title .. "Rows", L["Rows"], self.titleFull)
+	dialog:AddToBlizOptions(self.title .. "Spells", L["Specific Spells"], self.title)
 
 	config:RegisterOptionsTable(self.title .. "About", self.AboutOptionsTable)
-	dialog:AddToBlizOptions(self.title .. "About", L.about, self.titleFull)
+	dialog:AddToBlizOptions(self.title .. "About", L.about, self.title)
 
 	--last UI
 	local optionsTable = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db)
 	config:RegisterOptionsTable(self.title .. "Profile", optionsTable)
-	dialog:AddToBlizOptions(self.title .. "Profile", L["Profiles"], self.titleFull)
+	dialog:AddToBlizOptions(self.title .. "Profile", L["Profiles"], self.title)
 
 	if LDS then LDS:EnhanceOptions(optionsTable, self.db) end
-
-	LSM:Register("font", "Friz Quadrata TT CYR", [[Interface\AddOns\AleaUI\media\FrizQuadrataTT_New.ttf]], LSM.LOCALE_BIT_ruRU + LSM.LOCALE_BIT_western)
 end
 
 local function GetPlateName(plate)
@@ -521,7 +446,6 @@ do
 			while UnitBuff(unitID, i) do
 				name, _, icon, count, _, duration, expirationTime, unitCaster, _, _, spellId = UnitBuff(unitID, i)
 				icon = icon:upper():gsub("(.+)\\(.+)\\", "")
-
 				local spellOpts = self:HaveSpellOpts(name, spellId)
 				if spellOpts and spellOpts.show and P.defaultBuffShow ~= 4 then
 					if
@@ -539,7 +463,8 @@ do
 							playerCast = (unitCaster == "player") and 1,
 							stackCount = count,
 							sID = spellId,
-							caster = unitCaster and core:GetFullName(unitCaster)
+							caster = unitCaster and core:GetFullName(unitCaster),
+							scale = spellOpts and (spellOpts.increase or 1) or 1 -- KHAL
 						})
 					end
 				elseif duration > 0 then
@@ -557,7 +482,8 @@ do
 							playerCast = (unitCaster == "player") and 1,
 							stackCount = count,
 							sID = spellId,
-							caster = unitCaster and core:GetFullName(unitCaster)
+							caster = unitCaster and core:GetFullName(unitCaster),
+							scale = spellOpts and (spellOpts.increase or 1) or 1 -- KHAL
 						})
 					end
 				end
@@ -569,7 +495,6 @@ do
 			while UnitDebuff(unitID, i) do
 				name, _, icon, count, debuffType, duration, expirationTime, unitCaster, _, _, spellId = UnitDebuff(unitID, i)
 				icon = icon:upper():gsub("INTERFACE\\ICONS\\", "")
-
 				local spellOpts = self:HaveSpellOpts(name, spellId)
 				if spellOpts and spellOpts.show and P.defaultDebuffShow ~= 4 then
 					if
@@ -589,7 +514,8 @@ do
 							debuffType = debuffType,
 							isDebuff = true,
 							sID = spellId,
-							caster = unitCaster and core:GetFullName(unitCaster)
+							caster = unitCaster and core:GetFullName(unitCaster),
+							scale = spellOpts and (spellOpts.increase or 1) or 1 -- KHAL
 						})
 					end
 				elseif duration > 0 then
@@ -609,7 +535,8 @@ do
 							debuffType = debuffType,
 							isDebuff = true,
 							sID = spellId,
-							caster = unitCaster and core:GetFullName(unitCaster)
+							caster = unitCaster and core:GetFullName(unitCaster),
+							scale = spellOpts and (spellOpts.increase or 1) or 1 -- KHAL
 						})
 					end
 				end
@@ -735,6 +662,14 @@ function core:GetAllSpellIDs()
 		name = GetSpellInfo(spellID)
 		spells[name] = spellID
 	end
+	for i, spellID in pairs(defaultSpells3) do
+		name = GetSpellInfo(spellID)
+		spells[name] = spellID
+	end
+	for i, spellID in pairs(defaultSpells4) do
+		name = GetSpellInfo(spellID)
+		spells[name] = spellID
+	end
 
 	for i = 76567, 1, -1 do --76567
 		name = GetSpellInfo(i)
@@ -750,4 +685,17 @@ function core:SkinCallback(skin, glossAlpha, gloss, _, _, colors)
 	self.db.profile.skin_Gloss = glossAlpha
 	self.db.profile.skin_Backdrop = gloss
 	self.db.profile.skin_Colors = colors
+end
+
+function core:SetCDAnchor(frame)
+	local anchor = P.cdAnchor
+	frame.cd:ClearAllPoints()
+
+	if anchor == "TOP" then
+		frame.cd:SetPoint("BOTTOM", frame.icon, "TOP", 0, 3)
+	elseif anchor == "CENTER" then
+		frame.cd:SetPoint("CENTER", frame.icon, "CENTER")
+	elseif anchor == "BOTTOM" then
+		frame.cd:SetPoint("TOP", frame.icon, "BOTTOM", 0, -3)
+	end
 end
