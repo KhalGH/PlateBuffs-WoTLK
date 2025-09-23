@@ -1,32 +1,22 @@
 ## Interface: 30300
-## X-Compatible-With: 30300
-## Title: Plate Buffs
-## Version: 1.18.2 (r231)
-## Notes: Show buffs on nameplates.
+## Title: PlateBuffs
+## Notes: Show buffs and debuffs on nameplates
+## Version: 1.18.3 (r232)
 ## Author: Cyprias (Kader Backport)
 ## SavedVariables: PB_DB
 ## OptionalDeps: LibStub, CallbackHandler-1.0, LibNameplate-1.0
-## X-Curse-Packaged-Version: r230
-## X-Curse-Project-Name: PlateBuffs
-## X-Curse-Project-ID: platebuffs
-## X-Curse-Repository-ID: wow/platebuffs/mainline
-## X-Curse-Packaged-Version: r230
-## X-Curse-Project-Name: PlateBuffs
-## X-Curse-Project-ID: platebuffs
-## X-Curse-Repository-ID: wow/platebuffs/mainline
 
-## X-Website: https://github.com/bkader/PlateBuffs_WoTLK
-## X-Discord: https://discord.gg/a8z5CyS3eW
-## X-License: All Rights Reserved
-## X-Date: 2024-03-14 @ 22:22 |cff808080UTC|r
-
-## LoadManagers: AddonLoader
-## X-LoadOn-Always: true
+## X-Modder: Khal
+## X-Website: https://github.com/KhalGH/PlateBuffs-WoTLK
+## X-Packaged-Version: r232
+## X-Date: 2025-09-23
 
 libs\embeds.xml
 locales\locales.xml
 
 func.lua
+spellList.lua
+totemList.lua
 core.lua
 frames.lua
 options.lua
