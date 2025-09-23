@@ -25,6 +25,9 @@ local Debug = core.Debug
 local DebuffTypeColor = DebuffTypeColor
 local select = select
 local string_gsub = string.gsub
+local math_min = math.min
+local math_max = math.max
+local UnitExists = UnitExists
 
 local P = {}
 local nametoGUIDs = core.nametoGUIDs
@@ -92,39 +95,21 @@ end
 -- Update a spell frame's texture size.
 local function UpdateBuffSize(frame, size, size2)
 	size, size2 = size or 24, size2 or 24
-	local d, d2
-	local msqbs = frame.msqborder.bordersize or size
-	local msqns = frame.msqborder.normalsize or size
 
-	d = (size * frame.msqborder.bordersize) / frame.msqborder.normalsize
-	d2 = (size2 * frame.msqborder.bordersize) / frame.msqborder.normalsize
+	local d = (size * frame.msqborder.bordersize) / frame.msqborder.normalsize
+	local d2 = (size2 * frame.msqborder.bordersize) / frame.msqborder.normalsize
+	frame.msqborder:SetSize(d, d2)
 
-	if frame.msqborder.bgtexture then
-		frame.msqborder:SetWidth(d)
-		frame.msqborder:SetHeight(d2)
-		frame.cd:SetPoint("TOP", frame.icon, "BOTTOM", 0, -5)
-	else
-		frame.msqborder:SetWidth(d)
-		frame.msqborder:SetHeight(d2)
-		frame.cd:SetPoint("TOP", frame.icon, "BOTTOM", 0, 0)
-	end
-
-	frame.icon:SetWidth(size)
-	frame.icon:SetHeight(size2)
+	frame.icon:SetSize(size, size2)
 	GetTexCoordFromSize(frame.texture, size, size2)
 	frame:SetWidth(size + (P.intervalX or 12))
-
-	if P.showCooldown then
-		frame:SetHeight(size2 + P.cooldownSize + (P.intervalY or 12))
-	else
-		frame:SetHeight(size2 + (P.intervalY or 12))
-	end
+	frame:SetHeight(size2 + (P.intervalY or 12))
 end
 
 -- Set cooldown text size.
 local function UpdateBuffCDSize(buffFrame, size)
 	local font = P.cooldownFont and LSM:Fetch("font", P.cooldownFont) or "Fonts\\FRIZQT__.TTF"
-	buffFrame.cd:SetFont(font, size, "NORMAL")
+	buffFrame.cd:SetFont(font, size, "OUTLINE")
 	buffFrame.cdbg:SetHeight(buffFrame.cd:GetStringHeight())
 	if not P.legacyCooldownTexture and buffFrame.cd2 then
 		buffFrame.cd2:SetFont(font, size, "OUTLINE")
@@ -302,7 +287,6 @@ local function iconOnUpdate(self, elapsed)
 		self.lastUpdate = 0
 		if self.expirationTime > 0 then
 			local rawTimeLeft = self.expirationTime - GetTime()
-			local timeLeft
 			if rawTimeLeft < 10 then
 				timeLeft = core:Round(rawTimeLeft, P.digitsnumber)
 			else
@@ -324,16 +308,33 @@ local function iconOnUpdate(self, elapsed)
 				end
 			end
 
-			if (timeLeft / (self.duration + 0.01)) < P.blinkTimeleft and timeLeft < 60 then --buff only has 20% timeleft and is less then 60 seconds.
-				local f = GetTime() % 1
-				if f > 0.5 then
-					f = 1 - f
+			if self.duration > P.blinkFadeMinDuration then
+				local bth, fth = 1, 1
+				local blinkAllowed = not P.blinkTargetOnly
+				local fadeAllowed = not P.fadeTargetOnly
+				if P.blinkTargetOnly or P.fadeTargetOnly then
+					local isTarget = UnitExists("target") and (self.realPlate:GetAlpha() == 1)
+					if P.blinkTargetOnly then
+						blinkAllowed = isTarget
+					end
+					if P.fadeTargetOnly then
+						fadeAllowed = isTarget
+					end
 				end
-
-				self:SetAlpha(f * 3)
+				if blinkAllowed and rawTimeLeft < (P.blinkThreshold + 1/3) then
+					bth = rawTimeLeft % 1 
+					if bth > 0.5 then
+						bth = 1 - bth
+					end
+					bth = math_min(math_max(bth * 3, 0), 1)
+				end
+				if fadeAllowed and rawTimeLeft < P.fadeThreshold then
+					fth = (rawTimeLeft / P.fadeThreshold) * 0.7 + 0.3
+				end
+				self:SetAlpha(bth * fth)
 			end
 
-			if GetTime() > self.expirationTime then
+			if rawTimeLeft < 0 then
 				self:Hide()
 
 				local GUID = GetPlateGUID(self.realPlate)
@@ -374,7 +375,7 @@ end
 local function CreateBuffFrame(parentFrame, realPlate)
 	local f = CreateFrame("Frame", "MainFrame", parentFrame)
 	f.realPlate = realPlate
-	f:SetFrameStrata("BACKGROUND")
+	--f:SetFrameStrata("BACKGROUND")
 
 	f.icon = CreateFrame("Frame", "MainFrameIcon", f)
 	f.icon:SetPoint("TOP", f)
@@ -382,13 +383,14 @@ local function CreateBuffFrame(parentFrame, realPlate)
 	f.texture = f.icon:CreateTexture(nil, "BACKGROUND")
 	f.texture:SetAllPoints(true)
 
-	f.cd = f:CreateFontString(nil, "ARTWORK", "ChatFontNormal")
+	f.cd = f.icon:CreateFontString(nil, "ARTWORK", "ChatFontNormal")
 	f.cd:SetText("")
-	f.cd:SetPoint("TOP", f.icon, "BOTTOM")
+	--f.cd:SetPoint("CENTER", f.icon, "CENTER")
+	core:SetCDAnchor(f)
 
 	--Make the text easier to see.
 	f.cdbg = f:CreateTexture(nil, "BACKGROUND")
-	f.cdbg:SetTexture(0, 0, 0, .75)
+	f.cdbg:SetTexture(0, 0, 0, 0)
 	f.cdbg:SetPoint("CENTER", f.cd)
 
 	if P.legacyCooldownTexture then
@@ -437,6 +439,7 @@ local function CreateBuffFrame(parentFrame, realPlate)
 	f.msqborder:SetFrameLevel(f.icon:GetFrameLevel())
 	f.skin = f.msqborder:CreateTexture(nil, "BORDER")
 	f.skin:SetAllPoints(f.msqborder)
+
 	--	f.skin:SetBlendMode("ADD")
 	f.skin:Hide()
 
@@ -466,8 +469,7 @@ end
 local function CreateBarFrame(parentFrame, realPlate)
 	local f = CreateFrame("frame", nil, parentFrame)
 	f.realPlate = realPlate
-
-	f:SetFrameStrata("BACKGROUND")
+	--f:SetFrameStrata("BACKGROUND")
 
 	f:SetWidth(1)
 	f:SetHeight(1)
@@ -571,6 +573,18 @@ function core:UpdateAllPlateBarSizes()
 	end
 end
 
+local function SortFunc(a, b)
+	if a and b then
+		if a.playerCast ~= b.playerCast then
+			return (a.playerCast or 0) > (b.playerCast or 0)
+		elseif a.scale and b.scale and a.scale ~= b.scale then
+			return a.scale < b.scale
+		elseif a.isDebuff ~= b.isDebuff then
+			return (a.isDebuff and 1 or 0) > (b.isDebuff and 1 or 0)
+		end
+	end
+end
+
 -- Show spells on a plate linked to a GUID.
 function core:AddBuffsToPlate(plate, GUID)
 	if not buffFrames[plate] or not buffFrames[plate][P.iconsPerBar] then
@@ -579,17 +593,7 @@ function core:AddBuffsToPlate(plate, GUID)
 
 	local t, f
 	if guidBuffs[GUID] then
-		table_sort(guidBuffs[GUID], function(a, b)
-			if (a and b) then
-				if a.playerCast ~= b.playerCast then
-					return (a.playerCast or 0) > (b.playerCast or 0)
-				elseif a.expirationTime == b.expirationTime then
-					return a.name < b.name
-				else
-					return (a.expirationTime or 0) < (b.expirationTime or 0)
-				end
-			end
-		end)
+		table_sort(guidBuffs[GUID], SortFunc)
 
 		for i = 1, P.numBars * P.iconsPerBar do
 			if buffFrames[plate][i] then
@@ -603,6 +607,8 @@ function core:AddBuffsToPlate(plate, GUID)
 					buffFrames[plate][i].isDebuff = guidBuffs[GUID][i].isDebuff
 					buffFrames[plate][i].debuffType = guidBuffs[GUID][i].debuffType
 					buffFrames[plate][i].playerCast = guidBuffs[GUID][i].playerCast
+
+					buffFrames[plate][i].scale = guidBuffs[GUID][i].scale or 1
 
 					buffFrames[plate][i].texture:SetTexture("Interface\\Icons\\" .. guidBuffs[GUID][i].icon)
 					buffFrames[plate][i]:Show()
@@ -653,10 +659,17 @@ function core:UpdateAllFrameLevel()
 	end
 end
 
-function core:SetFrameLevel(frame)
+--[[ function core:SetFrameLevel(frame)
 	Debug("SetFrameLevel", frame, self.db.profile.frameLevel)
 	frame:SetFrameLevel(self.db.profile.frameLevel)
 	-- frame.cdtexture:SetFrameLevel(self.db.profile.frameLevel + 1)
+end ]]
+
+function core:SetFrameLevel(frame)
+    local plate = frame.realPlate
+    if plate and plate:GetFrameLevel() then
+        frame:SetFrameLevel(plate:GetFrameLevel())
+    end
 end
 
 -- This will reset all the anchors on the spell frames.
@@ -664,6 +677,17 @@ function core:ResetAllPlateIcons()
 	for plate in pairs(buffFrames) do
 		core:BuildBuffFrame(plate, true)
 	end
+end
+
+function core:UpdateAllCDAnchors()
+    for plate, frames in pairs(buffFrames) do
+        for i = 1, #frames do
+            local frame = frames[i]
+            if frame and frame.cd then
+                self:SetCDAnchor(frame)
+            end
+        end
+    end
 end
 
 -- Create our buff frames on a plate.
@@ -778,7 +802,8 @@ function core:ResetIconSizes()
 			frame:SetWidth((iconSize * customincreaze) + P.intervalX)
 
 			if P.showCooldown == true then
-				frame:SetHeight((iconSize2 * customincreaze) + P.cooldownSize + P.intervalY)
+				--frame:SetHeight((iconSize2 * customincreaze) + P.cooldownSize + P.intervalY)
+				frame:SetHeight((iconSize2 * customincreaze) + P.intervalY)
 			else
 				frame:SetHeight((iconSize2 * customincreaze) + P.intervalY)
 			end
