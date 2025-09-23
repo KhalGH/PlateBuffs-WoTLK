@@ -699,3 +699,4 @@ function core:SetCDAnchor(frame)
 		frame.cd:SetPoint("TOP", frame.icon, "BOTTOM", 0, -3)
 	end
 end
+
