@@ -745,7 +745,7 @@ core.DefaultSpellOptionsTable = {
 		},
 		cooldownSize = {
 			type = "range",
-			name = L["Default Cooldown Size"],
+			name = L["Default Duration Size"],
 			desc = L["Text size"],
 			order = 16,
 			min = 6,
@@ -775,8 +775,8 @@ core.DefaultSpellOptionsTable = {
 		},
 		showCooldown = {
 			type = "toggle",
-			name = L["Show cooldown"],
-			desc = L["Show cooldown text on the spell icon."],
+			name = L["Show Duration"],
+			desc = L["Show duration text on the spell icon."],
 			order = 18,
 			set = function(info, val)
 				P.showCooldown = val
@@ -786,7 +786,7 @@ core.DefaultSpellOptionsTable = {
 		},
 		cooldownFont = {
 			type = "select",
-			name = L["Cooldown Text Font"],
+			name = L["Duration Text Font"],
 			order = 19,
 			values = LSM:HashTable("font"),
 			dialogControl = "LSM30_Font",
@@ -805,8 +805,8 @@ core.DefaultSpellOptionsTable = {
 		cdAnchor = {
 			type = "select", 
 			order = 20,
-			name = L["Cooldown Anchor"],
-			desc = L["Anchor point for the cooldown text relative to the icon."],
+			name = L["Duration Text Anchor"],
+			desc = L["Anchor point for the duration text relative to the icon."],
 			values = {
 				TOP = L["Above Icon"],
 				CENTER = L["On Icon"],
@@ -825,8 +825,8 @@ core.DefaultSpellOptionsTable = {
 		},
 		digitsnumber = {
 			type = "range",
-			name = L["Cooldown decimal precision"],
-			desc = L["Number of decimal places for values below 10"],
+			name = L["Decimal precision"],
+			desc = L["Number of decimal places for duration values below 10"],
 			order = 21,
 			min = 0,
 			max = 2,
@@ -882,14 +882,14 @@ core.DefaultSpellOptionsTable = {
 		},
 		showCooldownTexture = {
 			type = "toggle",
-			name = L["Show cooldown overlay"],
-			desc = L["Show a clock overlay over spell textures showing the time remaining."] .. "\n" .. L["This overlay tends to disappear when the frame's moving."],
+			name = L["Show 'clock' overlay"],
+			desc = L["Show a vertical 'clock' overlay over spell textures showing the time remaining."] ,
 			order = 28
 		},
 		legacyCooldownTexture = {
 			type = "toggle",
-			name = L["Legacy cooldown overlay"],
-			desc = L["Use the old clock overlay to which cooldown text addons can hook their texts.\nRequires UI Reload."],
+			name = L["Legacy 'clock' overlay"],
+			desc = L["Use the old radial clock overlay which tends to disappear when the frame's moving.\nRequires UI Reload."],
 			disabled = function() return (UnitAffectingCombat("player") or InCombatLockdown() or not P.showCooldownTexture) end,
 			order = 29
 		}
