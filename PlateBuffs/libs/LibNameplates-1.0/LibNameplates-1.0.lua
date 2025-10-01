@@ -316,7 +316,6 @@ function lib:NameplateOnHide(frame)
 end
 
 function lib:NameplateOnUpdate(frame)
-	frame = self.realPlate[frame] or frame
 	if self.nameplates[frame] and self.nameplates[frame] ~= true then return end
 	local region = self.plateRegions[frame].highlightTexture
 	if not region or not region:IsShown() or region:GetAlpha() == 0 then return end
