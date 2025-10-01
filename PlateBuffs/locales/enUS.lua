@@ -181,6 +181,8 @@ L["Show 'clock' overlay"] = true
 L["Show a vertical 'clock' overlay over spell textures showing the time remaining."] = true
 L["Legacy 'clock' overlay"] = true
 L["Use the old radial clock overlay which tends to disappear when the frame's moving.\nRequires UI Reload."] = true
+L["Enable Blink/Fade"] = true
+L["Enable Blink/Fade animation when duration is expiring"] = true
 L["ShowDescription"] = "\n  Show buffs and debuffs on nameplates.\n\n  Author: Cyprias (Kader Backport), modified by Khal\n\n  Version: %s\n\n"
 
 L.about = "About"

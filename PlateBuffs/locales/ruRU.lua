@@ -200,4 +200,6 @@ L["Show 'clock' overlay"] = "Показывать наложение 'часов
 L["Show a vertical 'clock' overlay over spell textures showing the time remaining."] = "Показывать вертикальное наложение 'часов' на текстурах заклинаний, показывающее оставшееся время."
 L["Legacy 'clock' overlay"] = "Старое наложение 'часов'"
 L["Use the old radial clock overlay which tends to disappear when the frame's moving.\nRequires UI Reload."] = "Использовать старое радиальное наложение 'часов', которое имеет тенденцию исчезать при движении фрейма.\nТребуется перезагрузка интерфейса."
+L["Enable Blink/Fade"] = "Включить мигание/затухание"
+L["Enable Blink/Fade animation when duration is expiring"] = "Включает анимацию мигания/затухания при истечении времени действия"
 L["ShowDescription"] = "\n  Показывать баффы и дебаффы на индикаторах имени.\n\n  Автор: Cyprias (Kader Backport), изменено Khal\n\n  Версия: %s\n\n"
