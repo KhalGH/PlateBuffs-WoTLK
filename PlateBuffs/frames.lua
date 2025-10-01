@@ -308,7 +308,7 @@ local function iconOnUpdate(self, elapsed)
 				end
 			end
 
-			if self.duration > P.blinkFadeMinDuration then
+			if P.enableBlinkFade and self.duration > P.blinkFadeMinDuration then
 				local bth, fth = 1, 1
 				local blinkAllowed = not P.blinkTargetOnly
 				local fadeAllowed = not P.fadeTargetOnly
