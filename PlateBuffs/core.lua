@@ -31,7 +31,7 @@ local LDS = LibStub("LibDualSpec-1.0", true)
 local L = LibStub("AceLocale-3.0"):GetLocale(folder, true)
 core.L = L
 
-local defaultSpells1, defaultSpells2, defaultSpells3, defaultSpells4, CheckIDSpells, totemList = core.defaultSpells1, core.defaultSpells2, core.defaultSpells3, core.defaultSpells4, core.CheckIDSpells, core.totemList
+local defaultSpells1, defaultSpells2, defaultSpells3, defaultSpells4, CheckSpellID, totemList = core.defaultSpells1, core.defaultSpells2, core.defaultSpells3, core.defaultSpells4, core.CheckSpellID, core.totemList
 
 local regEvents = {
 	"PLAYER_TARGET_CHANGED",
@@ -130,8 +130,8 @@ for i = 1, table_getn(defaultSpells4) do
 	end
 end
 
-for i = 1, table_getn(CheckIDSpells) do
-	local spellID = CheckIDSpells[i]
+for i = 1, table_getn(CheckSpellID) do
+	local spellID = CheckSpellID[i]
 	local spellName = GetSpellInfo(spellID)
 	if core.defaultSettings.profile.spellOpts[spellName] then
 		core.defaultSettings.profile.spellOpts[spellName].grabid = true
