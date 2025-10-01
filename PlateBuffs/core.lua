@@ -53,8 +53,7 @@ core.defaultSettings = {
 
 core.buffFrames = {}
 core.guidBuffs = {}
-core.nametoGUIDs = {}
--- w/o servername
+core.nametoGUIDs = {} -- w/o servername
 core.buffBars = {}
 
 local buffBars = core.buffBars
@@ -422,11 +421,12 @@ do
 	local UnitDebuff = UnitDebuff
 
 	function core:CollectUnitInfo(unitID)
+		
 		if not unitID or UnitIsUnit(unitID, "player") then return end
 
 		local GUID = UnitGUID(unitID)
 		if not GUID then return end
-
+		
 		local unitName = UnitName(unitID)
 		if unitName and P.saveNameToGUID == true and UnitIsPlayer(unitID) or UnitClassification(unitID) == "worldboss" then
 			nametoGUIDs[unitName] = GUID
@@ -464,7 +464,7 @@ do
 							stackCount = count,
 							sID = spellId,
 							caster = unitCaster and core:GetFullName(unitCaster),
-							scale = spellOpts and (spellOpts.increase or 1) or 1 -- KHAL
+							scale = spellOpts and (spellOpts.increase or 1) or 1
 						})
 					end
 				elseif duration > 0 then
@@ -483,7 +483,7 @@ do
 							stackCount = count,
 							sID = spellId,
 							caster = unitCaster and core:GetFullName(unitCaster),
-							scale = spellOpts and (spellOpts.increase or 1) or 1 -- KHAL
+							scale = spellOpts and (spellOpts.increase or 1) or 1
 						})
 					end
 				end
@@ -515,7 +515,7 @@ do
 							isDebuff = true,
 							sID = spellId,
 							caster = unitCaster and core:GetFullName(unitCaster),
-							scale = spellOpts and (spellOpts.increase or 1) or 1 -- KHAL
+							scale = spellOpts and (spellOpts.increase or 1) or 1
 						})
 					end
 				elseif duration > 0 then
@@ -536,7 +536,7 @@ do
 							isDebuff = true,
 							sID = spellId,
 							caster = unitCaster and core:GetFullName(unitCaster),
-							scale = spellOpts and (spellOpts.increase or 1) or 1 -- KHAL
+							scale = spellOpts and (spellOpts.increase or 1) or 1
 						})
 					end
 				end
@@ -551,7 +551,7 @@ do
 				end
 			end
 		end
-
+		
 		if unitName and not self:UpdatePlateByGUID(GUID) and (UnitIsPlayer(unitID) or UnitClassification(unitID) == "worldboss") then
 			-- LibNameplates can't find a nameplate that matches that GUID. Since the unitID's a player/worldboss which have unique names, add buffs to the frame that matches that name.
 			-- Note, this /can/ add buffs to the wrong frame if a hunter pet has the same name as a player. This is so rare that I'll risk it.
@@ -699,4 +699,3 @@ function core:SetCDAnchor(frame)
 		frame.cd:SetPoint("TOP", frame.icon, "BOTTOM", 0, -3)
 	end
 end
-
