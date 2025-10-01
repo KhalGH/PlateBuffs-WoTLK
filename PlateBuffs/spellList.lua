@@ -1,13 +1,13 @@
 local core = select(2, ...)
 
--- 1.75x Scaled Icons
+------------------ Default Buff/Debuff Lists ------------------
+-- 1.75x Scaled Icons & "Show Always" enabled
 local defaultSpells1 = {
 	34976,	-- Netherstorm Flag (EotS flag)
 	23335,	-- Silverwing Flag (Alliance WSG flag)
 	23333,	-- Warsong Flag (Horde WSG flag)
 }
-
--- 1.50x Scaled Icons
+-- 1.50x Scaled Icons & "Show Always" enabled
 local defaultSpells2 = {
 	46393,	-- Brutal Assault
 	33786,	-- Cyclone
@@ -19,8 +19,7 @@ local defaultSpells2 = {
 	46392,	-- Focused Assault
 	6615,	-- Free Action
 }
-
--- 1.25x Scaled Icons
+-- 1.25x Scaled Icons & "Show Always" enabled
 local defaultSpells3 = {
 	30217,	-- Adamantite Grenade
 	13750,	-- Adrenaline Rush
@@ -33,7 +32,7 @@ local defaultSpells3 = {
 	22812,	-- Barkskin
 	5211,	-- Bash
 	53563,	-- Beacon of Light
-	50334,	-- Berserk (CheckIDSpells)
+	50334,	-- Berserk (CheckSpellID)
 	37587,	-- Bestial Wrath
 	46924,	-- Bladestorm
 	2094,	-- Blind
@@ -45,7 +44,7 @@ local defaultSpells3 = {
 	31224,	-- Cloak of Shadows
 	67769,	-- Cobalt Frag Bomb
 	12809,	-- Concussion Blow
-	6789,	-- Death Coil (CheckIDSpells)
+	6789,	-- Death Coil (CheckSpellID)
 	12292,	-- Death Wish
 	44572,	-- Deep Freeze
 	676,	-- Disarm
@@ -55,7 +54,7 @@ local defaultSpells3 = {
 	64205,	-- Divine Sacrifice	
 	42950,	-- Dragon's Breath
 	49284,	-- Earth Shield
-	26669,	-- Evasion (CheckIDSpells)
+	26669,	-- Evasion (CheckSpellID)
 	6215,	-- Fear
 	30216,	-- Fel Iron Bomb
 	64346,	-- Fiery Payback
@@ -101,7 +100,7 @@ local defaultSpells3 = {
 	1719,	-- Recklessness
 	48441,	-- Rejuvenation
 	20066,	-- Repentance
-	20230,	-- Retaliation (CheckIDSpells)
+	20230,	-- Retaliation (CheckSpellID)
 	61301,	-- Riptide
 	53480,	-- Roar of Sacrifice
 	53601,	-- Sacred Shield
@@ -122,7 +121,7 @@ local defaultSpells3 = {
 	63529,	-- Silenced - Shield of the Templar
 	50541,	-- Snatch - Bird of Prey
 	50519,	-- Sonic Blast (Bat)
-	53908,	-- Speed (CheckIDSpells)
+	53908,	-- Speed (CheckSpellID)
 	24259,	-- Spell Lock - Felhunter
 	23920,	-- Spell Reflection
 	1784,	-- Stealth
@@ -132,118 +131,16 @@ local defaultSpells3 = {
 	34692,	-- The Beast Within
 	10326,	-- Turn Evil
 	64850,	-- Unrelenting Assault
-	43523,	-- Unstable Affliction (CheckIDSpells)
+	43523,	-- Unstable Affliction (CheckSpellID)
 	57975,	-- Wound Poison VII
 	49012,	-- Wyvern Sting
 }
-
--- 1.00x Scaled Icons (Own Spells)
+-- 1.00x Scaled Icons & "Show Mine Only" enabled
 local defaultSpells4 = {
+	-- Set according to spellsByClass
 }
-
-local myClass = select(2, UnitClass("player"))
-local table_insert = table.insert
-
-if myClass == "DEATHKNIGHT" then
-	table_insert(defaultSpells4, #defaultSpells4+1, 55078)	-- Blood Plague
-	table_insert(defaultSpells4, #defaultSpells4+1, 45524)	-- Chains of Ice
-	table_insert(defaultSpells4, #defaultSpells4+1, 68766)	-- Desecration
-	table_insert(defaultSpells4, #defaultSpells4+1, 51735)	-- Ebon Plague
-	table_insert(defaultSpells4, #defaultSpells4+1, 55095)	-- Frost Fever
-	table_insert(defaultSpells4, #defaultSpells4+1, 58617)	-- Glyph of Heart Strike
-	table_insert(defaultSpells4, #defaultSpells4+1, 50436)	-- Icy Clutch
-	table_insert(defaultSpells4, #defaultSpells4+1, 50536)	-- Unholy Blight
-elseif myClass == "DRUID" then
-	table_insert(defaultSpells3, #defaultSpells3+1, 16882)	-- Detect Greater Invisibility (Not Own)
-	table_insert(defaultSpells3, #defaultSpells3+1, 132)	-- Detect Invisibility (Not Own)
-	table_insert(defaultSpells3, #defaultSpells3+1, 6512)	-- Detect Lesser Invisibility (Not Own)
-	table_insert(defaultSpells4, #defaultSpells4+1, 60433)	-- Earth and Moon
-	table_insert(defaultSpells4, #defaultSpells4+1, 53308)	-- Entangling Roots
-	table_insert(defaultSpells4, #defaultSpells4+1, 770)	-- Faerie Fire
-	table_insert(defaultSpells4, #defaultSpells4+1, 16857)	-- Faerie Fire (Feral)
-	table_insert(defaultSpells4, #defaultSpells4+1, 45334)	-- Feral Charge Effect
-	table_insert(defaultSpells4, #defaultSpells4+1, 48468)	-- Insect Swarm
-	table_insert(defaultSpells4, #defaultSpells4+1, 48463)	-- Moonfire
-elseif myClass == "HUNTER" then
-	table_insert(defaultSpells4, #defaultSpells4+1, 5116)	-- Concussive Shot
-	table_insert(defaultSpells4, #defaultSpells4+1, 49050)	-- Aimed Shot
-	table_insert(defaultSpells4, #defaultSpells4+1, 64804)	-- Entrapment
-	table_insert(defaultSpells4, #defaultSpells4+1, 13810)	-- Frost Trap Aura
-	table_insert(defaultSpells4, #defaultSpells4+1, 53338)	-- Hunter's Mark
-	table_insert(defaultSpells4, #defaultSpells4+1, 3043)	-- Scorpid Sting
-	table_insert(defaultSpells4, #defaultSpells4+1, 49001)	-- Serpent Sting
-	table_insert(defaultSpells4, #defaultSpells4+1, 3034)	-- Viper Sting
-	table_insert(defaultSpells4, #defaultSpells4+1, 2974)	-- Wing Clip
-elseif myClass == "MAGE" then
-	table_insert(defaultSpells4, #defaultSpells4+1, 42945)	-- Blast Wave
-	table_insert(defaultSpells4, #defaultSpells4+1, 7321)	-- Chilled
-	table_insert(defaultSpells4, #defaultSpells4+1, 42931)	-- Cone of Cold
-	table_insert(defaultSpells4, #defaultSpells4+1, 12494)	-- Frostbite
-	table_insert(defaultSpells4, #defaultSpells4+1, 42842)	-- Frostbolt
-	table_insert(defaultSpells4, #defaultSpells4+1, 47610)	-- Frostfire Bolt
-	table_insert(defaultSpells4, #defaultSpells4+1, 42917)	-- Frost Nova
-	table_insert(defaultSpells4, #defaultSpells4+1, 55360)	-- Living Bomb
-	table_insert(defaultSpells4, #defaultSpells4+1, 55080)	-- Shattered Barrier
-	table_insert(defaultSpells4, #defaultSpells4+1, 31589)	-- Slow
-elseif myClass == "PALADIN" then
-	table_insert(defaultSpells3, #defaultSpells3+1, 49039)	-- Lichborne (Not Own)
-	table_insert(defaultSpells4, #defaultSpells4+1, 48827)	-- Avenger's Shield
-	table_insert(defaultSpells4, #defaultSpells4+1, 20184)	-- Judgement of Justice
-	table_insert(defaultSpells4, #defaultSpells4+1, 20185)	-- Judgement of Light
-	table_insert(defaultSpells4, #defaultSpells4+1, 20186)	-- Judgement of Wisdom
-elseif myClass == "PRIEST" then
-	table_insert(defaultSpells3, #defaultSpells3+1, 6346)	-- Fear Ward (Not Own)
-	table_insert(defaultSpells3, #defaultSpells3+1, 49039)	-- Lichborne (Not Own)
-	table_insert(defaultSpells4, #defaultSpells4+1, 48300)	-- Devouring Plague
-	table_insert(defaultSpells4, #defaultSpells4+1, 48125)	-- Shadow Word: Pain
-	table_insert(defaultSpells4, #defaultSpells4+1, 48160)	-- Vampiric Touch
-elseif myClass == "ROGUE" then
-	table_insert(defaultSpells3, #defaultSpells3+1, 16882)	-- Detect Greater Invisibility (Not Own)
-	table_insert(defaultSpells3, #defaultSpells3+1, 132)	-- Detect Invisibility (Not Own)
-	table_insert(defaultSpells3, #defaultSpells3+1, 6512)	-- Detect Lesser Invisibility (Not Own)
-	table_insert(defaultSpells4, #defaultSpells4+1, 31125)	-- Blade Twisting
-	table_insert(defaultSpells4, #defaultSpells4+1, 3409)	-- Crippling Poison
-	table_insert(defaultSpells4, #defaultSpells4+1, 57970)	-- Deadly Poison IX
-	table_insert(defaultSpells4, #defaultSpells4+1, 48674)	-- Deadly Throw
-	table_insert(defaultSpells4, #defaultSpells4+1, 8647)	-- Expose Armor
-	table_insert(defaultSpells4, #defaultSpells4+1, 48672)	-- Rupture
-	table_insert(defaultSpells4, #defaultSpells4+1, 51693)	-- Waylay
-elseif myClass == "SHAMAN" then
-	table_insert(defaultSpells4, #defaultSpells4+1, 49231)	-- Earth Shock
-	table_insert(defaultSpells4, #defaultSpells4+1, 3600)	-- Earthbind
-	table_insert(defaultSpells4, #defaultSpells4+1, 64695)	-- Earthgrab
-	table_insert(defaultSpells4, #defaultSpells4+1, 49233)	-- Flame Shock
-	table_insert(defaultSpells4, #defaultSpells4+1, 49236)	-- Frost Shock
-	table_insert(defaultSpells4, #defaultSpells4+1, 58799)	-- Frostbrand Attack
-	table_insert(defaultSpells4, #defaultSpells4+1, 32175)	-- Stormstrike
-elseif myClass == "WARLOCK" then
-	table_insert(defaultSpells3, #defaultSpells3+1, 6346)	-- Fear Ward (Not Own)
-	table_insert(defaultSpells3, #defaultSpells3+1, 49039)	-- Lichborne (Not Own)
-	table_insert(defaultSpells4, #defaultSpells4+1, 18118)	-- Aftermath
-	table_insert(defaultSpells4, #defaultSpells4+1, 47813)	-- Corruption
-	table_insert(defaultSpells4, #defaultSpells4+1, 47864)	-- Curse of Agony
-	table_insert(defaultSpells4, #defaultSpells4+1, 18223)	-- Curse of Exhaustion
-	table_insert(defaultSpells4, #defaultSpells4+1, 47865)	-- Curse of the Elements
-	table_insert(defaultSpells4, #defaultSpells4+1, 11719)	-- Curse of Tongues
-	table_insert(defaultSpells4, #defaultSpells4+1, 50511)	-- Curse of Weakness
-	table_insert(defaultSpells4, #defaultSpells4+1, 63311)	-- Glyph of Shadowflame
-	table_insert(defaultSpells4, #defaultSpells4+1, 59164)	-- Haunt
-	table_insert(defaultSpells4, #defaultSpells4+1, 47811)	-- Immolate
-	table_insert(defaultSpells4, #defaultSpells4+1, 47836)	-- Seed of Corruption
-	table_insert(defaultSpells4, #defaultSpells4+1, 61291)	-- Shadowflame
-elseif myClass == "WARRIOR" then
-	table_insert(defaultSpells4, #defaultSpells4+1, 7922)	-- Charge Stun
-	table_insert(defaultSpells4, #defaultSpells4+1, 1715)	-- Hamstring
-	table_insert(defaultSpells4, #defaultSpells4+1, 23694)	-- Improved Hamstring
-	table_insert(defaultSpells4, #defaultSpells4+1, 20253)	-- Intercept
-	table_insert(defaultSpells4, #defaultSpells4+1, 47486)	-- Mortal Strike
-	table_insert(defaultSpells4, #defaultSpells4+1, 12323)	-- Piercing Howl
-	table_insert(defaultSpells4, #defaultSpells4+1, 47465)	-- Rend
-	table_insert(defaultSpells4, #defaultSpells4+1, 7386)	-- Sunder Armor
-end
-
--- Spells that share name
-local CheckIDSpells = {
+-- Spells with "Check SpellID" enabled (must also exist in a defaultSpells list)
+local CheckSpellID = {
 	50334,	-- Berserk
 	6789,	-- Death Coil
 	26669,	-- Evasion
@@ -252,8 +149,160 @@ local CheckIDSpells = {
 	43523,	-- Unstable Affliction
 }
 
+---------- Class-specific Additional Buff/Debuff ----------
+local spellsByClass = {
+    DEATHKNIGHT = {
+        defaultSpells4 = {
+            55078, -- Blood Plague
+            45524, -- Chains of Ice
+            51735, -- Ebon Plague
+            55095, -- Frost Fever
+            58617, -- Glyph of Heart Strike
+            50436, -- Icy Clutch
+            50536, -- Unholy Blight
+        },
+    },
+    DRUID = {
+        defaultSpells3 = {
+            16882, -- Detect Greater Invisibility
+            132,   -- Detect Invisibility
+            6512,  -- Detect Lesser Invisibility
+        },
+        defaultSpells4 = {
+            60433, -- Earth and Moon
+            53308, -- Entangling Roots
+            770,   -- Faerie Fire
+            16857, -- Faerie Fire (Feral)
+            45334, -- Feral Charge Effect
+            48468, -- Insect Swarm
+            48463, -- Moonfire
+        },
+    },
+    HUNTER = {
+        defaultSpells4 = {
+            5116,  -- Concussive Shot
+            49050, -- Aimed Shot
+            64804, -- Entrapment
+            13810, -- Frost Trap Aura
+            53338, -- Hunter's Mark
+            3043,  -- Scorpid Sting
+            49001, -- Serpent Sting
+            3034,  -- Viper Sting
+            2974,  -- Wing Clip
+        },
+    },
+    MAGE = {
+        defaultSpells4 = {
+            42945, -- Blast Wave
+            7321,  -- Chilled
+            42931, -- Cone of Cold
+            12494, -- Frostbite
+            42842, -- Frostbolt
+            47610, -- Frostfire Bolt
+            42917, -- Frost Nova
+            55360, -- Living Bomb
+            55080, -- Shattered Barrier
+            31589, -- Slow
+        },
+    },
+    PALADIN = {
+        defaultSpells3 = {
+            49039, -- Lichborne
+        },
+        defaultSpells4 = {
+            48827, -- Avenger's Shield
+            20184, -- Judgement of Justice
+            20185, -- Judgement of Light
+            20186, -- Judgement of Wisdom
+        },
+    },
+    PRIEST = {
+        defaultSpells3 = {
+            6346,  -- Fear Ward
+            49039, -- Lichborne
+        },
+        defaultSpells4 = {
+            48300, -- Devouring Plague
+            48125, -- Shadow Word: Pain
+            48160, -- Vampiric Touch
+        },
+    },
+    ROGUE = {
+        defaultSpells3 = {
+            16882, -- Detect Greater Invisibility
+            132,   -- Detect Invisibility
+            6512,  -- Detect Lesser Invisibility
+        },
+        defaultSpells4 = {
+            31125, -- Blade Twisting
+            3409,  -- Crippling Poison
+            57970, -- Deadly Poison IX
+            48674, -- Deadly Throw
+            8647,  -- Expose Armor
+            48672, -- Rupture
+            51693, -- Waylay
+        },
+    },
+    SHAMAN = {
+        defaultSpells4 = {
+            49231, -- Earth Shock
+            3600,  -- Earthbind
+            64695, -- Earthgrab
+            49233, -- Flame Shock
+            49236, -- Frost Shock
+            58799, -- Frostbrand Attack
+            32175, -- Stormstrike
+        },
+    },
+    WARLOCK = {
+        defaultSpells3 = {
+            6346,  -- Fear Ward
+            49039, -- Lichborne
+        },
+        defaultSpells4 = {
+            18118, -- Aftermath
+            47813, -- Corruption
+            47864, -- Curse of Agony
+            18223, -- Curse of Exhaustion
+            47865, -- Curse of the Elements
+            11719, -- Curse of Tongues
+            50511, -- Curse of Weakness
+            63311, -- Glyph of Shadowflame
+            59164, -- Haunt
+            47811, -- Immolate
+            47836, -- Seed of Corruption
+            61291, -- Shadowflame
+        },
+    },
+    WARRIOR = {
+        defaultSpells4 = {
+            7922,  -- Charge Stun
+            1715,  -- Hamstring
+            23694, -- Improved Hamstring
+            20253, -- Intercept
+            47486, -- Mortal Strike
+            12323, -- Piercing Howl
+            47465, -- Rend
+            7386,  -- Sunder Armor
+        },
+    },
+}
+local myClass = select(2, UnitClass("player"))
+local classSpells = myClass and spellsByClass[myClass]
+if classSpells and classSpells.defaultSpells3 then
+	for _, id in ipairs(classSpells.defaultSpells3) do
+    	table.insert(defaultSpells3, id)
+	end
+end
+if classSpells and classSpells.defaultSpells4 then
+	for _, id in ipairs(classSpells.defaultSpells4) do
+    	table.insert(defaultSpells4, id)
+	end
+end
+
+----------- Reference for core.lua -----------
 core.defaultSpells1 = defaultSpells1
 core.defaultSpells2 = defaultSpells2
 core.defaultSpells3 = defaultSpells3
 core.defaultSpells4 = defaultSpells4
-core.CheckIDSpells  = CheckIDSpells
+core.CheckSpellID  = CheckSpellID
