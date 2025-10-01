@@ -315,6 +315,15 @@ function lib:NameplateOnHide(frame)
 	self:RecycleNameplate(frame)
 end
 
+function lib:NameplateOnUpdate(frame)
+	frame = self.realPlate[frame] or frame
+	if self.nameplates[frame] and self.nameplates[frame] ~= true then return end
+	local region = self.plateRegions[frame].highlightTexture
+	if not region or not region:IsShown() or region:GetAlpha() == 0 then return end
+	if self:GetName(frame) ~= UnitName("mouseover") then return end
+	FoundPlateGUID(frame, UnitGUID("mouseover"), "mouseover", "UPDATE_MOUSEOVER_UNIT")
+end
+
 local FindGUIDByRaidIcon
 do
 	local GetRaidTargetIndex = GetRaidTargetIndex
@@ -456,6 +465,9 @@ do
 	local function ourOnHide(...)
 		lib:NameplateOnHide(...)
 	end
+	local function ourOnUpdate(...)
+		lib:NameplateOnUpdate(...)
+	end
 	local function ourHealthOnValueChanged(...)
 		return lib:healthOnValueChanged(...)
 	end
@@ -468,6 +480,7 @@ do
 
 	lib.onHideHooks = lib.onHideHooks or {}
 	lib.onShowHooks = lib.onShowHooks or {}
+	lib.onUpdateHooks = lib.onUpdateHooks or {}
 	lib.healthOnValueChangedHooks = lib.healthOnValueChangedHooks or {}
 	lib.onFinishedGroups = lib.onFinishedGroups or {}
 
@@ -481,6 +494,11 @@ do
 		if frame:HasScript("OnShow") and not self.onShowHooks[frame] then
 			self.onShowHooks[frame] = true
 			frame:HookScript("OnShow", ourOnShow)
+		end
+
+		if frame:HasScript("OnUpdate") and not self.onUpdateHooks[frame] then
+			self.onUpdateHooks[frame] = true
+			frame:HookScript("OnUpdate", ourOnUpdate)
 		end
 
 		if not self.onFinishedGroups[frame] then
