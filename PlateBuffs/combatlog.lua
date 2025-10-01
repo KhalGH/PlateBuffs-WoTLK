@@ -165,6 +165,7 @@ do
 	end
 
 	function core:LibAuraInfo_AURA_APPLIED(event, dstGUID, spellID, srcGUID, spellSchool, auraType)
+
 		if dstGUID == playerGUID then return end
 
 		local found, stackCount, debuffType, duration, expires, isDebuff, casterGUID = LibAI:GUIDAuraID(dstGUID, spellID)
