@@ -651,12 +651,12 @@ do
 	f:SetScript("OnEvent", function(self, event, ...)
 		if event == "PLAYER_TARGET_CHANGED" then
 			if UnitExists("target") and not UnitIsUnit("target", "player") then
-				self.unitID = "target"
+				self.pendingTarget = true
 				self:Show()
 			end
 		elseif event == "UPDATE_MOUSEOVER_UNIT" and GetMouseFocus() == WorldFrame then
 			if UnitExists("mouseover") and not UnitIsUnit("mouseover", "player") then
-				self.unitID = "mouseover"
+				self.pendingMouseover = true
 				self:Show()
 			end
 		elseif event == "RAID_TARGET_UPDATE" then
@@ -671,20 +671,25 @@ do
 		end
 	end)
 	f:SetScript("OnUpdate", function(self, elapsed)
-		for frame, guid in pairs(lib.nameplates) do
-			if self.unitID == "target" and frame:IsShown() and lib:IsTarget(frame, true) then
+		for frame, guid in pairs(lib.nameplates) do	
+			if self.pendingTarget and frame:IsShown() and lib:IsTarget(frame, true) then
+				self.pendingTarget = nil
 				if guid == true then -- already set
 					FoundPlateGUID(frame, UnitGUID("target"), "target", "PLAYER_TARGET_CHANGED")
 				end
-				break
-			elseif self.unitID == "mouseover" and frame:IsShown() and lib:IsMouseover(frame) then
+			end
+			if self.pendingMouseover and frame:IsShown() and lib:IsMouseover(frame) then
+				self.pendingMouseover = nil
 				if guid == true then -- already set
 					FoundPlateGUID(frame, UnitGUID("mouseover"), "mouseover", "UPDATE_MOUSEOVER_UNIT")
 				end
+			end
+			if not self.pendingTarget and not self.pendingMouseover then
 				break
 			end
 		end
-		self.unitID = nil
+		self.pendingTarget = nil
+		self.pendingMouseover = nil
 		self:Hide()
 	end)
 end
@@ -940,7 +945,7 @@ function lib:IsMouseover(frame)
 	frame = self.realPlate[frame] or frame
 	local region = self.plateRegions[frame].highlightTexture
 	if region and region.IsShown then
-		return region:IsShown() and (region:GetAlpha() > 0) or false
+        return region:IsShown() and (region:GetAlpha() > 0) or false
 	end
 end
 
