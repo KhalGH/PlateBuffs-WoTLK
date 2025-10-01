@@ -92,6 +92,7 @@ defaultSettings.color6 = {0.83, 0.83, 0.83}
 defaultSettings.showTotems = false
 defaultSettings.npcCombatWithOnly = false
 defaultSettings.playerCombatWithOnly = false
+defaultSettings.enableBlinkFade = true
 defaultSettings.blinkThreshold = 3
 defaultSettings.fadeThreshold = 3
 defaultSettings.blinkFadeMinDuration = 6
@@ -591,6 +592,11 @@ core.DefaultSpellOptionsTable = {
 			name = L["Icon settings"],
 			order = 1
 		},
+		blank1 = {
+			type = "description",
+			name = " ",
+			order = 1.5,
+		},
 		iconSize = {
 			type = "range",
 			name = L["Icon width"],
@@ -738,10 +744,20 @@ core.DefaultSpellOptionsTable = {
 				P.color6 = {r, g, b}
 			end
 		},
+		blank2 = {
+			type = "description",
+			name = " ",
+			order = 14.5,
+		},
 		textHeader = {
 			type = "header",
 			name = L["Text settings"],
 			order = 15
+		},
+		blank3 = {
+			type = "description",
+			name = " ",
+			order = 15.5,
 		},
 		cooldownSize = {
 			type = "range",
@@ -773,10 +789,16 @@ core.DefaultSpellOptionsTable = {
 				core:ResetStackSizes()
 			end
 		},
+		blank4 = {
+			type = "description",
+			name = " ",
+			order = 17.5,
+		},
 		showCooldown = {
 			type = "toggle",
 			name = L["Show Duration"],
 			desc = L["Show duration text on the spell icon."],
+			width = "full",
 			order = 18,
 			set = function(info, val)
 				P.showCooldown = val
@@ -835,63 +857,90 @@ core.DefaultSpellOptionsTable = {
 				return (P.legacyCooldownTexture or not (P.showCooldown or P.showCooldownTexture))
 			end
 		},
+		blank5 = {
+			type = "description",
+			name = " ",
+			order = 21.5,
+		},
 		animationHeader = {
 			type = "header",
 			name = L["Animation settings"],
 			order = 22
 		},
+		enableBlinkFade = {
+			type = "toggle",
+			name = L["Enable Blink/Fade"],
+			desc = L["Enable Blink/Fade animation when duration is expiring"],
+			order = 23,
+			width = "full"
+		},
+		blank6 = {
+			type = "description",
+			name = " ",
+			order = 23.5,
+		},
 		blinkThreshold = {
 			type = "range",
 			name = L["Blink threshold time"],
 			desc = L["Blink icon below x seconds"],
-			order = 23,
+			order = 24,
 			min = 0,
 			max = 10,
-			step = 1
+			step = 1,
+			disabled = function() return not P.enableBlinkFade end
 		},
 		fadeThreshold = {
 			type = "range",
 			name = L["Fade threshold time"],
 			desc = L["Progressive fade out icon below x seconds"],
-			order = 24,
+			order = 25,
 			min	= 0,
 			max	= 10,
-			step = 1
+			step = 1,
+			disabled = function() return not P.enableBlinkFade end
 		},
 		blinkFadeMinDuration = {
 			type = "range",
 			name = L["Min duration for Blink/Fade"],
 			desc = L["Blink and fade effects will only apply to auras with a duration longer than this value."],
-			order = 25,
+			order = 26,
 			min = 3,
 			max = 10,
-			step = 1
-		},	
+			step = 1,
+			disabled = function() return not P.enableBlinkFade end
+		},
 		blinkTargetOnly = {
 			type = "toggle",
 			name = L["Only blink on target"],
 			desc = L["Restrict blinking effect to auras on the target's nameplate only"],
-			order = 26
+			order = 27,
+			disabled = function() return not P.enableBlinkFade end
 		},
 		fadeTargetOnly = {
 			type = "toggle",
 			name = L["Only fade on target"],
 			desc = L["Restrict fade effect to auras on the target's nameplate only"],
 			width = "double",
-			order = 27
+			order = 28,
+			disabled = function() return not P.enableBlinkFade end
+		},
+		blank7 = {
+			type = "description",
+			name = " ",
+			order = 28.5,
 		},
 		showCooldownTexture = {
 			type = "toggle",
 			name = L["Show 'clock' overlay"],
 			desc = L["Show a vertical 'clock' overlay over spell textures showing the time remaining."] ,
-			order = 28
+			order = 29
 		},
 		legacyCooldownTexture = {
 			type = "toggle",
 			name = L["Legacy 'clock' overlay"],
 			desc = L["Use the old radial clock overlay which tends to disappear when the frame's moving.\nRequires UI Reload."],
 			disabled = function() return (UnitAffectingCombat("player") or InCombatLockdown() or not P.showCooldownTexture) end,
-			order = 29
+			order = 30
 		}
 	}
 }
@@ -1138,6 +1187,7 @@ do
 		"Title",
 		"Notes",
 		"Author",
+		"X-Backporter",
 		"X-Modder",
 		"Version",
 		"X-Date",
@@ -1147,6 +1197,7 @@ do
 		["X-Website"] = true,
 	}
 	local fNames = {
+		["X-Backporter"] = "Backporter",
 		["X-Modder"] = "Modder",
 		["X-Date"] = "Date",
 		["X-Website"] = "Website",
