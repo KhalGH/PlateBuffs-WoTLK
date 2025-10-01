@@ -16,12 +16,12 @@ This repository contains a modified version of Kader's backport, featuring enhan
 </p>
 
 ## Installation
-1. [Download](https://github.com/KhalGH/PlateBuffs-WotLK/releases/download/r232/PlateBuffs-r232.zip) the addon
+1. [Download](https://github.com/KhalGH/PlateBuffs-WotLK/releases/download/r233/PlateBuffs-r233.zip) the addon
 2. Extract the **PlateBuffs** folder into `World of Warcraft/Interface/AddOns/`.  
 3. Restart the game and enable the addon.
 
 ## Information  
-- **Addon Version:** 1.18.3 (r232)
+- **Addon Version:** 1.19.0 (r233)
 - **Game Version:** 3.3.5a (WotLK)
 - **Original Author:** Cyprias
 - **Backported by:** Kader
