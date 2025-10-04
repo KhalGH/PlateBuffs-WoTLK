@@ -76,7 +76,7 @@ local defaultSpells3 = {
 	49203,	-- Hungering Cold
 	48792,	-- Icebound Fortitude
 	12472,	-- Icy Veins
-	12355,	-- Impact
+	12355,	-- Impact (CheckSpellID)
 	20511,	-- Intimidating Shout
 	24394,	-- Intimidation
 	408,	-- Kidney Shot
@@ -144,6 +144,7 @@ local CheckSpellID = {
 	50334,	-- Berserk
 	6789,	-- Death Coil
 	26669,	-- Evasion
+	12355,	-- Impact
 	20230,	-- Retaliation
 	53908,	-- Speed
 	43523,	-- Unstable Affliction
