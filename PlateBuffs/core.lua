@@ -31,7 +31,12 @@ local LDS = LibStub("LibDualSpec-1.0", true)
 local L = LibStub("AceLocale-3.0"):GetLocale(folder, true)
 core.L = L
 
-local defaultSpells1, defaultSpells2, defaultSpells3, defaultSpells4, CheckSpellID, totemList = core.defaultSpells1, core.defaultSpells2, core.defaultSpells3, core.defaultSpells4, core.CheckSpellID, core.totemList
+local defaultSpells1, defaultScale1, defaultDurationSize1, defaultStackSize1 = core.defaultSpells1, core.defaultScale1, core.defaultDurationSize1, core.defaultStackSize1
+local defaultSpells2, defaultScale2, defaultDurationSize2, defaultStackSize2 = core.defaultSpells2, core.defaultScale2, core.defaultDurationSize2, core.defaultStackSize2
+local defaultSpells3, defaultScale3, defaultDurationSize3, defaultStackSize3 = core.defaultSpells3, core.defaultScale3, core.defaultDurationSize3, core.defaultStackSize3
+local defaultSpells4, defaultScale4, defaultDurationSize4, defaultStackSize4 = core.defaultSpells4, core.defaultScale4, core.defaultDurationSize4, core.defaultStackSize4
+local CheckSpellID =  core.CheckSpellID
+local totemList =core.totemList
 
 local regEvents = {
 	"PLAYER_TARGET_CHANGED",
@@ -80,10 +85,10 @@ for i = 1, table_getn(defaultSpells1) do
 	if spellName then
 		core.defaultSettings.profile.spellOpts[spellName] = {
 			spellID = spellID,
-			increase = 1.75,
-			cooldownSize = 16,
+			increase = defaultScale1,
+			cooldownSize = defaultDurationSize1,
 			show = 1,
-			stackSize = 13
+			stackSize = defaultStackSize1
 		}
 	end
 end
@@ -94,10 +99,10 @@ for i = 1, table_getn(defaultSpells2) do
 	if spellName then
 		core.defaultSettings.profile.spellOpts[spellName] = {
 			spellID = spellID,
-			increase = 1.5,
-			cooldownSize = 15,
+			increase = defaultScale2,
+			cooldownSize = defaultDurationSize2,
 			show = 1,
-			stackSize = 12
+			stackSize = defaultStackSize2
 		}
 	end
 end
@@ -107,11 +112,11 @@ for i = 1, table_getn(defaultSpells3) do
 	local spellName = GetSpellInfo(defaultSpells3[i])
 	if spellName then
 		core.defaultSettings.profile.spellOpts[spellName] = {
-			spellID = defaultSpells3[i],
-			increase = 1.25,
-			cooldownSize = 13,
+			spellID = spellID,
+			increase = defaultScale3,
+			cooldownSize = defaultDurationSize3,
 			show = 1,
-			stackSize = 10
+			stackSize = defaultStackSize3
 		}
 	end
 end
@@ -122,10 +127,10 @@ for i = 1, table_getn(defaultSpells4) do
 	if spellName then
 		core.defaultSettings.profile.spellOpts[spellName] = {
 			spellID = spellID,
-			increase = 1,
-			cooldownSize = 11,
+			increase = defaultScale4,
+			cooldownSize = defaultDurationSize4,
 			show = 2,
-			stackSize = 8
+			stackSize = defaultStackSize4
 		}
 	end
 end
