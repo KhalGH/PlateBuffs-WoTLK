@@ -2,12 +2,18 @@ local core = select(2, ...)
 
 ------------------ Default Buff/Debuff Lists ------------------
 -- 1.75x Scaled Icons & "Show Always" enabled
+local defaultScale1 = 1.75
+local defaultDurationSize1 = 16
+local defaultStackSize1 = 13
 local defaultSpells1 = {
 	34976,	-- Netherstorm Flag (EotS flag)
 	23335,	-- Silverwing Flag (Alliance WSG flag)
 	23333,	-- Warsong Flag (Horde WSG flag)
 }
 -- 1.50x Scaled Icons & "Show Always" enabled
+local defaultScale2 = 1.5
+local defaultDurationSize2 = 15
+local defaultStackSize2 = 12
 local defaultSpells2 = {
 	46393,	-- Brutal Assault
 	33786,	-- Cyclone
@@ -20,6 +26,9 @@ local defaultSpells2 = {
 	6615,	-- Free Action
 }
 -- 1.25x Scaled Icons & "Show Always" enabled
+local defaultScale3 = 1.25
+local defaultDurationSize3 = 13
+local defaultStackSize3 = 10
 local defaultSpells3 = {
 	30217,	-- Adamantite Grenade
 	13750,	-- Adrenaline Rush
@@ -124,7 +133,6 @@ local defaultSpells3 = {
 	53908,	-- Speed (CheckSpellID)
 	24259,	-- Spell Lock - Felhunter
 	23920,	-- Spell Reflection
-	1784,	-- Stealth
 	47476,	-- Strangulate
 	61336,	-- Survival Instincts
 	12328,	-- Sweeping Strikes
@@ -136,6 +144,9 @@ local defaultSpells3 = {
 	49012,	-- Wyvern Sting
 }
 -- 1.00x Scaled Icons & "Show Mine Only" enabled
+local defaultScale4 = 1
+local defaultDurationSize4 = 11
+local defaultStackSize4 = 8
 local defaultSpells4 = {
 	-- Set according to spellsByClass
 }
@@ -212,6 +223,14 @@ local spellsByClass = {
         },
         defaultSpells4 = {
             48827, -- Avenger's Shield
+			20217, -- Blessing of Kings
+			48932, -- Blessing of Might
+			20911, -- Blessing of Sanctuary
+			48936, -- Blessing of Wisdom
+			25898, -- Greater Blessing of Kings
+			48934, -- Greater Blessing of Might
+			25899, -- Greater Blessing of Sanctuary
+			48938, -- Greater Blessing of Wisdom
             20184, -- Judgement of Justice
             20185, -- Judgement of Light
             20186, -- Judgement of Wisdom
@@ -302,8 +321,8 @@ if classSpells and classSpells.defaultSpells4 then
 end
 
 ----------- Reference for core.lua -----------
-core.defaultSpells1 = defaultSpells1
-core.defaultSpells2 = defaultSpells2
-core.defaultSpells3 = defaultSpells3
-core.defaultSpells4 = defaultSpells4
-core.CheckSpellID  = CheckSpellID
+core.defaultSpells1, core.defaultScale1, core.defaultDurationSize1, core.defaultStackSize1 = defaultSpells1, defaultScale1, defaultDurationSize1, defaultStackSize1
+core.defaultSpells2, core.defaultScale2, core.defaultDurationSize2, core.defaultStackSize2 = defaultSpells2, defaultScale2, defaultDurationSize2, defaultStackSize2
+core.defaultSpells3, core.defaultScale3, core.defaultDurationSize3, core.defaultStackSize3 = defaultSpells3, defaultScale3, defaultDurationSize3, defaultStackSize3
+core.defaultSpells4, core.defaultScale4, core.defaultDurationSize4, core.defaultStackSize4 = defaultSpells4, defaultScale4, defaultDurationSize4, defaultStackSize4
+core.CheckSpellID = CheckSpellID
