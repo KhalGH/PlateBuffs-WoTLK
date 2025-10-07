@@ -658,6 +658,7 @@ core.DefaultSpellOptionsTable = {
 				["Interface\\Addons\\PlateBuffs\\media\\DefaultBorder.blp"] = L["Default"],
 				["Interface\\Addons\\PlateBuffs\\media\\ThinBorder.tga"] = L["Thin"],
 				["Interface\\Addons\\PlateBuffs\\media\\SquareBorder.tga"] = L["Square"],
+				["Interface\\Addons\\PlateBuffs\\media\\ThinSquareBorder.tga"] = L["Thin Square"],
 				["Masque"] = (MSQ and "Masque" or nil)
 			},
 			set = function(info, val)
