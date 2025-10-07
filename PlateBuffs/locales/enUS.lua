@@ -163,6 +163,7 @@ L["Only SpellList"] = true
 L["Default"] = true
 L["Thin"] = true
 L["Square"] = true
+L["Thin Square"] = true
 L["Default Duration Size"] = true
 L["Show Duration"] = true
 L["Show duration text on the spell icon."] = true
