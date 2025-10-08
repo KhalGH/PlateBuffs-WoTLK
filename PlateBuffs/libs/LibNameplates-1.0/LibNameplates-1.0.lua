@@ -178,16 +178,12 @@ do
 end
 
 local function IsNamePlateFrame(frame)
-	if frame.extended or frame.aloftData or frame.kui then
-		--Tidyplates = extended, Aloft = aloftData, KuiNameplates = kui
+	if frame.extended or frame.aloftData or frame.kui or frame.done or frame.UnitFrame then
+		--Tidyplates = extended, Aloft = aloftData, KuiNameplates = kui, caelNP = done, ElvUI = UnitFrame
 		--They sometimes remove & replace the children so this needs to be checked first.
 		return true
 	end
-
-	if frame.done then --caelNP
-		return true
-	end
-
+	
 	if frame:GetName() then
 		debugPrint("GetName", frame:GetName())
 		return false
@@ -846,15 +842,15 @@ end
 function lib:IsTarget(frame, quick)
 	if not frame then return end
 	quick = quick or (frame:IsShown() and UnitExists("target"))
-
-	-- if frame.UnitFrame then -- ElvUI
-	-- 	if not self.fakePlate[frame] then
-	-- 		self.fakePlate[frame] = frame.UnitFrame
-	-- 		self.realPlate[frame.UnitFrame] = frame
-	-- 	end
-	-- 	return quick and (frame.UnitFrame.alpha == 1) or false
-	-- end
-
+	
+	if frame.UnitFrame then -- ElvUI
+		if not self.fakePlate[frame] then
+			self.fakePlate[frame] = frame.UnitFrame
+			self.realPlate[frame.UnitFrame] = frame
+		end
+		return quick and (frame.UnitFrame.alpha == 1) or false
+	end
+	
 	frame = self.realPlate[frame] or frame
 	return quick and (frame:GetAlpha() == 1) or false
 end
