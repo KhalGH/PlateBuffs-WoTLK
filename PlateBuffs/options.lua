@@ -58,7 +58,6 @@ defaultSettings.aboveNPC = true
 defaultSettings.aboveFriendly = true
 defaultSettings.aboveNeutral = true
 defaultSettings.aboveHostile = true
-defaultSettings.aboveTapped = true
 defaultSettings.textureSize = 0
 defaultSettings.barAnchorPoint = "BOTTOM"
 defaultSettings.plateAnchorPoint = "TOP"
@@ -195,7 +194,7 @@ core.DisplayOptionsTable = {
 		abovePlayers = {
 			type = "toggle",
 			name = L["Players"],
-			desc = L["Add buffs above players"],
+			desc = L["Add buffs above players. 'Class Color in Nameplates' must be enabled."],
 			order = 6
 		},
 		aboveNPC = {
@@ -227,33 +226,27 @@ core.DisplayOptionsTable = {
 			desc = L["Add buffs above hostile plates"],
 			order = 11
 		},
-		aboveTapped = {
-			type = "toggle",
-			name = L["Tapped"],
-			desc = L["Add buffs above tapped plates"],
-			order = 12
-		},
 		otherHeader = {
 			name = L["Misc"],
 			type = "header",
-			order = 13
+			order = 12
 		},
 		spacer1 = {
 			type = "description",
 			name = "",
-			order = 14
+			order = 13
 		},
 		showTotems = {
 			type = "toggle",
 			name = L["Show Totems"],
 			desc = L["Show spell icons on totems"],
-			order = 15
+			order = 14
 		},
 		npcCombatWithOnly = {
 			type = "toggle",
 			name = L["NPC combat only"],
 			desc = L["Only show spells above nameplates that are in combat."],
-			order = 16,
+			order = 15,
 			set = function(info, val)
 				P.npcCombatWithOnly = val
 				core:Disable()
@@ -264,7 +257,7 @@ core.DisplayOptionsTable = {
 			type = "toggle",
 			name = L["Player combat only"],
 			desc = L["Only show spells above nameplates that are in combat."],
-			order = 17,
+			order = 16,
 			set = function(info, val)
 				P.playerCombatWithOnly = val
 				core:Disable()
@@ -275,13 +268,13 @@ core.DisplayOptionsTable = {
 			type = "toggle",
 			name = L["Show question mark"],
 			desc = L["Displays a question mark above unidentified nameplates. Identify them by target or mouseover."],
-			order = 18
+			order = 17
 		},
 		saveNameToGUID = {
 			type = "toggle",
 			name = L["Save player GUID"],
 			desc = L["Remember player GUID's so target/mouseover isn't needed every time nameplate appears.\nKeep this enabled"],
-			order = 19,
+			order = 18,
 			get = function(info)
 				return P.saveNameToGUID
 			end,
@@ -293,7 +286,7 @@ core.DisplayOptionsTable = {
 			type = "toggle",
 			name = L["Watch Combatlog"],
 			desc = L["Watch combatlog for people gaining/losing spells.\nDisable this if you're having performance issues."],
-			order = 20,
+			order = 19,
 			get = function()
 				return P.watchCombatlog
 			end,

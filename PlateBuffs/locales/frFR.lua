@@ -8,6 +8,7 @@ L["Add buffs above friendly plates"] = "Ajouter les buffs au-dessus des alliés"
 L["Add buffs above hostile plates"] = "Ajouter les buffs au-dessus des ennemis"
 L["Add buffs above neutral plates"] = "Ajouter les buffs au-dessus des neutres"
 L["Add buffs above players"] = "Ajouter les buffs au-dessus des joueurs"
+L["Add buffs above players. 'Class Color in Nameplates' must be enabled."] = "Ajouter les buffs au-dessus des joueurs. 'Couleur de classe sur les barres de nom' doit être activée."
 L["Add spell"] = "Ajouter le sort"
 L[ [=[Add spell descriptions to the specific spell's list.
 Disabling this will lower memory usage and login time.]=] ] = [=[Ajouter des descriptions de sorts à la liste des sorts particuliers.

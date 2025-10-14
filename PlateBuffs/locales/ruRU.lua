@@ -3,14 +3,13 @@ local L = LibStub("AceLocale-3.0"):NewLocale(folder, "ruRU")
 if not L then return end
 
 L["Check SpellID"] = "Проверка SpellID"
-L["Tapped"] = "Чужой"
-L["Add buffs above tapped plates"] = "Добавить баффы над полосками здоровья НИПа другого игрока"
 L["Add Spell Description"] = "Добавить описание заклинания"
 L["Add buffs above NPCs"] = "Добавить баффы над НИПами"
 L["Add buffs above friendly plates"] = "Добавить баффы над полосками здоровья союзников"
 L["Add buffs above hostile plates"] = "Добавить баффы над полосками здоровья противников"
 L["Add buffs above neutral plates"] = "Добавить баффы над полосками здоровья нейтральных персонажей"
 L["Add buffs above players"] = "Добавить баффы над игроками"
+L["Add buffs above players. 'Class Color in Nameplates' must be enabled."] = "Добавить баффы над игроками. 'Цвет класса на индикаторах' должен быть включён."
 L["Add spell"] = "Добавить заклинание"
 L[ [=[Add spell descriptions to the specific spell's list.
 Disabling this will lower memory usage and login time.]=] ] = [=[Добавить описания заклинаний в список конкретных заклинаний.

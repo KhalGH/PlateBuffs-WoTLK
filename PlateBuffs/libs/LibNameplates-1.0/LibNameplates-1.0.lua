@@ -4,7 +4,7 @@
 	Description:
 		Alerts addons when a nameplate is shown or hidden.
 		Has API to get info such as name, level, class, ect from the nameplate.
-		LibNameplates tries to function with the default nameplates, Aloft, caelNamePlates and TidyPlates.
+		LibNameplates tries to function with the default nameplates, Aloft and TidyPlates.
 	Dependencies: LibStub, CallbackHandler-1.0
 ]]
 local MAJOR, MINOR = "LibNameplates-1.0", 34
@@ -177,71 +177,40 @@ do
 	end
 end
 
-local function IsNamePlateFrame(frame)
-	if frame.extended or frame.aloftData or frame.kui or frame.done or frame.UnitFrame then
-		--Tidyplates = extended, Aloft = aloftData, KuiNameplates = kui, caelNP = done, ElvUI = UnitFrame
-		--They sometimes remove & replace the children so this needs to be checked first.
-		return true
-	end
-	
-	if frame:GetName() then
-		debugPrint("GetName", frame:GetName())
-		return false
-	end
-
-	if frame:GetID() ~= 0 then
-		debugPrint("GetID", frame:GetID())
-		return false
-	end
-
-	if frame:GetObjectType() ~= "Frame" then
-		debugPrint("GetObjectType", frame:GetObjectType())
-		return false
-	end
-
-	if frame:GetNumChildren() == 0 then
-		debugPrint("GetNumChildren", frame:GetNumChildren())
-		return false
-	end
-
-	if frame:GetNumRegions() == 0 then
-		debugPrint("GetNumRegions", frame:GetNumRegions())
-		return false
-	end
-
-	return true
-end
-
-local ScanWorldFrameChildren
-function ScanWorldFrameChildren(frame, ...)
-	if not frame then return end
-	if frame:IsShown() and not lib.nameplates[frame] and IsNamePlateFrame(frame) then
-		lib:NameplateFirstLoad(frame)
-	end
-	return ScanWorldFrameChildren(...)
-end
-
+-- Scans and handles new nameplates in the WorldFrame
 do
-	local WorldFrame = WorldFrame
-	local prevChildren, curChildren = 0, nil
-	local lastUpdated = 0
-	local function onUpdate(this, elapsed)
-		lastUpdated = lastUpdated + elapsed
-		if lastUpdated > 0.01 then
-			lastUpdated = 0
+	if not lib.scanForPlate then
+		lib.scanForPlate = CreateFrame("frame")
+		local WorldFrame = WorldFrame
+		local prevChildren, curChildren = 0
+		local function IsNamePlate(frame)
+			if frame.RealPlate  -- KhalPlates
+			or frame.extended   -- TidyPlates
+			or frame.UnitFrame  -- ElvUI
+			or frame.kui        -- KuiNameplates
+			or frame.aloftData  -- Aloft
+			then
+				return true
+			end
+			local _, r2 = frame:GetRegions()
+			return r2 and r2:GetObjectType() == "Texture" and r2:GetTexture() == "Interface\\Tooltips\\Nameplate-Border" 
+		end
+		lib.scanForPlate:SetScript("OnUpdate", function()
 			curChildren = WorldFrame:GetNumChildren()
 			if curChildren ~= prevChildren then
+				for i = prevChildren + 1, curChildren do
+					local child = select(i, WorldFrame:GetChildren())
+					if IsNamePlate(child) then
+						lib:NameplateFirstLoad(child)
+					end
+				end
 				prevChildren = curChildren
-				ScanWorldFrameChildren(WorldFrame:GetChildren())
 			end
-		end
+		end)
 	end
-
-	lib.scanForPlate = lib.scanForPlate or CreateFrame("frame")
-	lib.scanForPlate:SetScript("OnUpdate", onUpdate)
 end
 
-local function FoundPlateGUID(frame, GUID, unitID, from)
+local function FoundPlateGUID(frame, GUID, unitID)
 	lib.nameplates[frame] = GUID
 	lib.callbacks:Fire(callbackFoundGUID, lib.fakePlate[frame] or frame, GUID, unitID)
 end
@@ -316,7 +285,7 @@ function lib:NameplateOnUpdate(frame)
 	local region = self.plateRegions[frame].highlightTexture
 	if not region or not region:IsShown() or region:GetAlpha() == 0 then return end
 	if self:GetName(frame) ~= UnitName("mouseover") then return end
-	FoundPlateGUID(frame, UnitGUID("mouseover"), "mouseover", "UPDATE_MOUSEOVER_UNIT")
+	FoundPlateGUID(frame, UnitGUID("mouseover"), "mouseover")
 end
 
 local FindGUIDByRaidIcon
@@ -324,27 +293,27 @@ do
 	local GetRaidTargetIndex = GetRaidTargetIndex
 	local tostring = tostring
 
-	local function CheckRaidIconOnUnit(unitID, frame, raidNum, from)
+	local function CheckRaidIconOnUnit(unitID, frame, raidNum)
 		local targetID = format("%starget", unitID)
 		if UnitExists(targetID) and not UnitIsUnit("target", targetID) then
 			local targetIndex = GetRaidTargetIndex(targetID)
 			if targetIndex and targetIndex == raidNum then
 				debugPrint(
-					"FindGUIDByRaidIcon", from,
+					"FindGUIDByRaidIcon",
 					format("Icon: %s", tostring(raidNum)),
 					format("unitID: %s", tostring(targetID)),
 					format("GUID: %s", tostring(UnitGUID(targetID)))
 				)
-				FoundPlateGUID(frame, UnitGUID(targetID), targetID, from)
+				FoundPlateGUID(frame, UnitGUID(targetID), targetID)
 				return true
 			end
 		end
 		return false
 	end
 
-	function FindGUIDByRaidIcon(frame, raidNum, from)
+	function FindGUIDByRaidIcon(frame, raidNum)
 		for unitID in UnitIterator() do
-			if CheckRaidIconOnUnit(unitID, frame, raidNum, from) then
+			if CheckRaidIconOnUnit(unitID, frame, raidNum) then
 				return
 			end
 		end
@@ -378,7 +347,7 @@ end
 
 do
 	function CheckForFakePlate(frame)
-		local f = frame and (frame.extended or frame.kui or frame.aloftData or frame.UnitFrame) or nil
+		local f = frame and (frame.extended or frame.kui or frame.UnitFrame) or nil
 		if f then
 			lib.realPlate[f] = frame
 			lib.fakePlate[frame] = f
@@ -657,7 +626,6 @@ do
 	local f = CreateFrame("Frame")
 	f:Hide()
 	f:RegisterEvent("PLAYER_TARGET_CHANGED")
-	f:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
 	f:RegisterEvent("RAID_TARGET_UPDATE")
 
 	local mouseoverPlate
@@ -667,17 +635,12 @@ do
 				self.pendingTarget = true
 				self:Show()
 			end
-		elseif event == "UPDATE_MOUSEOVER_UNIT" and GetMouseFocus() == WorldFrame then
-			if UnitExists("mouseover") and not UnitIsUnit("mouseover", "player") then
-				self.pendingMouseover = true
-				self:Show()
-			end
 		elseif event == "RAID_TARGET_UPDATE" then
 			for frame, guid in pairs(lib.nameplates) do
 				if frame:IsShown() and guid == true and lib:IsMarked(frame) then
 					local raidNum = lib:GetRaidIcon(frame)
 					if raidNum and raidNum > 0 then
-						FindGUIDByRaidIcon(frame, raidNum, event)
+						FindGUIDByRaidIcon(frame, raidNum)
 					end
 				end
 			end
@@ -686,23 +649,13 @@ do
 	f:SetScript("OnUpdate", function(self, elapsed)
 		for frame, guid in pairs(lib.nameplates) do	
 			if self.pendingTarget and frame:IsShown() and lib:IsTarget(frame, true) then
-				self.pendingTarget = nil
 				if guid == true then -- already set
-					FoundPlateGUID(frame, UnitGUID("target"), "target", "PLAYER_TARGET_CHANGED")
+					FoundPlateGUID(frame, UnitGUID("target"), "target")
 				end
-			end
-			if self.pendingMouseover and frame:IsShown() and lib:IsMouseover(frame) then
-				self.pendingMouseover = nil
-				if guid == true then -- already set
-					FoundPlateGUID(frame, UnitGUID("mouseover"), "mouseover", "UPDATE_MOUSEOVER_UNIT")
-				end
-			end
-			if not self.pendingTarget and not self.pendingMouseover then
 				break
 			end
 		end
 		self.pendingTarget = nil
-		self.pendingMouseover = nil
 		self:Hide()
 	end)
 end

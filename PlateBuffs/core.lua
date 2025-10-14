@@ -78,6 +78,8 @@ core.iconTestMode = false
 
 local table_getn = table.getn
 
+SetCVar("ShowClassColorInNameplate", 1) -- "Class Colors in Nameplates" must be enabled to identify enemy players
+
 --Add default spells to defaultSettings table.
 for i = 1, table_getn(defaultSpells1) do
 	local spellID = defaultSpells1[i]
@@ -163,7 +165,7 @@ function core:OnInitialize()
 	self:RegisterChatCommand("pb", "MySlashProcessorFunc")
 
 	if LDS then LDS:EnhanceDatabase(self.db, self.title) end
-
+	
 	self:BuildAboutMenu()
 
 	local config = LibStub("AceConfig-3.0")
@@ -353,8 +355,6 @@ function core:ShouldAddBuffs(plate)
 		elseif P.aboveNeutral == true and plateReaction == "NEUTRAL" then
 			return true
 		elseif P.aboveHostile == true and plateReaction == "HOSTILE" then
-			return true
-		elseif P.aboveTapped == true and plateReaction == "TAPPED" then
 			return true
 		end
 	end

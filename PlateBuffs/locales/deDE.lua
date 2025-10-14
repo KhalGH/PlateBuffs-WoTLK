@@ -7,6 +7,7 @@ L["Add buffs above friendly plates"] = "Stärkungszauber über freundlichen Einh
 L["Add buffs above hostile plates"] = "Stärkungszauber über feindlichen Einheiten anzeigen"
 L["Add buffs above neutral plates"] = "Stärkungszauber über neutralen Einheiten anzeigen"
 L["Add buffs above players"] = "Stärkungszauber über Spielern anzeigen"
+L["Add buffs above players. 'Class Color in Nameplates' must be enabled."] = "Stärkungszauber über Spielern anzeigen. 'Klassenfarben in Namensplaketten' muss aktiviert sein."
 L["Add spell"] = "Zauber hinzufügen"
 L[ [=[Add spell descriptions to the specific spell's list.
 Disabling this will lower memory usage and login time.]=] ] = [=[Zauber-Beschreibungen zu der Liste Spezieller Zauber hinzufügen.

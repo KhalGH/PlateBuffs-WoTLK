@@ -8,6 +8,7 @@ L["Add buffs above friendly plates"] = "우호적 대상의 이름표에 버프�
 L["Add buffs above hostile plates"] = "적대적 대상의 이름표에 버프를 추가합니다."
 L["Add buffs above neutral plates"] = "중립적 대상의 이름표에 버프를 추가합니다."
 L["Add buffs above players"] = "플레이어 이름표에 버프를 추가합니다."
+L["Add buffs above players. 'Class Color in Nameplates' must be enabled."] = "플레이어 이름표에 버프를 추가합니다. '이름표에 직업 색상 표시' 옵션을 활성화해야 합니다."
 L["Add spell"] = "주문 추가"
 L["Add spell to list."] = "목록에 주문을 추가합니다."
 L["Added: "] = "추가: "

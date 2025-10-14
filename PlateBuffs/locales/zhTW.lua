@@ -8,6 +8,7 @@ L["Add buffs above friendly plates"] = "為友善目標血條添加Buff顯示"
 L["Add buffs above hostile plates"] = "為敵對目標血條添加Buff顯示"
 L["Add buffs above neutral plates"] = "為中立目標血條添加Buff顯示"
 L["Add buffs above players"] = "為玩家目標血條添加Buff顯示"
+L["Add buffs above players. 'Class Color in Nameplates' must be enabled."] = "為玩家目標血條添加Buff顯示。必須啟用「名條職業顏色」。"
 L["Add spell"] = "增加法術"
 L[ [=[Add spell descriptions to the specific spell's list.
 Disabling this will lower memory usage and login time.]=] ] = [=[向特定法術列表中的法術添加描述

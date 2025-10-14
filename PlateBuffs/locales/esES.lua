@@ -8,6 +8,7 @@ L["Add buffs above friendly plates"] = "Añadir beneficios sobre placas amistosa
 L["Add buffs above hostile plates"] = "Añadir beneficios sobre placas hostiles"
 L["Add buffs above neutral plates"] = "Añadir beneficios sobre placas neutrales"
 L["Add buffs above players"] = "Añadir beneficios sobre jugadores"
+L["Add buffs above players. 'Class Color in Nameplates' must be enabled."] = "Añadir beneficios sobre jugadores. 'Color de clase en placas' debe estar activado."
 L["Add spell"] = "Añadir hechizo"
 L[ [=[Add spell descriptions to the specific spell's list.
 Disabling this will lower memory usage and login time.]=] ] = [=[Añadir descripciones de hechizo a la lista de hechizos específicos.
