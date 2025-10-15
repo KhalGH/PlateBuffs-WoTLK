@@ -287,6 +287,7 @@ local function iconOnUpdate(self, elapsed)
 		self.lastUpdate = 0
 		if self.expirationTime > 0 then
 			local rawTimeLeft = self.expirationTime - GetTime()
+			local timeLeft
 			if rawTimeLeft < P.decimalThreshold then
 				timeLeft = core:Round(rawTimeLeft, P.digitsnumber)
 			else
