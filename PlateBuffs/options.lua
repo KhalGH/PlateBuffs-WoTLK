@@ -823,9 +823,7 @@ core.DefaultSpellOptionsTable = {
 				P.cdOffsetY = defaultSettings.cdOffsetY
 				core:UpdateAllCDAnchors()
 			end,
-			disabled = function()
-				return (P.legacyCooldownTexture or not (P.showCooldown or P.showCooldownTexture))
-			end
+			disabled = function() return not P.showCooldown end
 		},
 		cdOffsetX = {
 			type = "range",
@@ -839,9 +837,7 @@ core.DefaultSpellOptionsTable = {
 				P.cdOffsetX = val
 				core:UpdateAllCDAnchors()
 			end,
-			disabled = function()
-				return (P.legacyCooldownTexture or not (P.showCooldown or P.showCooldownTexture))
-			end
+			disabled = function() return not P.showCooldown end
 		},
 		cdOffsetY = {
 			type = "range",
@@ -855,9 +851,7 @@ core.DefaultSpellOptionsTable = {
 				P.cdOffsetY = val
 				core:UpdateAllCDAnchors()
 			end,
-			disabled = function()
-				return (P.legacyCooldownTexture or not (P.showCooldown or P.showCooldownTexture))
-			end
+			disabled = function() return not P.showCooldown end
 		},
 		cooldownFont = {
 			type = "select",
@@ -873,9 +867,7 @@ core.DefaultSpellOptionsTable = {
 				core:ResetCooldownSize()
 				core:ShowAllKnownSpells()
 			end,
-			disabled = function()
-				return (P.legacyCooldownTexture or not (P.showCooldown or P.showCooldownTexture))
-			end
+			disabled = function() return not P.showCooldown end
 		},
 		decimalThreshold = {
 			type = "range",
@@ -885,9 +877,7 @@ core.DefaultSpellOptionsTable = {
 			min = 0,
 			max = 10,
 			step = 1,
-			disabled = function()
-				return (P.legacyCooldownTexture or not (P.showCooldown or P.showCooldownTexture))
-			end
+			disabled = function() return not P.showCooldown end
 		},
 		digitsnumber = {
 			type = "range",
@@ -897,9 +887,7 @@ core.DefaultSpellOptionsTable = {
 			min = 0,
 			max = 2,
 			step = 1,
-			disabled = function()
-				return (P.legacyCooldownTexture or not (P.showCooldown or P.showCooldownTexture))
-			end
+			disabled = function() return not P.showCooldown end
 		},
 		blank5 = {
 			type = "description",

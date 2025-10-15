@@ -165,14 +165,14 @@ do
 	end
 
 	function core:LibAuraInfo_AURA_APPLIED(event, dstGUID, spellID, srcGUID, spellSchool, auraType)
-
+		
 		if dstGUID == playerGUID then return end
 
 		local found, stackCount, debuffType, duration, expires, isDebuff, casterGUID = LibAI:GUIDAuraID(dstGUID, spellID)
 
 		local spellName, _, spellTexture = GetSpellInfo(spellID)
 		local dstName, dstFlags = LibAI:GetGUIDInfo(dstGUID)
-
+		
 		if found then
 			spellTexture = spellTexture:upper():gsub("INTERFACE\\ICONS\\", "")
 
@@ -211,6 +211,7 @@ function core:LibAuraInfo_AURA_REMOVED(event, dstGUID, spellID, srcGUID, spellSc
 		local srcName = LibAI:GetGUIDInfo(srcGUID)
 		for i = #guidBuffs[dstGUID], 1, -1 do
 			if guidBuffs[dstGUID][i].sID == spellID and (not guidBuffs[dstGUID][i].caster or guidBuffs[dstGUID][i].caster == srcName) then
+				
 				table_remove(guidBuffs[dstGUID], i)
 				self:ForceNameplateUpdate(dstGUID)
 				return

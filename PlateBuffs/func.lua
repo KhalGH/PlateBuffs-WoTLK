@@ -46,11 +46,18 @@ end
 
 -- zeroes is the number of decimal places. eg 1=*.*, 3=*.***
 function core:Round(num, zeros)
-    --return math_floor(num * 10 ^ (zeros or 0) + 0.5) / 10 ^ (zeros or 0)
 	if not zeros or zeros < 1 then
-		return math_ceil(num)		
+		return math_floor(num + 0.5)
 	else
-		return math_ceil(num * 10 ^ zeros) / 10 ^ zeros 
+		return math_floor(num * 10 ^ zeros + 0.5) / 10 ^ zeros 
+	end
+end
+
+function core:Ceil(num, zeros)
+	if not zeros or zeros < 1 then
+		return math_ceil(num)
+	else
+		return math_ceil(num * 10 ^ zeros) / 10 ^ zeros
 	end
 end
 
@@ -84,7 +91,7 @@ do
 	    local msg = ""
 	    maxLenth = maxLenth or 2
 	    if seconds == 0 then
-	        msg = "0 "
+	        msg = ""
 	    else
 	        local sYear, sMonth, sDay, sHour, sMinute = 0, 0, 0, 0, 0
 
