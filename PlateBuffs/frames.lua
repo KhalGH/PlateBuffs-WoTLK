@@ -110,10 +110,6 @@ end
 local function UpdateBuffCDSize(buffFrame, size)
 	local font = P.cooldownFont and LSM:Fetch("font", P.cooldownFont) or "Fonts\\FRIZQT__.TTF"
 	buffFrame.cd:SetFont(font, size, "OUTLINE")
-	--buffFrame.cdbg:SetHeight(buffFrame.cd:GetStringHeight())
-	if not P.legacyCooldownTexture and buffFrame.cd2 then
-		buffFrame.cd2:SetFont(font, size, "OUTLINE")
-	end
 end
 
 -- Set the stack text size.
@@ -124,19 +120,11 @@ end
 -- Called when spell frames are shown.
 local function iconOnShow(self)
 	self:SetAlpha(1)
-
-	--self.cdbg:Hide()
 	self.cd:Hide()
 	self.cdtexture:Hide()
 	self.stack:Hide()
-	self.border:Hide()
-	if not P.legacyCooldownTexture and self.cd2 then
-		self.cd2:Hide()
-	end
-
 	self.skin:Hide()
 	self.msqborder:Hide()
-
 	if P.borderTexture == "Masque" and MSQ then
 		Group = Group or MSQ:Group(folder)
 		if Group then
@@ -170,26 +158,16 @@ local function iconOnShow(self)
 		self.skin:SetTexture(P.borderTexture)
 	end
 
-	if P.showCooldown and self.expirationTime > 0 then
-		--self.cdbg:Show()
-		self.cd:Show()
-		if not P.legacyCooldownTexture and self.cd2 then
-			self.cd2:Hide()
+	if self.expirationTime > 0 then
+		if P.showCooldown then
+			self.cd:Show()
 		end
-	else
-		--self.cdbg:Hide()
-		self.cd:Hide()
-		if not P.legacyCooldownTexture and P.showCooldownTexture and self.cd2 then
-			self.cd2:Show()
+		if P.showCooldownTexture then
+			self.cdtexture:Show()
+			if P.legacyCooldownTexture and self.cdtexture.SetCooldown then
+				self.cdtexture:SetCooldown(self.startTime or GetTime(), self.duration)
+			end
 		end
-	end
-	if P.showCooldownTexture then
-		self.cdtexture:Show()
-		if P.legacyCooldownTexture and self.cdtexture.SetCooldown then
-			self.cdtexture:SetCooldown(self.startTime or GetTime(), self.duration)
-		end
-	else
-		self.cdtexture:Hide()
 	end
 
 	local iconSize = P.iconSize
@@ -204,9 +182,7 @@ local function iconOnShow(self)
 	if spellOpts then
 		iconSize = spellOpts.iconSize or iconSize
 		iconSize2 = spellOpts.iconSize2 or iconSize2
-
 		customSize = spellOpts.increase or 1
-
 		cooldownSize = spellOpts.cooldownSize or cooldownSize
 		stackSize = spellOpts.stackSize or stackSize
 	end
@@ -215,31 +191,25 @@ local function iconOnShow(self)
 
 	if self.stackCount and self.stackCount > 1 then
 		self.stack:SetText(self.stackCount)
-
 		self.stack:Show()
 		SetStackSize(self, stackSize)
 	end
 
 	if self.isDebuff then
-		local colour = self.debuffType or ""
-		if colour then
+		local color = self.debuffType or ""
+		if color then
 			if P.colorByType then
-				if colour == "Magic" then
+				if color == "none" or color == "" then
+					color = P.color1
+				elseif color == "Magic" then 
 					color = P.color2
-				end
-				if colour == "Curse" then
+				elseif color == "Curse" then
 					color = P.color3
-				end
-				if colour == "Disease" then
+				elseif color == "Disease" then
 					color = P.color4
-				end
-				if colour == "Poison" then
+				elseif color == "Poison" then
 					color = P.color5
 				end
-				if colour == "none" or colour == "" then
-					color = P.color1
-				end
-
 				self.skin:SetVertexColor(color[1], color[2], color[3])
 				self.skin:Show()
 				self.msqborder:Show()
@@ -264,19 +234,15 @@ end
 
 -- Called when spell frames are shown.
 local function iconOnHide(self)
-	self.stack:Hide()
-	--self.cdbg:Hide()
+	self:SetAlpha(1)
 	self.cd:Hide()
-	self.msqborder:Hide()
-	self.skin:Hide()
 	self.cdtexture:Hide()
 	if not P.legacyCooldownTexture then
-		if self.cd2 then
-			self.cd2:Hide()
-		end
 		self.cdtexture:SetHeight(0.00001)
 	end
-	self:SetAlpha(1)
+	self.stack:Hide()
+	self.skin:Hide()
+	self.msqborder:Hide()
 	UpdateBuffSize(self, P.iconSize, P.iconSize2)
 end
 
@@ -289,21 +255,17 @@ local function iconOnUpdate(self, elapsed)
 			local rawTimeLeft = self.expirationTime - GetTime()
 			local timeLeft
 			if rawTimeLeft < P.decimalThreshold then
-				timeLeft = core:Round(rawTimeLeft, P.digitsnumber)
+				timeLeft = core:Ceil(rawTimeLeft, P.digitsnumber)
 			else
-				timeLeft = core:Round(rawTimeLeft)
+				timeLeft = core:Ceil(rawTimeLeft)
 			end
-
+			
 			if P.showCooldown then
 				self.cd:SetText(core:SecondsToString(timeLeft, 1))
 				self.cd:SetTextColor(core:RedToGreen(timeLeft, self.duration))
-				--self.cdbg:SetWidth(self.cd:GetStringWidth())
 			end
-			if not P.legacyCooldownTexture and P.showCooldownTexture then
-				if self.cd2 then
-					self.cd2:SetText(core:SecondsToString(timeLeft, 1))
-					self.cd2:SetTextColor(core:RedToGreen(timeLeft, self.duration))
-				end
+			
+			if P.showCooldownTexture and not P.legacyCooldownTexture then
 				if not self.cdtexture.SetCooldown then
 					self.cdtexture:SetHeight(max(0.00001, (1 - rawTimeLeft / self.duration) * self.icon:GetHeight()))
 				end
@@ -337,7 +299,6 @@ local function iconOnUpdate(self, elapsed)
 
 			if rawTimeLeft < 0 then
 				self:Hide()
-
 				local GUID = GetPlateGUID(self.realPlate)
 				if GUID then
 					core:RemoveOldSpells(GUID)
@@ -376,7 +337,6 @@ end
 local function CreateBuffFrame(parentFrame, realPlate)
 	local f = CreateFrame("Frame", "MainFrame", parentFrame)
 	f.realPlate = realPlate
-	--f:SetFrameStrata("BACKGROUND")
 
 	f.icon = CreateFrame("Frame", "MainFrameIcon", f)
 	f.icon:SetPoint("TOP", f)
@@ -386,13 +346,7 @@ local function CreateBuffFrame(parentFrame, realPlate)
 
 	f.cd = f.icon:CreateFontString(nil, "ARTWORK", "ChatFontNormal")
 	f.cd:SetText("")
-	--f.cd:SetPoint("CENTER", f.icon, "CENTER")
 	core:SetCDAnchor(f)
-
-	--Make the text easier to see.
-	--f.cdbg = f:CreateTexture(nil, "BACKGROUND")
-	--f.cdbg:SetTexture(0, 0, 0, 0)
-	--f.cdbg:SetPoint("CENTER", f.cd)
 
 	if P.legacyCooldownTexture then
 		f.cdtexture = CreateFrame("Cooldown", "MainFrameTexture", f.icon, "CooldownFrameTemplate")
@@ -405,15 +359,7 @@ local function CreateBuffFrame(parentFrame, realPlate)
 		f.cdtexture:SetHeight(0.00001)
 		f.cdtexture:SetTexture([[Interface\Buttons\WHITE8X8]])
 		f.cdtexture:SetVertexColor(0, 0, 0, 0.65)
-
-		f.cd2 = f.icon:CreateFontString(nil, "OVERLAY", "ChatFontNormal")
-		f.cd2:SetText("")
-		f.cd2:SetAllPoints(true)
-		f.cd2:Hide()
 	end
-
-	f.border = f.icon:CreateTexture(nil, "BORDER")
-	f.border:SetAllPoints(f.icon)
 
 	core:SetFrameLevel(f)
 
@@ -429,9 +375,7 @@ local function CreateBuffFrame(parentFrame, realPlate)
 	f:SetScript("OnUpdate", iconOnUpdate)
 	f.stackCount = 0
 
-	--f.cdbg:Hide()
 	f.cd:Hide()
-	f.border:Hide()
 	f.cdtexture:Hide()
 	f.stack:Hide()
 
@@ -441,7 +385,7 @@ local function CreateBuffFrame(parentFrame, realPlate)
 	f.skin = f.msqborder:CreateTexture(nil, "BORDER")
 	f.skin:SetAllPoints(f.msqborder)
 
-	--	f.skin:SetBlendMode("ADD")
+	--f.skin:SetBlendMode("ADD")
 	f.skin:Hide()
 
 	f.msqborder.bordersize = 1
