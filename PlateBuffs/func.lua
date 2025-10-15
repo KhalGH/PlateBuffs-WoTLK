@@ -47,7 +47,11 @@ end
 -- zeroes is the number of decimal places. eg 1=*.*, 3=*.***
 function core:Round(num, zeros)
     --return math_floor(num * 10 ^ (zeros or 0) + 0.5) / 10 ^ (zeros or 0)
-	return math_ceil(num * 10 ^ (zeros or 0)) / 10 ^ (zeros or 0) 
+	if not zeros or zeros < 1 then
+		return math_ceil(num)		
+	else
+		return math_ceil(num * 10 ^ zeros) / 10 ^ zeros 
+	end
 end
 
 function core:RedToGreen(current, max)

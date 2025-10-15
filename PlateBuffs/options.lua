@@ -70,7 +70,6 @@ defaultSettings.iconSize = 26
 defaultSettings.iconSize2 = 26
 defaultSettings.increase = 1
 defaultSettings.biggerSelfSpells = false
-defaultSettings.showCooldown = true
 defaultSettings.shrinkBar = true
 defaultSettings.showBarBackground = false
 defaultSettings.frameLevel = 0
@@ -78,8 +77,11 @@ defaultSettings.cooldownSize = 11
 defaultSettings.stackSize = 8
 defaultSettings.intervalX = 4
 defaultSettings.intervalY = 4
-defaultSettings.digitsnumber = 0
-defaultSettings.showCooldownTexture = false
+defaultSettings.decimalThreshold = 0
+defaultSettings.digitsnumber = 1
+defaultSettings.cdAnchor = "CENTER"
+defaultSettings.cdOffsetX = 0
+defaultSettings.cdOffsetY = 0
 defaultSettings.borderTexture = "Interface\\Addons\\PlateBuffs\\media\\DefaultBorder.blp"
 defaultSettings.colorByType = true
 defaultSettings.color1 = {0.80, 0, 0}
@@ -97,7 +99,12 @@ defaultSettings.fadeThreshold = 3
 defaultSettings.blinkFadeMinDuration = 6
 defaultSettings.blinkTargetOnly = true
 defaultSettings.fadeTargetOnly = false
-defaultSettings.cdAnchor = "CENTER"
+defaultSettings.cooldownFont = "Friz Quadrata TT"
+defaultSettings.showCooldown = true
+defaultSettings.showCooldownTexture = false
+defaultSettings.legacyCooldownTexture = false
+defaultSettings.enableAdjustFreq = false
+defaultSettings.UpdateRate = 0.1
 
 core.CoreOptionsTable = {
 	name = core.title,
@@ -800,14 +807,66 @@ core.DefaultSpellOptionsTable = {
 				core:ShowAllKnownSpells()
 			end
 		},
+		cdAnchor = {
+			type = "select", 
+			order = 19,
+			name = L["Duration Text Anchor"],
+			desc = L["Anchor point for the duration text relative to the icon."],
+			values = {
+				BOTTOM = L["Under Icon"],
+				CENTER = L["On Icon"],
+				TOP = L["Above Icon"]
+			},
+			set = function(info, val)
+				P.cdAnchor = val
+				P.cdOffsetX = defaultSettings.cdOffsetX
+				P.cdOffsetY = defaultSettings.cdOffsetY
+				core:UpdateAllCDAnchors()
+			end,
+			disabled = function()
+				return (P.legacyCooldownTexture or not (P.showCooldown or P.showCooldownTexture))
+			end
+		},
+		cdOffsetX = {
+			type = "range",
+			name = L["Offset X"],
+			desc = L["Left to right offset."],
+			order = 20,
+			min = -30,
+			max = 30,
+			step = 0.5,
+			set = function(info, val)
+				P.cdOffsetX = val
+				core:UpdateAllCDAnchors()
+			end,
+			disabled = function()
+				return (P.legacyCooldownTexture or not (P.showCooldown or P.showCooldownTexture))
+			end
+		},
+		cdOffsetY = {
+			type = "range",
+			name = L["Offset Y"],
+			desc = L["Up to down offset."],
+			order = 21,
+			min = -30,
+			max = 30,
+			step = 0.5,
+			set = function(info, val)
+				P.cdOffsetY = val
+				core:UpdateAllCDAnchors()
+			end,
+			disabled = function()
+				return (P.legacyCooldownTexture or not (P.showCooldown or P.showCooldownTexture))
+			end
+		},
 		cooldownFont = {
 			type = "select",
 			name = L["Duration Text Font"],
-			order = 19,
+			order = 22,
 			values = LSM:HashTable("font"),
 			dialogControl = "LSM30_Font",
 			get = function()
-				return P.cooldownFont or "Friz Quadrata TT"
+				return P.cooldownFont or defaultSettings.cooldownFont
 			end,
 			set = function(_, val)
 				P.cooldownFont = val
@@ -818,23 +877,14 @@ core.DefaultSpellOptionsTable = {
 				return (P.legacyCooldownTexture or not (P.showCooldown or P.showCooldownTexture))
 			end
 		},
-		cdAnchor = {
-			type = "select", 
-			order = 20,
-			name = L["Duration Text Anchor"],
-			desc = L["Anchor point for the duration text relative to the icon."],
-			values = {
-				TOP = L["Above Icon"],
-				CENTER = L["On Icon"],
-				BOTTOM = L["Under Icon"]
-			},
-			set = function(info, v)
-				local key = info[#info]
-				P[key] = v
-				if key == "cdAnchor" then
-					core:UpdateAllCDAnchors()
-				end
-			end,
+		decimalThreshold = {
+			type = "range",
+			name = L["Decimal Threshold"],
+			desc = L["Show decimal digits for durations below this value (in seconds)."],
+			order = 23,
+			min = 0,
+			max = 10,
+			step = 1,
 			disabled = function()
 				return (P.legacyCooldownTexture or not (P.showCooldown or P.showCooldownTexture))
 			end
@@ -842,8 +892,8 @@ core.DefaultSpellOptionsTable = {
 		digitsnumber = {
 			type = "range",
 			name = L["Decimal precision"],
-			desc = L["Number of decimal places for duration values below 10"],
-			order = 21,
+			desc = L["Number of decimal places for duration values below 'Decimal Threshold'"],
+			order = 24,
 			min = 0,
 			max = 2,
 			step = 1,
@@ -854,30 +904,30 @@ core.DefaultSpellOptionsTable = {
 		blank5 = {
 			type = "description",
 			name = " ",
-			order = 21.5,
+			order = 24.5,
 		},
 		animationHeader = {
 			type = "header",
 			name = L["Animation settings"],
-			order = 22
+			order = 25
 		},
 		enableBlinkFade = {
 			type = "toggle",
 			name = L["Enable Blink/Fade"],
 			desc = L["Enable Blink/Fade animation when duration is expiring"],
-			order = 23,
+			order = 26,
 			width = "full"
 		},
 		blank6 = {
 			type = "description",
 			name = " ",
-			order = 23.5,
+			order = 26.5,
 		},
 		blinkThreshold = {
 			type = "range",
 			name = L["Blink threshold time"],
 			desc = L["Blink icon below x seconds"],
-			order = 24,
+			order = 27,
 			min = 0,
 			max = 10,
 			step = 1,
@@ -887,7 +937,7 @@ core.DefaultSpellOptionsTable = {
 			type = "range",
 			name = L["Fade threshold time"],
 			desc = L["Progressive fade out icon below x seconds"],
-			order = 25,
+			order = 28,
 			min	= 0,
 			max	= 10,
 			step = 1,
@@ -897,7 +947,7 @@ core.DefaultSpellOptionsTable = {
 			type = "range",
 			name = L["Min duration for Blink/Fade"],
 			desc = L["Blink and fade effects will only apply to auras with a duration longer than this value."],
-			order = 26,
+			order = 29,
 			min = 3,
 			max = 10,
 			step = 1,
@@ -907,7 +957,7 @@ core.DefaultSpellOptionsTable = {
 			type = "toggle",
 			name = L["Only blink on target"],
 			desc = L["Restrict blinking effect to auras on the target's nameplate only"],
-			order = 27,
+			order = 30,
 			disabled = function() return not P.enableBlinkFade end
 		},
 		fadeTargetOnly = {
@@ -915,26 +965,53 @@ core.DefaultSpellOptionsTable = {
 			name = L["Only fade on target"],
 			desc = L["Restrict fade effect to auras on the target's nameplate only"],
 			width = "double",
-			order = 28,
+			order = 31,
 			disabled = function() return not P.enableBlinkFade end
 		},
 		blank7 = {
 			type = "description",
 			name = " ",
-			order = 28.5,
+			order = 31.5,
 		},
 		showCooldownTexture = {
 			type = "toggle",
 			name = L["Show 'clock' overlay"],
 			desc = L["Show a vertical 'clock' overlay over spell textures showing the time remaining."] ,
-			order = 29
+			order = 32
 		},
 		legacyCooldownTexture = {
 			type = "toggle",
 			name = L["Legacy 'clock' overlay"],
 			desc = L["Use the old radial clock overlay which tends to disappear when the frame's moving.\nRequires UI Reload."],
 			disabled = function() return (UnitAffectingCombat("player") or InCombatLockdown() or not P.showCooldownTexture) end,
-			order = 30
+			order = 33
+		},
+		blank8 = {
+			type = "description",
+			name = " ",
+			order = 33.5,
+		},
+		enableAdjustFreq = {
+			type = "toggle",
+			name = L["Adjust Update Interval"],
+			desc = L["Allows changing the time interval (in seconds) between updates for each icon."],
+			order = 34,
+			set = function(_, val)
+				P.enableAdjustFreq = val
+				if not val then
+					P.UpdateRate = defaultSettings.UpdateRate
+				end
+			end
+		},
+		UpdateRate = {
+			type = "range",
+			name = L["Update Interval"],
+			desc = L["Lower values make animations smoother but can significantly increase CPU usage."],
+			order = 35,
+			min = 0,
+			max = 0.2,
+			step = 0.01,
+			disabled = function() return not P.enableAdjustFreq end
 		}
 	}
 }

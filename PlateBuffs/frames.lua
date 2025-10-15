@@ -110,7 +110,7 @@ end
 local function UpdateBuffCDSize(buffFrame, size)
 	local font = P.cooldownFont and LSM:Fetch("font", P.cooldownFont) or "Fonts\\FRIZQT__.TTF"
 	buffFrame.cd:SetFont(font, size, "OUTLINE")
-	buffFrame.cdbg:SetHeight(buffFrame.cd:GetStringHeight())
+	--buffFrame.cdbg:SetHeight(buffFrame.cd:GetStringHeight())
 	if not P.legacyCooldownTexture and buffFrame.cd2 then
 		buffFrame.cd2:SetFont(font, size, "OUTLINE")
 	end
@@ -125,7 +125,7 @@ end
 local function iconOnShow(self)
 	self:SetAlpha(1)
 
-	self.cdbg:Hide()
+	--self.cdbg:Hide()
 	self.cd:Hide()
 	self.cdtexture:Hide()
 	self.stack:Hide()
@@ -171,13 +171,13 @@ local function iconOnShow(self)
 	end
 
 	if P.showCooldown and self.expirationTime > 0 then
-		self.cdbg:Show()
+		--self.cdbg:Show()
 		self.cd:Show()
 		if not P.legacyCooldownTexture and self.cd2 then
 			self.cd2:Hide()
 		end
 	else
-		self.cdbg:Hide()
+		--self.cdbg:Hide()
 		self.cd:Hide()
 		if not P.legacyCooldownTexture and P.showCooldownTexture and self.cd2 then
 			self.cd2:Show()
@@ -265,7 +265,7 @@ end
 -- Called when spell frames are shown.
 local function iconOnHide(self)
 	self.stack:Hide()
-	self.cdbg:Hide()
+	--self.cdbg:Hide()
 	self.cd:Hide()
 	self.msqborder:Hide()
 	self.skin:Hide()
@@ -283,11 +283,11 @@ end
 -- Fires for spell frames.
 local function iconOnUpdate(self, elapsed)
 	self.lastUpdate = self.lastUpdate + elapsed
-	if self.lastUpdate > 0.1 then --abit fast for cooldown flash.
+	if self.lastUpdate > P.UpdateRate then
 		self.lastUpdate = 0
 		if self.expirationTime > 0 then
 			local rawTimeLeft = self.expirationTime - GetTime()
-			if rawTimeLeft < 10 then
+			if rawTimeLeft < P.decimalThreshold then
 				timeLeft = core:Round(rawTimeLeft, P.digitsnumber)
 			else
 				timeLeft = core:Round(rawTimeLeft)
@@ -296,7 +296,7 @@ local function iconOnUpdate(self, elapsed)
 			if P.showCooldown then
 				self.cd:SetText(core:SecondsToString(timeLeft, 1))
 				self.cd:SetTextColor(core:RedToGreen(timeLeft, self.duration))
-				self.cdbg:SetWidth(self.cd:GetStringWidth())
+				--self.cdbg:SetWidth(self.cd:GetStringWidth())
 			end
 			if not P.legacyCooldownTexture and P.showCooldownTexture then
 				if self.cd2 then
@@ -389,9 +389,9 @@ local function CreateBuffFrame(parentFrame, realPlate)
 	core:SetCDAnchor(f)
 
 	--Make the text easier to see.
-	f.cdbg = f:CreateTexture(nil, "BACKGROUND")
-	f.cdbg:SetTexture(0, 0, 0, 0)
-	f.cdbg:SetPoint("CENTER", f.cd)
+	--f.cdbg = f:CreateTexture(nil, "BACKGROUND")
+	--f.cdbg:SetTexture(0, 0, 0, 0)
+	--f.cdbg:SetPoint("CENTER", f.cd)
 
 	if P.legacyCooldownTexture then
 		f.cdtexture = CreateFrame("Cooldown", "MainFrameTexture", f.icon, "CooldownFrameTemplate")
@@ -428,7 +428,7 @@ local function CreateBuffFrame(parentFrame, realPlate)
 	f:SetScript("OnUpdate", iconOnUpdate)
 	f.stackCount = 0
 
-	f.cdbg:Hide()
+	--f.cdbg:Hide()
 	f.cd:Hide()
 	f.border:Hide()
 	f.cdtexture:Hide()

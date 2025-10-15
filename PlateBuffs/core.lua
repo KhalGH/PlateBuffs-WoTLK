@@ -695,12 +695,11 @@ end
 function core:SetCDAnchor(frame)
 	local anchor = P.cdAnchor
 	frame.cd:ClearAllPoints()
-
 	if anchor == "TOP" then
-		frame.cd:SetPoint("BOTTOM", frame.icon, "TOP", 0, 3)
+		frame.cd:SetPoint("BOTTOM", frame.icon, "TOP", P.cdOffsetX, P.cdOffsetY + 3)
 	elseif anchor == "CENTER" then
-		frame.cd:SetPoint("CENTER", frame.icon, "CENTER")
+		frame.cd:SetPoint("CENTER", frame.icon, "CENTER", P.cdOffsetX, P.cdOffsetY)
 	elseif anchor == "BOTTOM" then
-		frame.cd:SetPoint("TOP", frame.icon, "BOTTOM", 0, -3)
+		frame.cd:SetPoint("TOP", frame.icon, "BOTTOM", P.cdOffsetX, P.cdOffsetY -3)
 	end
 end
