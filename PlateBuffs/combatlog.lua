@@ -210,8 +210,6 @@ end
 function core:LibAuraInfo_AURA_REMOVED(event, dstGUID, spellID, srcGUID, spellSchool, auraType)
 	if guidBuffs[dstGUID] and dstGUID ~= playerGUID then
 		local srcName = LibAI:GetGUIDInfo(srcGUID)
-		local spellName = GetSpellInfo(spellID)
-
 		for i = #guidBuffs[dstGUID], 1, -1 do
 			if guidBuffs[dstGUID][i].sID == spellID and (not guidBuffs[dstGUID][i].caster or guidBuffs[dstGUID][i].caster == srcName) then
 				
@@ -226,7 +224,6 @@ end
 function core:LibAuraInfo_AURA_REFRESH(event, dstGUID, spellID, srcGUID, spellSchool, auraType, expirationTime)
 	if dstGUID == playerGUID then return end
 
-	local spellName = GetSpellInfo(spellID)
 	if guidBuffs[dstGUID] then
 		local srcName = LibAI:GetGUIDInfo(srcGUID)
 		for i = #guidBuffs[dstGUID], 1, -1 do
@@ -240,15 +237,13 @@ function core:LibAuraInfo_AURA_REFRESH(event, dstGUID, spellID, srcGUID, spellSc
 	end
 
 	local dstName = LibAI:GetGUIDInfo(dstGUID)
-	if not LibAI:GUIDAuraID(dstGUID, spellID) then
-		Debug("SPELL_AURA_REFRESH", LibAI:GUIDAuraID(dstGUID, spellID), dstName, spellName, "passing to SPELL_AURA_APPLIED")
-	end
+	--[[ if not LibAI:GUIDAuraID(dstGUID, spellID) then
+		Debug("SPELL_AURA_REFRESH", LibAI:GUIDAuraID(dstGUID, spellID), dstName, GetSpellInfo(spellID), "passing to SPELL_AURA_APPLIED")
+	end ]]
 	self:LibAuraInfo_AURA_APPLIED(event, dstGUID, spellID, srcGUID, spellSchool, auraType)
 end
 
 function core:LibAuraInfo_AURA_APPLIED_DOSE(event, dstGUID, spellID, srcGUID, spellSchool, auraType, stackCount, expirationTime)
-	local spellName = GetSpellInfo(spellID)
-
 	if guidBuffs[dstGUID] then
 		local srcName = LibAI:GetGUIDInfo(srcGUID)
 		for i = #guidBuffs[dstGUID], 1, -1 do
@@ -263,9 +258,9 @@ function core:LibAuraInfo_AURA_APPLIED_DOSE(event, dstGUID, spellID, srcGUID, sp
 	end
 
 	local dstName = LibAI:GetGUIDInfo(dstGUID)
-	if not LibAI:GUIDAuraID(dstGUID, spellID) then
-		Debug("AURA_APPLIED_DOSE", dstName, spellName, "passing to SPELL_AURA_APPLIED")
-	end
+	--[[ if not LibAI:GUIDAuraID(dstGUID, spellID) then
+		Debug("AURA_APPLIED_DOSE", dstName, GetSpellInfo(spellID), "passing to SPELL_AURA_APPLIED")
+	end ]]
 	self:LibAuraInfo_AURA_APPLIED(event, dstGUID, spellID, srcGUID, spellSchool, auraType)
 end
 
