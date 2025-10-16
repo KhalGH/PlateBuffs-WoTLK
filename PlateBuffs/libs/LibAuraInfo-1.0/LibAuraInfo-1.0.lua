@@ -131,7 +131,7 @@ function lib:AddAuraFromUnitID(dstGUID, spellID, srcGUID, isDebuff, debuffType, 
 	local currentTime = GetTime()
 	
 	self.GUIDAuras[dstGUID] = self.GUIDAuras[dstGUID] or {}
-	
+
 	table_insert(self.GUIDAuras[dstGUID], #self.GUIDAuras[dstGUID]+1, {
 		spellID = spellID,
 		srcGUID = srcGUID,
@@ -852,7 +852,7 @@ function lib:AddAuraToGUID(dstGUID, spellID, srcGUID, isDebuff)	--
 		duration = duration,
 		debuffType = debuffType,
 		isDebuff = isDebuff,
-		expirationTime = currentTime + duration,
+		expirationTime = duration ~= 0 and currentTime + duration or 0,
 		startTime = currentTime,
 	})
 	
@@ -1042,7 +1042,7 @@ end
 function lib.frame:SPELL_AURA_REMOVED(event, timestamp, eventType, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, ...)	--
 	local spellID, spellName, spellSchool, auraType  = ...
 	RemoveAuraFromGUID(dstGUID, spellID, srcGUID)
-	
+	lib.callbacks:Fire("LibAuraInfo_AURA_REMOVED", dstGUID, spellID, srcGUID, spellSchool, auraType)
 	
 	if lib.drSpells[spellID] then
 		lib:GUIDRemovedDRAura(dstGUID, spellID, lib:FlagIsPlayer(dstFlags))
@@ -1051,8 +1051,6 @@ end
 
 function lib.frame:SPELL_AURA_APPLIED(event, timestamp, eventType, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, ...)	--
 	local spellID, spellName, spellSchool, auraType, amount  = ...
-	
-
 	
 	if lib.drSpells[spellID] then
 		lib:GUIDGainedDRAura(dstGUID, spellID, lib:FlagIsPlayer(dstFlags))

@@ -92,7 +92,7 @@ function core:ForceNameplateUpdate(dstGUID)
 	end
 end
 
-function core:AddSpellToGUID(dstGUID, spellID, srcName, spellName, spellTexture, duration, srcGUID, isDebuff, debuffType, expires, stackCount)
+function core:AddSpellToGUID(dstGUID, spellID, srcName, spellName, spellTexture, duration, srcGUID, isDebuff, debuffType, expires, stackCount, scale)
 	guidBuffs[dstGUID] = guidBuffs[dstGUID] or {}
 	if #guidBuffs[dstGUID] > 0 then
 		self:RemoveOldSpells(dstGUID)
@@ -112,7 +112,8 @@ function core:AddSpellToGUID(dstGUID, spellID, srcName, spellName, spellTexture,
 			startTime = getTime,
 			expirationTime = expires or 0 - 0.1,
 			sID = spellID,
-			caster = srcName
+			caster = srcName,
+			scale = scale or 1
 		})
 
 		if isDebuff then
@@ -140,7 +141,8 @@ function core:AddSpellToGUID(dstGUID, spellID, srcName, spellName, spellTexture,
 					startTime = getTime,
 					expirationTime = expires or 0 - 0.1,
 					sID = spellID,
-					caster = srcName
+					caster = srcName,
+					scale = scale or 1
 				})
 
 				if isDebuff then
@@ -165,14 +167,13 @@ do
 	end
 
 	function core:LibAuraInfo_AURA_APPLIED(event, dstGUID, spellID, srcGUID, spellSchool, auraType)
-		
 		if dstGUID == playerGUID then return end
 
 		local found, stackCount, debuffType, duration, expires, isDebuff, casterGUID = LibAI:GUIDAuraID(dstGUID, spellID)
-
+		
 		local spellName, _, spellTexture = GetSpellInfo(spellID)
 		local dstName, dstFlags = LibAI:GetGUIDInfo(dstGUID)
-		
+
 		if found then
 			spellTexture = spellTexture:upper():gsub("INTERFACE\\ICONS\\", "")
 
@@ -186,7 +187,7 @@ do
 					(P.spellOpts[spellName].show == 4 and core:FlagIsFriendly(dstFlags)) or
 					(P.spellOpts[spellName].show == 5 and core:FlagIsHostle(dstFlags))
 				then
-					updateBars = self:AddSpellToGUID(dstGUID, spellID, LibAI:GetGUIDInfo(srcGUID), spellName, spellTexture, duration, srcGUID, isDebuff, debuffType, expires, stackCount)
+					updateBars = self:AddSpellToGUID(dstGUID, spellID, LibAI:GetGUIDInfo(srcGUID), spellName, spellTexture, duration, srcGUID, isDebuff, debuffType, expires, stackCount, spellOpts.increase)
 				end
 			else
 				if
@@ -209,6 +210,8 @@ end
 function core:LibAuraInfo_AURA_REMOVED(event, dstGUID, spellID, srcGUID, spellSchool, auraType)
 	if guidBuffs[dstGUID] and dstGUID ~= playerGUID then
 		local srcName = LibAI:GetGUIDInfo(srcGUID)
+		local spellName = GetSpellInfo(spellID)
+
 		for i = #guidBuffs[dstGUID], 1, -1 do
 			if guidBuffs[dstGUID][i].sID == spellID and (not guidBuffs[dstGUID][i].caster or guidBuffs[dstGUID][i].caster == srcName) then
 				
@@ -261,7 +264,7 @@ function core:LibAuraInfo_AURA_APPLIED_DOSE(event, dstGUID, spellID, srcGUID, sp
 
 	local dstName = LibAI:GetGUIDInfo(dstGUID)
 	if not LibAI:GUIDAuraID(dstGUID, spellID) then
-		Debug("LAURA_APPLIED_DOSE", dstName, spellName, "passing to SPELL_AURA_APPLIED")
+		Debug("AURA_APPLIED_DOSE", dstName, spellName, "passing to SPELL_AURA_APPLIED")
 	end
 	self:LibAuraInfo_AURA_APPLIED(event, dstGUID, spellID, srcGUID, spellSchool, auraType)
 end
