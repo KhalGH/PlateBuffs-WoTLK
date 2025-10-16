@@ -1,29 +1,25 @@
 
 local folder, core = ...
+
 LibStub("AceAddon-3.0"):NewAddon(core, folder, "AceConsole-3.0", "AceEvent-3.0")
 
--- global lookup
-local Debug = core.Debug
+core.title = "PlateBuffs"
+core.version = GetAddOnMetadata(folder, "X-Packaged-Version") or ""
+core.titleFull = core.title .. " " .. core.version
+core.addonDir = "Interface\\AddOns\\" .. folder .. "\\"
 
 local LibNameplates = LibStub("LibNameplates-1.0", true)
 if not LibNameplates then
 	error(folder .. " requires LibNameplates-1.0.")
 	return
 end
+core.LibNameplates = LibNameplates
 
 local LSM = LibStub("LibSharedMedia-3.0")
 if not LSM then
 	error(folder .. " requires LibSharedMedia-3.0.")
 	return
 end
-
--- local
-core.title = "PlateBuffs"
-core.version = GetAddOnMetadata(folder, "X-Packaged-Version") or ""
-core.titleFull = core.title .. " " .. core.version
-core.addonDir = "Interface\\AddOns\\" .. folder .. "\\"
-
-core.LibNameplates = LibNameplates
 core.LSM = LSM
 
 local LDS = LibStub("LibDualSpec-1.0", true)
@@ -31,130 +27,52 @@ local LDS = LibStub("LibDualSpec-1.0", true)
 local L = LibStub("AceLocale-3.0"):GetLocale(folder, true)
 core.L = L
 
-local defaultSpells1, defaultScale1, defaultDurationSize1, defaultStackSize1 = core.defaultSpells1, core.defaultScale1, core.defaultDurationSize1, core.defaultStackSize1
-local defaultSpells2, defaultScale2, defaultDurationSize2, defaultStackSize2 = core.defaultSpells2, core.defaultScale2, core.defaultDurationSize2, core.defaultStackSize2
-local defaultSpells3, defaultScale3, defaultDurationSize3, defaultStackSize3 = core.defaultSpells3, core.defaultScale3, core.defaultDurationSize3, core.defaultStackSize3
-local defaultSpells4, defaultScale4, defaultDurationSize4, defaultStackSize4 = core.defaultSpells4, core.defaultScale4, core.defaultDurationSize4, core.defaultStackSize4
-local CheckSpellID =  core.CheckSpellID
-local totemList =core.totemList
-
-local regEvents = {
-	"PLAYER_TARGET_CHANGED",
-	"UPDATE_MOUSEOVER_UNIT",
-	"UNIT_AURA",
-	"UNIT_TARGET"
-}
-
 core.db = {}
 local db
 local P  --db.profile
 
-core.defaultSettings = {
-	profile = {
-		spellOpts = {},
-		ignoreDefaultSpell = {} -- default spells that user has removed. Seems odd but this'll save space in the DB file allowing PB to load faster.
-	}
-}
+local _
+local pairs = pairs
+local UnitExists = UnitExists
+local UnitIsUnit = UnitIsUnit
+local table_getn = table.getn
 
 core.buffFrames = {}
 core.guidBuffs = {}
 core.nametoGUIDs = {} -- w/o servername
 core.buffBars = {}
+core.iconTestMode = false
 
 local buffBars = core.buffBars
 local guidBuffs = core.guidBuffs
 local nametoGUIDs = core.nametoGUIDs
 local buffFrames = core.buffFrames
 local defaultSettings = core.defaultSettings
+local totems = core.totems
+local Debug = core.Debug
 
-local _
-local pairs = pairs
-local UnitExists = UnitExists
-local GetSpellInfo = GetSpellInfo
-
-local nameToPlate = {}
-
-core.iconTestMode = false
-
-local table_getn = table.getn
-
-SetCVar("ShowClassColorInNameplate", 1) -- "Class Colors in Nameplates" must be enabled to identify enemy players
-
---Add default spells to defaultSettings table.
-for i = 1, table_getn(defaultSpells1) do
-	local spellID = defaultSpells1[i]
-	local spellName = GetSpellInfo(spellID)
-	if spellName then
-		core.defaultSettings.profile.spellOpts[spellName] = {
-			spellID = spellID,
-			increase = defaultScale1,
-			cooldownSize = defaultDurationSize1,
-			show = 1,
-			stackSize = defaultStackSize1
-		}
-	end
-end
-
-for i = 1, table_getn(defaultSpells2) do
-	local spellID = defaultSpells2[i]
-	local spellName = GetSpellInfo(spellID)
-	if spellName then
-		core.defaultSettings.profile.spellOpts[spellName] = {
-			spellID = spellID,
-			increase = defaultScale2,
-			cooldownSize = defaultDurationSize2,
-			show = 1,
-			stackSize = defaultStackSize2
-		}
-	end
-end
-
-for i = 1, table_getn(defaultSpells3) do
-	local spellID = defaultSpells3[i]
-	local spellName = GetSpellInfo(defaultSpells3[i])
-	if spellName then
-		core.defaultSettings.profile.spellOpts[spellName] = {
-			spellID = spellID,
-			increase = defaultScale3,
-			cooldownSize = defaultDurationSize3,
-			show = 1,
-			stackSize = defaultStackSize3
-		}
-	end
-end
-
-for i = 1, table_getn(defaultSpells4) do
-	local spellID = defaultSpells4[i]
-	local spellName = GetSpellInfo(spellID)
-	if spellName then
-		core.defaultSettings.profile.spellOpts[spellName] = {
-			spellID = spellID,
-			increase = defaultScale4,
-			cooldownSize = defaultDurationSize4,
-			show = 2,
-			stackSize = defaultStackSize4
-		}
-	end
-end
-
-for i = 1, table_getn(CheckSpellID) do
-	local spellID = CheckSpellID[i]
-	local spellName = GetSpellInfo(spellID)
-	if core.defaultSettings.profile.spellOpts[spellName] then
-		core.defaultSettings.profile.spellOpts[spellName].grabid = true
-	end
-end
-
-local totems = {}
-do
-	local name, texture, _
-	for i = 1, table_getn(totemList) do
-		name, _, texture = GetSpellInfo(totemList[i])
-		totems[name] = texture
-	end
-end
-
-core.Dummy = function() end
+local function GetPlateName(plate) return LibNameplates:GetName(plate) end
+local function GetPlateType(plate) return LibNameplates:GetType(plate) end
+local function IsPlateInCombat(plate) return LibNameplates:IsInCombat(plate) end
+local function GetPlateThreat(plate) return LibNameplates:GetThreatSituation(plate) end
+local function GetPlateReaction(plate) return LibNameplates:GetReaction(plate) end
+local function GetPlateGUID(plate) return LibNameplates:GetGUID(plate) end
+local function PlateIsBoss(plate) return LibNameplates:IsBoss(plate) end
+local function PlateIsElite(plate) return LibNameplates:IsElite(plate) end
+local function GetPlateByGUID(guid)	return LibNameplates:GetNameplateByGUID(guid) end
+local function GetPlateByName(name, maxhp) return LibNameplates:GetNameplateByName(name, maxhp) end
+local function GetTargetPlate()	return LibNameplates:GetTargetNameplate() end
+core.GetPlateName = GetPlateName
+core.GetPlateType = GetPlateType
+core.IsPlateInCombat = IsPlateInCombat
+core.GetPlateThreat = GetPlateThreat
+core.GetPlateReaction = GetPlateReaction
+core.GetPlateGUID = GetPlateGUID
+core.PlateIsBoss = PlateIsBoss
+core.PlateIsElite = PlateIsElite
+core.GetPlateByGUID = GetPlateByGUID
+core.GetPlateByName = GetPlateByName
+core.GetTargetPlate = GetTargetPlate
 
 function core:OnInitialize()
 	self.db = LibStub("AceDB-3.0"):New("PB_DB", core.defaultSettings, true)
@@ -164,8 +82,10 @@ function core:OnInitialize()
 	self.db.RegisterCallback(self, "OnProfileDeleted", "OnProfileChanged")
 	self:RegisterChatCommand("pb", "MySlashProcessorFunc")
 
+	SetCVar("ShowClassColorInNameplate", 1) -- "Class Colors in Nameplates" must be enabled to identify enemy players
+
 	if LDS then LDS:EnhanceDatabase(self.db, self.title) end
-	
+
 	self:BuildAboutMenu()
 
 	local config = LibStub("AceConfig-3.0")
@@ -196,62 +116,14 @@ function core:OnInitialize()
 	if LDS then LDS:EnhanceOptions(optionsTable, self.db) end
 end
 
-local function GetPlateName(plate)
-	return LibNameplates:GetName(plate)
-end
-core.GetPlateName = GetPlateName
-
-local function GetPlateType(plate)
-	return LibNameplates:GetType(plate)
-end
-core.GetPlateType = GetPlateType
-
-local function IsPlateInCombat(plate)
-	return LibNameplates:IsInCombat(plate)
-end
-core.IsPlateInCombat = IsPlateInCombat
-
-local function GetPlateThreat(plate)
-	return LibNameplates:GetThreatSituation(plate)
-end
-core.GetPlateThreat = GetPlateThreat
-
-local function GetPlateReaction(plate)
-	return LibNameplates:GetReaction(plate)
-end
-core.GetPlateReaction = GetPlateReaction
-
-local function GetPlateGUID(plate)
-	return LibNameplates:GetGUID(plate)
-end
-core.GetPlateGUID = GetPlateGUID
-
-local function PlateIsBoss(plate)
-	return LibNameplates:IsBoss(plate)
-end
-core.PlateIsBoss = PlateIsBoss
-
-local function PlateIsElite(plate)
-	return LibNameplates:IsElite(plate)
-end
-core.PlateIsElite = PlateIsElite
-
-local function GetPlateByGUID(guid)
-	return LibNameplates:GetNameplateByGUID(guid)
-end
-core.GetPlateByGUID = GetPlateByGUID
-
-local function GetPlateByName(name, maxhp)
-	return LibNameplates:GetNameplateByName(name, maxhp)
-end
-core.GetPlateByName = GetPlateByName
-
-local function GetTargetPlate()
-	return LibNameplates:GetTargetNameplate()
-end
-core.GetTargetPlate = GetTargetPlate
-
 do
+	local regEvents = {
+		"PLAYER_TARGET_CHANGED",
+		"UPDATE_MOUSEOVER_UNIT",
+		"UNIT_AURA",
+		"UNIT_TARGET"
+	}
+
 	local OnEnable = core.OnEnable
 	function core:OnEnable(...)
 		if OnEnable then
@@ -328,14 +200,10 @@ function core:HidePlateSpells(plate)
 	end
 end
 
-local function isTotem(name)
-	return totems[name]
-end
-
 function core:ShouldAddBuffs(plate)
 	local plateName = GetPlateName(plate) or "UNKNOWN"
 
-	if P.showTotems == false and isTotem(plateName) then
+	if P.showTotems == false and totems[plateName] then
 		return false
 	end
 
@@ -426,7 +294,7 @@ do
 	local UnitDebuff = UnitDebuff
 
 	function core:CollectUnitInfo(unitID)
-		
+
 		if not unitID or UnitIsUnit(unitID, "player") then return end
 
 		local GUID = UnitGUID(unitID)
@@ -469,7 +337,7 @@ do
 							stackCount = count,
 							sID = spellId,
 							caster = unitCaster and core:GetFullName(unitCaster),
-							scale = spellOpts and (spellOpts.increase or 1) or 1
+							scale = spellOpts.increase or 1
 						})
 					end
 				elseif duration > 0 then
@@ -488,7 +356,7 @@ do
 							stackCount = count,
 							sID = spellId,
 							caster = unitCaster and core:GetFullName(unitCaster),
-							scale = spellOpts and (spellOpts.increase or 1) or 1
+							scale = 1
 						})
 					end
 				end
@@ -520,7 +388,7 @@ do
 							isDebuff = true,
 							sID = spellId,
 							caster = unitCaster and core:GetFullName(unitCaster),
-							scale = spellOpts and (spellOpts.increase or 1) or 1
+							scale = spellOpts.increase or 1
 						})
 					end
 				elseif duration > 0 then
@@ -541,7 +409,7 @@ do
 							isDebuff = true,
 							sID = spellId,
 							caster = unitCaster and core:GetFullName(unitCaster),
-							scale = spellOpts and (spellOpts.increase or 1) or 1
+							scale = 1
 						})
 					end
 				end
@@ -656,35 +524,6 @@ function core:UpdateTargetPlate(GUID)
 	return false
 end
 
-function core:GetAllSpellIDs()
-	local spells, name = {}, nil
-
-	for i, spellID in pairs(defaultSpells1) do
-		name = GetSpellInfo(spellID)
-		spells[name] = spellID
-	end
-	for i, spellID in pairs(defaultSpells2) do
-		name = GetSpellInfo(spellID)
-		spells[name] = spellID
-	end
-	for i, spellID in pairs(defaultSpells3) do
-		name = GetSpellInfo(spellID)
-		spells[name] = spellID
-	end
-	for i, spellID in pairs(defaultSpells4) do
-		name = GetSpellInfo(spellID)
-		spells[name] = spellID
-	end
-
-	for i = 76567, 1, -1 do --76567
-		name = GetSpellInfo(i)
-		if name and not spells[name] then
-			spells[name] = i
-		end
-	end
-	return spells
-end
-
 function core:SkinCallback(skin, glossAlpha, gloss, _, _, colors)
 	self.db.profile.skin_SkinID = skin
 	self.db.profile.skin_Gloss = glossAlpha
@@ -692,14 +531,13 @@ function core:SkinCallback(skin, glossAlpha, gloss, _, _, colors)
 	self.db.profile.skin_Colors = colors
 end
 
-function core:SetCDAnchor(frame)
-	local anchor = P.cdAnchor
-	frame.cd:ClearAllPoints()
-	if anchor == "TOP" then
-		frame.cd:SetPoint("BOTTOM", frame.icon, "TOP", P.cdOffsetX, P.cdOffsetY + 3)
-	elseif anchor == "CENTER" then
-		frame.cd:SetPoint("CENTER", frame.icon, "CENTER", P.cdOffsetX, P.cdOffsetY)
-	elseif anchor == "BOTTOM" then
-		frame.cd:SetPoint("TOP", frame.icon, "BOTTOM", P.cdOffsetX, P.cdOffsetY -3)
+function core:GetAllSpellIDs()
+	local spells, name = {}, nil
+	for i = 76567, 1, -1 do --76567
+		name = GetSpellInfo(i)
+		if name and not spells[name] then
+			spells[name] = i
+		end
 	end
+	return spells
 end

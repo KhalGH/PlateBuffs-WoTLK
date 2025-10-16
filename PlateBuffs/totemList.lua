@@ -1,4 +1,6 @@
-local core = select(2, ...)
+local _, core = ...
+
+local table_getn, GetSpellInfo = table.getn, GetSpellInfo
 
 -- Nameplates with these names are totems. By default we ignore totem nameplates.
 local totemList = {
@@ -25,4 +27,11 @@ local totemList = {
 	57722 --Totem of Wrath
 }
 
-core.totemList = totemList
+local totems = {}
+local name, texture, _
+for i = 1, table_getn(totemList) do
+	name, _, texture = GetSpellInfo(totemList[i])
+	totems[name] = texture
+end
+
+core.totems = totems

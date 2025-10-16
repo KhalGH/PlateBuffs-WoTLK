@@ -1,4 +1,6 @@
-local core = select(2, ...)
+local _, core = ...
+
+local table_insert, table_getn, GetSpellInfo = table.insert, table.getn, GetSpellInfo
 
 ------------------ Default Buff/Debuff Lists ------------------
 -- 1.6x Scaled Icons & "Show Always" enabled
@@ -326,7 +328,6 @@ local spellsByClass = {
 }
 local myClass = select(2, UnitClass("player"))
 local classSpells = myClass and spellsByClass[myClass]
-local table_insert = table.insert
 if classSpells and classSpells.defaultSpells3 then
 	for _, id in ipairs(classSpells.defaultSpells3) do
     	table_insert(defaultSpells3, id)
@@ -338,9 +339,70 @@ if classSpells and classSpells.defaultSpells4 then
 	end
 end
 
------------ Reference for core.lua -----------
-core.defaultSpells1, core.defaultScale1, core.defaultDurationSize1, core.defaultStackSize1 = defaultSpells1, defaultScale1, defaultDurationSize1, defaultStackSize1
-core.defaultSpells2, core.defaultScale2, core.defaultDurationSize2, core.defaultStackSize2 = defaultSpells2, defaultScale2, defaultDurationSize2, defaultStackSize2
-core.defaultSpells3, core.defaultScale3, core.defaultDurationSize3, core.defaultStackSize3 = defaultSpells3, defaultScale3, defaultDurationSize3, defaultStackSize3
-core.defaultSpells4, core.defaultScale4, core.defaultDurationSize4, core.defaultStackSize4 = defaultSpells4, defaultScale4, defaultDurationSize4, defaultStackSize4
-core.CheckSpellID = CheckSpellID
+------ Initializing core default spell configurations by category ------
+core.defaultSettings = {
+	profile = {
+		spellOpts = {},
+		ignoreDefaultSpell = {}
+	}
+}
+local spellOpts = core.defaultSettings.profile.spellOpts
+for i = 1, table_getn(defaultSpells1) do
+	local spellID = defaultSpells1[i]
+	local spellName = GetSpellInfo(spellID)
+	if spellName then
+		spellOpts[spellName] = {
+			spellID = spellID,
+			increase = defaultScale1,
+			cooldownSize = defaultDurationSize1,
+			show = 1,
+			stackSize = defaultStackSize1
+		}
+	end
+end
+for i = 1, table_getn(defaultSpells2) do
+	local spellID = defaultSpells2[i]
+	local spellName = GetSpellInfo(spellID)
+	if spellName then
+		spellOpts[spellName] = {
+			spellID = spellID,
+			increase = defaultScale2,
+			cooldownSize = defaultDurationSize2,
+			show = 1,
+			stackSize = defaultStackSize2
+		}
+	end
+end
+for i = 1, table_getn(defaultSpells3) do
+	local spellID = defaultSpells3[i]
+	local spellName = GetSpellInfo(defaultSpells3[i])
+	if spellName then
+		spellOpts[spellName] = {
+			spellID = spellID,
+			increase = defaultScale3,
+			cooldownSize = defaultDurationSize3,
+			show = 1,
+			stackSize = defaultStackSize3
+		}
+	end
+end
+for i = 1, table_getn(defaultSpells4) do
+	local spellID = defaultSpells4[i]
+	local spellName = GetSpellInfo(spellID)
+	if spellName then
+		spellOpts[spellName] = {
+			spellID = spellID,
+			increase = defaultScale4,
+			cooldownSize = defaultDurationSize4,
+			show = 2,
+			stackSize = defaultStackSize4
+		}
+	end
+end
+for i = 1, table_getn(CheckSpellID) do
+	local spellID = CheckSpellID[i]
+	local spellName = GetSpellInfo(spellID)
+	if spellOpts[spellName] then
+		spellOpts[spellName].grabid = true
+	end
+end

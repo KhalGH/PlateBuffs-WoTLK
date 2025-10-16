@@ -617,10 +617,15 @@ function core:SetFrameLevel(frame)
     end
 end
 
--- This will reset all the anchors on the spell frames.
-function core:ResetAllPlateIcons()
-	for plate in pairs(buffFrames) do
-		core:BuildBuffFrame(plate, true)
+function core:SetCDAnchor(frame)
+	local anchor = P.cdAnchor
+	frame.cd:ClearAllPoints()
+	if anchor == "TOP" then
+		frame.cd:SetPoint("BOTTOM", frame.icon, "TOP", P.cdOffsetX, P.cdOffsetY + 3)
+	elseif anchor == "CENTER" then
+		frame.cd:SetPoint("CENTER", frame.icon, "CENTER", P.cdOffsetX, P.cdOffsetY)
+	elseif anchor == "BOTTOM" then
+		frame.cd:SetPoint("TOP", frame.icon, "BOTTOM", P.cdOffsetX, P.cdOffsetY -3)
 	end
 end
 
@@ -633,6 +638,13 @@ function core:UpdateAllCDAnchors()
             end
         end
     end
+end
+
+-- This will reset all the anchors on the spell frames.
+function core:ResetAllPlateIcons()
+	for plate in pairs(buffFrames) do
+		core:BuildBuffFrame(plate, true)
+	end
 end
 
 -- Create our buff frames on a plate.
