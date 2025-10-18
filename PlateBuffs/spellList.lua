@@ -363,7 +363,7 @@ for i = 1, table_getn(spellList1) do
 	if spellName then
 		spellOpts[spellName] = {
 			spellID = spellID,
-			iconScale = iconScale1,
+			increase = iconScale1,
 			show = showCondition1,
 		}
 	end
@@ -374,7 +374,7 @@ for i = 1, table_getn(spellList2) do
 	if spellName then
 		spellOpts[spellName] = {
 			spellID = spellID,
-			iconScale = iconScale2,
+			increase = iconScale2,
 			show = showCondition2,
 		}
 	end
@@ -385,7 +385,7 @@ for i = 1, table_getn(spellList3) do
 	if spellName then
 		spellOpts[spellName] = {
 			spellID = spellID,
-			iconScale = iconScale3,
+			increase = iconScale3,
 			show = showCondition3,
 		}
 	end
@@ -396,7 +396,7 @@ for i = 1, table_getn(spellList4) do
 	if spellName then
 		spellOpts[spellName] = {
 			spellID = spellID,
-			iconScale = iconScale4,
+			increase = iconScale4,
 			show = showCondition4,
 		}
 	end

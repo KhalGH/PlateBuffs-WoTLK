@@ -66,23 +66,23 @@ defaultSettings.barOffsetY = -1
 defaultSettings.iconsPerBar = 4
 defaultSettings.barGrowth = 1
 defaultSettings.numBars = 3
-defaultSettings.iconWidth = 26
-defaultSettings.iconHeight = 26
-defaultSettings.iconScale = 1
+defaultSettings.iconSize = 26
+defaultSettings.iconSize2 = 26
+defaultSettings.increase = 1
 defaultSettings.showInterrupts = true
 defaultSettings.interruptsScale = 1.4
 defaultSettings.biggerSelfSpells = false
 defaultSettings.shrinkBar = true
 defaultSettings.showBarBackground = false
-defaultSettings.durationSize = 11
+defaultSettings.cooldownSize = 11
 defaultSettings.stackSize = 8
 defaultSettings.intervalX = 4
 defaultSettings.intervalY = 4
 defaultSettings.decimalThreshold = 0
 defaultSettings.digitsnumber = 1
-defaultSettings.durationAnchor = "CENTER"
-defaultSettings.durationOffsetX = 0
-defaultSettings.durationOffsetY = 0
+defaultSettings.cdAnchor = "CENTER"
+defaultSettings.cdOffsetX = 0
+defaultSettings.cdOffsetY = 0
 defaultSettings.borderTexture = "Interface\\Addons\\PlateBuffs\\media\\DefaultBorder.blp"
 defaultSettings.colorByType = true
 defaultSettings.color1 = {0.80, 0, 0}
@@ -101,10 +101,10 @@ defaultSettings.fadeThreshold = 3
 defaultSettings.blinkFadeMinDuration = 6
 defaultSettings.blinkTargetOnly = true
 defaultSettings.fadeTargetOnly = false
-defaultSettings.durationFont = "Friz Quadrata TT"
-defaultSettings.showDuration = true
-defaultSettings.showClockOverlay = false
-defaultSettings.legacyCooldownClock = false
+defaultSettings.cooldownFont = "Friz Quadrata TT"
+defaultSettings.showCooldown = true
+defaultSettings.showCooldownTexture = false
+defaultSettings.legacyCooldownTexture = false
 defaultSettings.enableAdjustFreq = false
 defaultSettings.UpdateRate = 0.1
 
@@ -604,7 +604,7 @@ core.DefaultSpellOptionsTable = {
 			name = " ",
 			order = 1.5,
 		},
-		iconWidth = {
+		iconSize = {
 			type = "range",
 			name = L["Icon width"],
 			desc = L["Size of the icons."],
@@ -613,11 +613,11 @@ core.DefaultSpellOptionsTable = {
 			max = 80,
 			step = 1,
 			set = function(info, val)
-				P.iconWidth = val
+				P.iconSize = val
 				core:ResetIconSizes()
 			end
 		},
-		iconHeight = {
+		iconSize2 = {
 			type = "range",
 			name = L["Icon height"],
 			desc = L["Size of the icons."],
@@ -626,7 +626,7 @@ core.DefaultSpellOptionsTable = {
 			max = 80,
 			step = 1,
 			set = function(info, val)
-				P.iconHeight = val
+				P.iconSize2 = val
 				core:ResetIconSizes()
 			end
 		},
@@ -767,7 +767,7 @@ core.DefaultSpellOptionsTable = {
 			name = " ",
 			order = 15.5,
 		},
-		durationSize = {
+		cooldownSize = {
 			type = "range",
 			name = L["Duration Text Size"],
 			desc = L["Text size"],
@@ -776,7 +776,7 @@ core.DefaultSpellOptionsTable = {
 			max = 20,
 			step = 1,
 			set = function(info, val)
-				P.durationSize = val
+				P.cooldownSize = val
 				core:ResetDurationSizes()
 			end
 		},
@@ -798,18 +798,18 @@ core.DefaultSpellOptionsTable = {
 			name = " ",
 			order = 17.5,
 		},
-		showDuration = {
+		showCooldown = {
 			type = "toggle",
 			name = L["Show Duration"],
 			desc = L["Show duration text on the spell icon."],
 			width = "full",
 			order = 18,
 			set = function(info, val)
-				P.showDuration = val
+				P.showCooldown = val
 				core:ResetDurationSizes()
 			end
 		},
-		durationAnchor = {
+		cdAnchor = {
 			type = "select", 
 			order = 19,
 			name = L["Duration Text Anchor"],
@@ -820,14 +820,14 @@ core.DefaultSpellOptionsTable = {
 				TOP = L["Above Icon"]
 			},
 			set = function(info, val)
-				P.durationAnchor = val
-				P.durationOffsetX = defaultSettings.durationOffsetX
-				P.durationOffsetY = defaultSettings.durationOffsetY
+				P.cdAnchor = val
+				P.cdOffsetX = defaultSettings.cdOffsetX
+				P.cdOffsetY = defaultSettings.cdOffsetY
 				core:UpdateAllDurationAnchors()
 			end,
-			disabled = function() return not P.showDuration end
+			disabled = function() return not P.showCooldown end
 		},
-		durationOffsetX = {
+		cdOffsetX = {
 			type = "range",
 			name = L["Offset X"],
 			desc = L["Left to right offset."],
@@ -836,12 +836,12 @@ core.DefaultSpellOptionsTable = {
 			max = 30,
 			step = 0.5,
 			set = function(info, val)
-				P.durationOffsetX = val
+				P.cdOffsetX = val
 				core:UpdateAllDurationAnchors()
 			end,
-			disabled = function() return not P.showDuration end
+			disabled = function() return not P.showCooldown end
 		},
-		durationOffsetY = {
+		cdOffsetY = {
 			type = "range",
 			name = L["Offset Y"],
 			desc = L["Up to down offset."],
@@ -850,25 +850,25 @@ core.DefaultSpellOptionsTable = {
 			max = 30,
 			step = 0.5,
 			set = function(info, val)
-				P.durationOffsetY = val
+				P.cdOffsetY = val
 				core:UpdateAllDurationAnchors()
 			end,
-			disabled = function() return not P.showDuration end
+			disabled = function() return not P.showCooldown end
 		},
-		durationFont = {
+		cooldownFont = {
 			type = "select",
 			name = L["Duration Text Font"],
 			order = 22,
 			values = LSM:HashTable("font"),
 			dialogControl = "LSM30_Font",
 			get = function()
-				return P.durationFont or defaultSettings.durationFont
+				return P.cooldownFont or defaultSettings.cooldownFont
 			end,
 			set = function(_, val)
-				P.durationFont = val
+				P.cooldownFont = val
 				core:ResetDurationSizes()
 			end,
-			disabled = function() return not P.showDuration end
+			disabled = function() return not P.showCooldown end
 		},
 		decimalThreshold = {
 			type = "range",
@@ -878,7 +878,7 @@ core.DefaultSpellOptionsTable = {
 			min = 0,
 			max = 10,
 			step = 1,
-			disabled = function() return not P.showDuration end
+			disabled = function() return not P.showCooldown end
 		},
 		digitsnumber = {
 			type = "range",
@@ -888,7 +888,7 @@ core.DefaultSpellOptionsTable = {
 			min = 0,
 			max = 2,
 			step = 1,
-			disabled = function() return not P.showDuration end
+			disabled = function() return not P.showCooldown end
 		},
 		blank5 = {
 			type = "description",
@@ -1002,17 +1002,17 @@ core.DefaultSpellOptionsTable = {
 			name = " ",
 			order = 34.5,
 		},
-		showClockOverlay = {
+		showCooldownTexture = {
 			type = "toggle",
 			name = L["Show 'clock' overlay"],
 			desc = L["Show a vertical 'clock' overlay over spell textures showing the time remaining."] ,
 			order = 35
 		},
-		legacyCooldownClock = {
+		legacyCooldownTexture = {
 			type = "toggle",
 			name = L["Legacy 'clock' overlay"],
 			desc = L["Use the old radial clock overlay which tends to disappear when the frame's moving.\nRequires UI Reload."],
-			disabled = function() return (UnitAffectingCombat("player") or InCombatLockdown() or not P.showClockOverlay) end,
+			disabled = function() return (UnitAffectingCombat("player") or InCombatLockdown() or not P.showCooldownTexture) end,
 			order = 36
 		},
 		blank10 = {
@@ -1086,7 +1086,7 @@ do
 			spellName = list[i]
 			data = P.spellOpts[spellName]
 			spellID = P.spellOpts[spellName].spellID or "No spellID"
-			iconSize = data.iconScale or P.iconScale
+			iconSize = data.increase or P.increase
 			iconTexture = SpellString(spellID)
 
 			if data.show == 1 then
@@ -1162,10 +1162,10 @@ do
 				max = 3,
 				step = 0.1,
 				get = function(info)
-					return P.spellOpts[info[2]].iconScale or P.iconScale
+					return P.spellOpts[info[2]].increase or P.increase
 				end,
 				set = function(info, val)
-					P.spellOpts[info[2]].iconScale = val
+					P.spellOpts[info[2]].increase = val
 					core:ResetDurationSizes()
 					core:ResetStackSizes()
 					core:ResetIconSizes()

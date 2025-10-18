@@ -331,7 +331,7 @@ do
 							stackCount = count,
 							sID = spellId,
 							caster = unitCaster and core:GetFullName(unitCaster),
-							scale = spellOpts.iconScale or 1
+							scale = spellOpts.increase or 1
 						})
 					end
 				elseif duration > 0 then
@@ -382,7 +382,7 @@ do
 							isDebuff = true,
 							sID = spellId,
 							caster = unitCaster and core:GetFullName(unitCaster),
-							scale = spellOpts.iconScale or 1
+							scale = spellOpts.increase or 1
 						})
 					end
 				elseif duration > 0 then

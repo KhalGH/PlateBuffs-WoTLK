@@ -188,7 +188,7 @@ do
 					(P.spellOpts[spellName].show == 4 and self:FlagIsFriendly(dstFlags)) or
 					(P.spellOpts[spellName].show == 5 and self:FlagIsHostle(dstFlags))
 				then
-					updateBars = self:AddSpellToGUID(dstGUID, spellID, LibAI:GetGUIDInfo(srcGUID), spellName, spellTexture, duration, srcGUID, isDebuff, debuffType, expires, stackCount, spellOpts.iconScale)
+					updateBars = self:AddSpellToGUID(dstGUID, spellID, LibAI:GetGUIDInfo(srcGUID), spellName, spellTexture, duration, srcGUID, isDebuff, debuffType, expires, stackCount, spellOpts.increase)
 				end
 			else
 				if
