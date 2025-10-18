@@ -2,6 +2,7 @@ local folder, core = ...
 local L = LibStub("AceLocale-3.0"):NewLocale(folder, "zhCN")
 if not L then return end
 
+L["ShowDescription"] = "\n  在姓名板上显示增益和减益效果。\n\n  作者：Cyprias（Kader Backport），修改：Khal\n\n  版本：%s\n\n"
 L["Add Spell Description"] = "增加法术描述。"
 L["Add buffs above NPCs"] = "在 NPC 上添加Buff"
 L["Add buffs above friendly plates"] = "在友方姓名板上添加Buff"
@@ -43,6 +44,7 @@ This option won't be saved at logout.]=] ] = "对于某个人上的每个法术�
 L["Friendly"] = "友方"
 L["Hostile"] = "敌对"
 L["Icon Size"] = "图标尺寸"
+L["Icon Scale"] = "图标缩放"
 L["Icons per row"] = "每行图标"
 L["Input a spell name. (case sensitive)"] = "输入一个法术名字. (大小写敏感)"
 L[ [=[Input a spell name. (case sensitive)
@@ -215,4 +217,16 @@ L["Adjust Update Interval"] = "调整更新间隔"
 L["Allows changing the time interval (in seconds) between updates for each icon."] = "允许更改每个图标更新之间的时间间隔（以秒为单位）。"
 L["Update Interval"] = "更新间隔"
 L["Lower values make animations smoother but can significantly increase CPU usage."] = "较低的数值可以使动画更流畅，但可能显著增加 CPU 使用率。"
-L["ShowDescription"] = "\n  在姓名板上显示增益和减益效果。\n\n  作者：Cyprias（Kader Backport），修改：Khal\n\n  版本：%s\n\n"
+L["Spell ID"] = "法术ID"
+L["Check Spell ID"] = "检查法术ID"
+L["Check exact Spell ID for this aura. Useful when different spells share a name"] = "检查此光环的确切法术ID。当不同法术共享名称时很有用"
+L["Only Friend"] = "仅友方"
+L["Only Enemy"]  = "仅敌方"
+L["Duration Text Size"] = "持续时间文字大小"
+L["Stack Text Size"]    = "层数文字大小"
+L["Interrupts settings"] = "打断设置"
+L["Border Color"] = "边框颜色"
+L["Show Interrupts"] = "显示打断"
+L["Show Interrupts as simulated debuffs above player nameplates."] = "在玩家名条上方将中断显示为模拟的减益效果"
+L["Blacklist Totems"] = "忽略图腾"
+L["Ignore PlateBuffs on totem nameplates"] = "在图腾姓名板上忽略 PlateBuffs"

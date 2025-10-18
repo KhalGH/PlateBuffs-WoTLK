@@ -1111,6 +1111,10 @@ function lib.frame:SPELL_AURA_APPLIED_REMOVED_DOSE(event, timestamp, eventType, 
 	
 end
 
+function lib.frame:SPELL_INTERRUPT(event, timestamp, eventType, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, ...)	--
+	local spellID, spellName, spellSchool, extraSpellID, extraSpellName, extraSchool = ...
+	lib.callbacks:Fire("LibAuraInfo_SPELL_INTERRUPT", srcGUID, srcName, dstGUID, dstFlags, spellID)
+end
 
 function lib.frame:SPELL_AURA_BROKEN_SPELL(...)
 --~ 	local spellID, spellName, spellSchool, auraType  = ...

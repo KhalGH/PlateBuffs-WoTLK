@@ -28,10 +28,10 @@ local totemList = {
 }
 
 local totems = {}
-local name, texture, _
+local name
 for i = 1, table_getn(totemList) do
-	name, _, texture = GetSpellInfo(totemList[i])
-	totems[name] = texture
+	name = GetSpellInfo(totemList[i])
+	totems[name] = true
 end
 
 core.totems = totems

@@ -3,11 +3,10 @@ local _, core = ...
 local table_insert, table_getn, GetSpellInfo = table.insert, table.getn, GetSpellInfo
 
 ------------------ Default Buff/Debuff Lists ------------------
--- 1.6x Scaled Icons & "Show Always" enabled
-local defaultScale1 = 1.6
-local defaultDurationSize1 = 16
-local defaultStackSize1 = 12
-local defaultSpells1 = {
+-- First Category
+local iconScale1 = 1.6
+local showCondition1 = 1 -- "Show Always"
+local spellList1 = {
 	-- Immunities
 	48707,	-- Anti-Magic Shell
 	18647,	-- Banish
@@ -19,16 +18,14 @@ local defaultSpells1 = {
 	-- BG Important Buffs
 	46393,	-- Brutal Assault
 	46392,	-- Focused Assault
-	6615,	-- Free Action
 	34976,	-- Netherstorm Flag (EotS flag)
 	23335,	-- Silverwing Flag (Alliance WSG flag)
 	23333,	-- Warsong Flag (Horde WSG flag)
 }
--- 1.4x Scaled Icons & "Show Always" enabled
-local defaultScale2 = 1.4
-local defaultDurationSize2 = 14
-local defaultStackSize2 = 11
-local defaultSpells2 = {
+-- Second Category
+local iconScale2 = 1.4
+local showCondition2 = 1 -- "Show Always"
+local spellList2 = {
 	-- Breakable CCs
 	30217,	-- Adamantite Grenade
 	2094,	-- Blind
@@ -107,11 +104,12 @@ local defaultSpells2 = {
 	64850,	-- Unrelenting Assault
 	57975,	-- Wound Poison VII
 }
--- 1.2x Scaled Icons & "Show Always" enabled
-local defaultScale3 = 1.2
-local defaultDurationSize3 = 12
-local defaultStackSize3 = 10
-local defaultSpells3 = {
+-- Third Category
+local iconScale3 = 1.2
+local showCondition3 = 1 -- "Show Always"
+local spellList3 = {
+	-- DK
+	49016,	-- Hysteria
 	-- Druid
 	22812,	-- Barkskin
 	50334,	-- Berserk (CheckSpellID)
@@ -160,16 +158,16 @@ local defaultSpells3 = {
 	12328,	-- Sweeping Strikes
 	-- Others
 	52418,	-- Carrying Seaforium
+	6615,	-- Free Action
 	53908,	-- Speed (CheckSpellID)
 }
--- 1.00x Scaled Icons & "Show Mine Only" enabled
-local defaultScale4 = 1
-local defaultDurationSize4 = 11
-local defaultStackSize4 = 8
-local defaultSpells4 = {
+-- Fourth Category
+local iconScale4 = 1
+local showCondition4 = 2 -- "Show Mine Only"
+local spellList4 = {
 	-- Set according to spellsByClass
 }
--- Spells with "Check SpellID" enabled (must also exist in a defaultSpells list)
+-- Spells with "Check SpellID" enabled (must also exist in a spellLists)
 local CheckSpellID = {
 	50334,	-- Berserk
 	6789,	-- Death Coil
@@ -183,7 +181,7 @@ local CheckSpellID = {
 ---------- Class-specific Additional Buff/Debuff ----------
 local spellsByClass = {
     DEATHKNIGHT = {
-        defaultSpells4 = {
+        spellList4 = {
             55078, -- Blood Plague
             45524, -- Chains of Ice
             51735, -- Ebon Plague
@@ -194,12 +192,12 @@ local spellsByClass = {
         },
     },
     DRUID = {
-        defaultSpells3 = {
+        spellList3 = {
             16882, -- Detect Greater Invisibility
             132,   -- Detect Invisibility
             6512,  -- Detect Lesser Invisibility
         },
-        defaultSpells4 = {
+        spellList4 = {
             60433, -- Earth and Moon
             53308, -- Entangling Roots
             770,   -- Faerie Fire
@@ -210,7 +208,7 @@ local spellsByClass = {
         },
     },
     HUNTER = {
-        defaultSpells4 = {
+        spellList4 = {
             5116,  -- Concussive Shot
             49050, -- Aimed Shot
             64804, -- Entrapment
@@ -223,7 +221,7 @@ local spellsByClass = {
         },
     },
     MAGE = {
-        defaultSpells4 = {
+        spellList4 = {
             42945, -- Blast Wave
             7321,  -- Chilled
             42931, -- Cone of Cold
@@ -237,10 +235,10 @@ local spellsByClass = {
         },
     },
     PALADIN = {
-        defaultSpells3 = {
+        spellList3 = {
             49039, -- Lichborne
         },
-        defaultSpells4 = {
+        spellList4 = {
             48827, -- Avenger's Shield
 			20217, -- Blessing of Kings
 			48932, -- Blessing of Might
@@ -256,23 +254,23 @@ local spellsByClass = {
         },
     },
     PRIEST = {
-        defaultSpells3 = {
+        spellList3 = {
             6346,  -- Fear Ward
             49039, -- Lichborne
         },
-        defaultSpells4 = {
+        spellList4 = {
             48300, -- Devouring Plague
             48125, -- Shadow Word: Pain
             48160, -- Vampiric Touch
         },
     },
     ROGUE = {
-        defaultSpells3 = {
+        spellList3 = {
             16882, -- Detect Greater Invisibility
             132,   -- Detect Invisibility
             6512,  -- Detect Lesser Invisibility
         },
-        defaultSpells4 = {
+        spellList4 = {
             31125, -- Blade Twisting
             3409,  -- Crippling Poison
             57970, -- Deadly Poison IX
@@ -283,7 +281,7 @@ local spellsByClass = {
         },
     },
     SHAMAN = {
-        defaultSpells4 = {
+        spellList4 = {
             49231, -- Earth Shock
             3600,  -- Earthbind
             64695, -- Earthgrab
@@ -294,11 +292,11 @@ local spellsByClass = {
         },
     },
     WARLOCK = {
-        defaultSpells3 = {
+        spellList3 = {
             6346,  -- Fear Ward
             49039, -- Lichborne
         },
-        defaultSpells4 = {
+        spellList4 = {
             18118, -- Aftermath
             47813, -- Corruption
             47864, -- Curse of Agony
@@ -314,7 +312,7 @@ local spellsByClass = {
         },
     },
     WARRIOR = {
-        defaultSpells4 = {
+        spellList4 = {
             7922,  -- Charge Stun
             1715,  -- Hamstring
             23694, -- Improved Hamstring
@@ -328,18 +326,30 @@ local spellsByClass = {
 }
 local myClass = select(2, UnitClass("player"))
 local classSpells = myClass and spellsByClass[myClass]
-if classSpells and classSpells.defaultSpells3 then
-	for _, id in ipairs(classSpells.defaultSpells3) do
-    	table_insert(defaultSpells3, id)
+if classSpells and classSpells.spellList3 then
+	for _, id in ipairs(classSpells.spellList3) do
+    	table_insert(spellList3, id)
 	end
 end
-if classSpells and classSpells.defaultSpells4 then
-	for _, id in ipairs(classSpells.defaultSpells4) do
-    	table_insert(defaultSpells4, id)
+if classSpells and classSpells.spellList4 then
+	for _, id in ipairs(classSpells.spellList4) do
+    	table_insert(spellList4, id)
 	end
 end
 
------- Initializing core default spell configurations by category ------
+---- Interrupts list, assuming 30% duration reduction (worst-case scenario) ----
+core.InterruptsDuration = {
+	[6552]  = 4 * 0.7,	-- Warrior: Pummel
+	[72]    = 6 * 0.7,	-- Warrior: Shield Bash
+	[1766]  = 5 * 0.7,	-- Rogue: Kick
+	[47528] = 4 * 0.7,	-- DK: Mind Freeze
+	[57994] = 2 * 0.7,	-- Shaman: Wind Shear
+	[19647] = 6 * 0.7,	-- Warlock: Spell Lock (Felhunter)
+	[2139]  = 8 * 0.7,	-- Mage: Counterspell
+	[16979] = 4 * 0.7	-- Druid: Feral Charge (Bear)
+}
+
+------ Core default spell configurations by category ------
 core.defaultSettings = {
 	profile = {
 		spellOpts = {},
@@ -347,55 +357,47 @@ core.defaultSettings = {
 	}
 }
 local spellOpts = core.defaultSettings.profile.spellOpts
-for i = 1, table_getn(defaultSpells1) do
-	local spellID = defaultSpells1[i]
+for i = 1, table_getn(spellList1) do
+	local spellID = spellList1[i]
 	local spellName = GetSpellInfo(spellID)
 	if spellName then
 		spellOpts[spellName] = {
 			spellID = spellID,
-			increase = defaultScale1,
-			cooldownSize = defaultDurationSize1,
-			show = 1,
-			stackSize = defaultStackSize1
+			iconScale = iconScale1,
+			show = showCondition1,
 		}
 	end
 end
-for i = 1, table_getn(defaultSpells2) do
-	local spellID = defaultSpells2[i]
+for i = 1, table_getn(spellList2) do
+	local spellID = spellList2[i]
 	local spellName = GetSpellInfo(spellID)
 	if spellName then
 		spellOpts[spellName] = {
 			spellID = spellID,
-			increase = defaultScale2,
-			cooldownSize = defaultDurationSize2,
-			show = 1,
-			stackSize = defaultStackSize2
+			iconScale = iconScale2,
+			show = showCondition2,
 		}
 	end
 end
-for i = 1, table_getn(defaultSpells3) do
-	local spellID = defaultSpells3[i]
-	local spellName = GetSpellInfo(defaultSpells3[i])
-	if spellName then
-		spellOpts[spellName] = {
-			spellID = spellID,
-			increase = defaultScale3,
-			cooldownSize = defaultDurationSize3,
-			show = 1,
-			stackSize = defaultStackSize3
-		}
-	end
-end
-for i = 1, table_getn(defaultSpells4) do
-	local spellID = defaultSpells4[i]
+for i = 1, table_getn(spellList3) do
+	local spellID = spellList3[i]
 	local spellName = GetSpellInfo(spellID)
 	if spellName then
 		spellOpts[spellName] = {
 			spellID = spellID,
-			increase = defaultScale4,
-			cooldownSize = defaultDurationSize4,
-			show = 2,
-			stackSize = defaultStackSize4
+			iconScale = iconScale3,
+			show = showCondition3,
+		}
+	end
+end
+for i = 1, table_getn(spellList4) do
+	local spellID = spellList4[i]
+	local spellName = GetSpellInfo(spellID)
+	if spellName then
+		spellOpts[spellName] = {
+			spellID = spellID,
+			iconScale = iconScale4,
+			show = showCondition4,
 		}
 	end
 end

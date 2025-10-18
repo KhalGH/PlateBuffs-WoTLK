@@ -1,6 +1,8 @@
 local folder, core = ...
 local L = LibStub("AceLocale-3.0"):NewLocale(folder, "deDE")
 if not L then return end
+
+L["ShowDescription"] = "\n  Zeigt Buffs und Debuffs auf Namensplaketten an.\n\n  Autor: Cyprias (Kader Backport), modifiziert von Khal\n\n  Version: %s\n\n"
 L["Add Spell Description"] = "Zauber-Beschreibung hinzufügen"
 L["Add buffs above NPCs"] = "Stärkungszauber über NPCs anzeigen"
 L["Add buffs above friendly plates"] = "Stärkungszauber über freundlichen Einheiten anzeigen"
@@ -44,6 +46,7 @@ Diese Option wird beim Ausloggen nicht gespeichert.]=]
 L["Friendly"] = "Freundlich"
 L["Hostile"] = "Feindlich"
 L["Icon Size"] = "Symbolgröße"
+L["Icon Scale"] = "Symbolskalierung"
 L["Icons per row"] = "Symbole pro Reihe"
 L["Input a spell name. (case sensitive)"] = "Einen Zaubernamen eingeben. (Groß- und Kleinschreibung wird berücksichtigt)"
 L[ [=[Input a spell name. (case sensitive)
@@ -219,4 +222,16 @@ L["Adjust Update Interval"] = "Aktualisierungsintervall anpassen"
 L["Allows changing the time interval (in seconds) between updates for each icon."] = "Ermöglicht das Ändern des Zeitintervalls (in Sekunden) zwischen den Aktualisierungen jedes Symbols."
 L["Update Interval"] = "Aktualisierungsintervall"
 L["Lower values make animations smoother but can significantly increase CPU usage."] = "Niedrigere Werte machen Animationen flüssiger, können jedoch die CPU-Auslastung erheblich erhöhen."
-L["ShowDescription"] = "\n  Zeigt Buffs und Debuffs auf Namensplaketten an.\n\n  Autor: Cyprias (Kader Backport), modifiziert von Khal\n\n  Version: %s\n\n"
+L["Spell ID"] = "Zauber-ID"
+L["Check Spell ID"] = "Zauber-ID überprüfen"
+L["Check exact Spell ID for this aura. Useful when different spells share a name"] = "Überprüft die genaue Zauber-ID für diese Aura. Nützlich, wenn verschiedene Zauber denselben Namen haben"
+L["Only Friend"] = "Nur Verbündete"
+L["Only Enemy"]  = "Nur Feinde"
+L["Duration Text Size"] = "Textgröße (Dauer)"
+L["Stack Text Size"]    = "Textgröße (Stapel)"
+L["Interrupts settings"] = "Unterbrechungseinstellungen"
+L["Border Color"] = "Rahmenfarbe"
+L["Show Interrupts"] = "Unterbrechungen anzeigen"
+L["Show Interrupts as simulated debuffs above player nameplates."] = "Unterbrechungen als simulierte Debuffs über Spieler-Namensplaketten anzeigen"
+L["Blacklist Totems"] = "Totems ignorieren"
+L["Ignore PlateBuffs on totem nameplates"] = "PlateBuffs auf Totem-Nameplates ignorieren"

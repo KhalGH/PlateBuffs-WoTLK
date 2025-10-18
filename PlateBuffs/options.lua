@@ -66,22 +66,23 @@ defaultSettings.barOffsetY = -1
 defaultSettings.iconsPerBar = 4
 defaultSettings.barGrowth = 1
 defaultSettings.numBars = 3
-defaultSettings.iconSize = 26
-defaultSettings.iconSize2 = 26
-defaultSettings.increase = 1
+defaultSettings.iconWidth = 26
+defaultSettings.iconHeight = 26
+defaultSettings.iconScale = 1
+defaultSettings.showInterrupts = true
+defaultSettings.interruptsScale = 1.4
 defaultSettings.biggerSelfSpells = false
 defaultSettings.shrinkBar = true
 defaultSettings.showBarBackground = false
-defaultSettings.frameLevel = 0
-defaultSettings.cooldownSize = 11
+defaultSettings.durationSize = 11
 defaultSettings.stackSize = 8
 defaultSettings.intervalX = 4
 defaultSettings.intervalY = 4
 defaultSettings.decimalThreshold = 0
 defaultSettings.digitsnumber = 1
-defaultSettings.cdAnchor = "CENTER"
-defaultSettings.cdOffsetX = 0
-defaultSettings.cdOffsetY = 0
+defaultSettings.durationAnchor = "CENTER"
+defaultSettings.durationOffsetX = 0
+defaultSettings.durationOffsetY = 0
 defaultSettings.borderTexture = "Interface\\Addons\\PlateBuffs\\media\\DefaultBorder.blp"
 defaultSettings.colorByType = true
 defaultSettings.color1 = {0.80, 0, 0}
@@ -90,7 +91,8 @@ defaultSettings.color3 = {0.60, 0.00, 1.00}
 defaultSettings.color4 = {0.60, 0.40, 0}
 defaultSettings.color5 = {0.00, 0.60, 0}
 defaultSettings.color6 = {0.83, 0.83, 0.83}
-defaultSettings.showTotems = false
+defaultSettings.color7 = {0.20, 0.80, 0.60}
+defaultSettings.blacklistTotems = true
 defaultSettings.npcCombatWithOnly = false
 defaultSettings.playerCombatWithOnly = false
 defaultSettings.enableBlinkFade = true
@@ -99,10 +101,10 @@ defaultSettings.fadeThreshold = 3
 defaultSettings.blinkFadeMinDuration = 6
 defaultSettings.blinkTargetOnly = true
 defaultSettings.fadeTargetOnly = false
-defaultSettings.cooldownFont = "Friz Quadrata TT"
-defaultSettings.showCooldown = true
-defaultSettings.showCooldownTexture = false
-defaultSettings.legacyCooldownTexture = false
+defaultSettings.durationFont = "Friz Quadrata TT"
+defaultSettings.showDuration = true
+defaultSettings.showClockOverlay = false
+defaultSettings.legacyCooldownClock = false
 defaultSettings.enableAdjustFreq = false
 defaultSettings.UpdateRate = 0.1
 
@@ -176,17 +178,22 @@ core.DisplayOptionsTable = {
 			order = 3,
 			values = {ALL, L["Mine + SpellList"], L["Only SpellList"], L["Mine Only"]}
 		},
+		showInterrupts = {
+			type = "toggle",
+			name = L["Show Interrupts"],
+			desc = L["Show Interrupts as simulated debuffs above player nameplates."],
+			order = 4
+		},
 		addSpellDescriptions = {
 			type = "toggle",
 			name = L["Add Spell Description"],
 			desc = L["Add spell descriptions to the specific spell's list.\nDisabling this will lower memory usage and login time."],
-			order = 4,
+			order = 5,
 			get = function()
 				return P.addSpellDescriptions
 			end,
 			set = function(info, val)
 				P.addSpellDescriptions = not P.addSpellDescriptions
-
 				if P.addSpellDescriptions then
 					spellIDs = core:GetAllSpellIDs()
 					core:BuildSpellUI()
@@ -196,79 +203,76 @@ core.DisplayOptionsTable = {
 		typeHeader = {
 			type = "header",
 			name = L["Unit type"],
-			order = 5
+			order = 6
 		},
 		abovePlayers = {
 			type = "toggle",
 			name = L["Players"],
 			desc = L["Add buffs above players. 'Class Color in Nameplates' must be enabled."],
-			order = 6
+			order = 7
 		},
 		aboveNPC = {
 			type = "toggle",
 			name = L["NPC"],
 			desc = L["Add buffs above NPCs"],
-			order = 7
+			order = 8
 		},
 		reactionHeader = {
 			name = L["Unit reaction"],
 			type = "header",
-			order = 8
+			order = 9
 		},
 		aboveFriendly = {
 			type = "toggle",
 			name = L["Friendly"],
 			desc = L["Add buffs above friendly plates"],
-			order = 9
+			order = 10
 		},
 		aboveNeutral = {
 			type = "toggle",
 			name = L["Neutral"],
 			desc = L["Add buffs above neutral plates"],
-			order = 10
+			order = 11
 		},
 		aboveHostile = {
 			type = "toggle",
 			name = L["Hostile"],
 			desc = L["Add buffs above hostile plates"],
-			order = 11
+			order = 12
 		},
 		otherHeader = {
 			name = L["Misc"],
 			type = "header",
-			order = 12
+			order = 13
 		},
 		spacer1 = {
 			type = "description",
 			name = "",
-			order = 13
-		},
-		showTotems = {
-			type = "toggle",
-			name = L["Show Totems"],
-			desc = L["Show spell icons on totems"],
 			order = 14
 		},
-		npcCombatWithOnly = {
+		watchCombatlog = {
 			type = "toggle",
-			name = L["NPC combat only"],
-			desc = L["Only show spells above nameplates that are in combat."],
+			name = L["Watch Combatlog"],
+			desc = L["Watch combatlog for people gaining/losing spells.\nDisable this if you're having performance issues."],
 			order = 15,
+			get = function()
+				return P.watchCombatlog
+			end,
 			set = function(info, val)
-				P.npcCombatWithOnly = val
-				core:Disable()
-				core:Enable()
+				P.watchCombatlog = not P.watchCombatlog
+				core:RegisterLibAuraInfo()
 			end
 		},
-		playerCombatWithOnly = {
+		saveNameToGUID = {
 			type = "toggle",
-			name = L["Player combat only"],
-			desc = L["Only show spells above nameplates that are in combat."],
+			name = L["Save player GUID"],
+			desc = L["Remember player GUID's so target/mouseover isn't needed every time nameplate appears.\nKeep this enabled"],
 			order = 16,
+			get = function(info)
+				return P.saveNameToGUID
+			end,
 			set = function(info, val)
-				P.playerCombatWithOnly = val
-				core:Disable()
-				core:Enable()
+				P.saveNameToGUID = val
 			end
 		},
 		unknownSpellDataIcon = {
@@ -277,29 +281,32 @@ core.DisplayOptionsTable = {
 			desc = L["Displays a question mark above unidentified nameplates. Identify them by target or mouseover."],
 			order = 17
 		},
-		saveNameToGUID = {
+		blacklistTotems = {
 			type = "toggle",
-			name = L["Save player GUID"],
-			desc = L["Remember player GUID's so target/mouseover isn't needed every time nameplate appears.\nKeep this enabled"],
-			order = 18,
-			get = function(info)
-				return P.saveNameToGUID
-			end,
+			name = L["Blacklist Totems"],
+			desc = L["Ignore PlateBuffs on totem nameplates"],
+			order = 18
+		},
+		playerCombatWithOnly = {
+			type = "toggle",
+			name = L["Player combat only"],
+			desc = L["Only show spells above nameplates that are in combat."],
+			order = 19,
 			set = function(info, val)
-				P.saveNameToGUID = val
+				P.playerCombatWithOnly = val
+				core:Disable()
+				core:Enable()
 			end
 		},
-		watchCombatlog = {
+		npcCombatWithOnly = {
 			type = "toggle",
-			name = L["Watch Combatlog"],
-			desc = L["Watch combatlog for people gaining/losing spells.\nDisable this if you're having performance issues."],
-			order = 19,
-			get = function()
-				return P.watchCombatlog
-			end,
+			name = L["NPC combat only"],
+			desc = L["Only show spells above nameplates that are in combat."],
+			order = 20,
 			set = function(info, val)
-				P.watchCombatlog = not P.watchCombatlog
-				core:RegisterLibAuraInfo()
+				P.npcCombatWithOnly = val
+				core:Disable()
+				core:Enable()
 			end
 		}
 	}
@@ -597,7 +604,7 @@ core.DefaultSpellOptionsTable = {
 			name = " ",
 			order = 1.5,
 		},
-		iconSize = {
+		iconWidth = {
 			type = "range",
 			name = L["Icon width"],
 			desc = L["Size of the icons."],
@@ -606,11 +613,11 @@ core.DefaultSpellOptionsTable = {
 			max = 80,
 			step = 1,
 			set = function(info, val)
-				P.iconSize = val
+				P.iconWidth = val
 				core:ResetIconSizes()
 			end
 		},
-		iconSize2 = {
+		iconHeight = {
 			type = "range",
 			name = L["Icon height"],
 			desc = L["Size of the icons."],
@@ -619,7 +626,7 @@ core.DefaultSpellOptionsTable = {
 			max = 80,
 			step = 1,
 			set = function(info, val)
-				P.iconSize2 = val
+				P.iconHeight = val
 				core:ResetIconSizes()
 			end
 		},
@@ -760,26 +767,22 @@ core.DefaultSpellOptionsTable = {
 			name = " ",
 			order = 15.5,
 		},
-		cooldownSize = {
+		durationSize = {
 			type = "range",
-			name = L["Default Duration Size"],
+			name = L["Duration Text Size"],
 			desc = L["Text size"],
 			order = 16,
 			min = 6,
 			max = 20,
 			step = 1,
 			set = function(info, val)
-				P.cooldownSize = val
-
-				core:ResetCooldownSize()
-				core:ResetAllPlateIcons()
-				core:ResetIconSizes()
-				core:ShowAllKnownSpells()
+				P.durationSize = val
+				core:ResetDurationSizes()
 			end
 		},
 		stackSize = {
 			type = "range",
-			name = L["Default Stack Size"],
+			name = L["Stack Text Size"],
 			desc = L["Text size"],
 			order = 17,
 			min = 6,
@@ -795,19 +798,18 @@ core.DefaultSpellOptionsTable = {
 			name = " ",
 			order = 17.5,
 		},
-		showCooldown = {
+		showDuration = {
 			type = "toggle",
 			name = L["Show Duration"],
 			desc = L["Show duration text on the spell icon."],
 			width = "full",
 			order = 18,
 			set = function(info, val)
-				P.showCooldown = val
-				core:ResetIconSizes()
-				core:ShowAllKnownSpells()
+				P.showDuration = val
+				core:ResetDurationSizes()
 			end
 		},
-		cdAnchor = {
+		durationAnchor = {
 			type = "select", 
 			order = 19,
 			name = L["Duration Text Anchor"],
@@ -818,14 +820,14 @@ core.DefaultSpellOptionsTable = {
 				TOP = L["Above Icon"]
 			},
 			set = function(info, val)
-				P.cdAnchor = val
-				P.cdOffsetX = defaultSettings.cdOffsetX
-				P.cdOffsetY = defaultSettings.cdOffsetY
-				core:UpdateAllCDAnchors()
+				P.durationAnchor = val
+				P.durationOffsetX = defaultSettings.durationOffsetX
+				P.durationOffsetY = defaultSettings.durationOffsetY
+				core:UpdateAllDurationAnchors()
 			end,
-			disabled = function() return not P.showCooldown end
+			disabled = function() return not P.showDuration end
 		},
-		cdOffsetX = {
+		durationOffsetX = {
 			type = "range",
 			name = L["Offset X"],
 			desc = L["Left to right offset."],
@@ -834,12 +836,12 @@ core.DefaultSpellOptionsTable = {
 			max = 30,
 			step = 0.5,
 			set = function(info, val)
-				P.cdOffsetX = val
-				core:UpdateAllCDAnchors()
+				P.durationOffsetX = val
+				core:UpdateAllDurationAnchors()
 			end,
-			disabled = function() return not P.showCooldown end
+			disabled = function() return not P.showDuration end
 		},
-		cdOffsetY = {
+		durationOffsetY = {
 			type = "range",
 			name = L["Offset Y"],
 			desc = L["Up to down offset."],
@@ -848,26 +850,25 @@ core.DefaultSpellOptionsTable = {
 			max = 30,
 			step = 0.5,
 			set = function(info, val)
-				P.cdOffsetY = val
-				core:UpdateAllCDAnchors()
+				P.durationOffsetY = val
+				core:UpdateAllDurationAnchors()
 			end,
-			disabled = function() return not P.showCooldown end
+			disabled = function() return not P.showDuration end
 		},
-		cooldownFont = {
+		durationFont = {
 			type = "select",
 			name = L["Duration Text Font"],
 			order = 22,
 			values = LSM:HashTable("font"),
 			dialogControl = "LSM30_Font",
 			get = function()
-				return P.cooldownFont or defaultSettings.cooldownFont
+				return P.durationFont or defaultSettings.durationFont
 			end,
 			set = function(_, val)
-				P.cooldownFont = val
-				core:ResetCooldownSize()
-				core:ShowAllKnownSpells()
+				P.durationFont = val
+				core:ResetDurationSizes()
 			end,
-			disabled = function() return not P.showCooldown end
+			disabled = function() return not P.showDuration end
 		},
 		decimalThreshold = {
 			type = "range",
@@ -877,7 +878,7 @@ core.DefaultSpellOptionsTable = {
 			min = 0,
 			max = 10,
 			step = 1,
-			disabled = function() return not P.showCooldown end
+			disabled = function() return not P.showDuration end
 		},
 		digitsnumber = {
 			type = "range",
@@ -887,35 +888,75 @@ core.DefaultSpellOptionsTable = {
 			min = 0,
 			max = 2,
 			step = 1,
-			disabled = function() return not P.showCooldown end
+			disabled = function() return not P.showDuration end
 		},
 		blank5 = {
 			type = "description",
 			name = " ",
-			order = 24.5,
+			order = 24.5
+		},
+		interruptsHeader = {
+			type = "header",
+			name = L["Interrupts settings"],
+			order = 25
+		},
+		blank6 = {
+			type = "description",
+			name = " ",
+			order = 25.5
+		},
+		color7 = {
+			name = L["Border Color"],
+			type = "color",
+			order = 26,
+			get = function(info)
+				return P.color7[1], P.color7[2], P.color7[3], 1
+			end,
+			set = function(info, r, g, b)
+				P.color7 = {r, g, b}
+			end
+		},
+		interruptsScale = {
+			type = "range",
+			name = L["Icon Scale"],
+			order = 27,
+			min = 1,
+			max = 3,
+			step = 0.1,
+			set = function(info, val)
+				P.interruptsScale = val
+				core:ResetDurationSizes()
+				core:ResetStackSizes()
+				core:ResetIconSizes()
+			end
+		},
+		blank7 = {
+			type = "description",
+			name = " ",
+			order = 27.5
 		},
 		animationHeader = {
 			type = "header",
 			name = L["Animation settings"],
-			order = 25
+			order = 28
 		},
 		enableBlinkFade = {
 			type = "toggle",
 			name = L["Enable Blink/Fade"],
 			desc = L["Enable Blink/Fade animation when duration is expiring"],
-			order = 26,
+			order = 29,
 			width = "full"
 		},
-		blank6 = {
+		blank8 = {
 			type = "description",
 			name = " ",
-			order = 26.5,
+			order = 29.5,
 		},
 		blinkThreshold = {
 			type = "range",
 			name = L["Blink threshold time"],
 			desc = L["Blink icon below x seconds"],
-			order = 27,
+			order = 30,
 			min = 0,
 			max = 10,
 			step = 1,
@@ -925,7 +966,7 @@ core.DefaultSpellOptionsTable = {
 			type = "range",
 			name = L["Fade threshold time"],
 			desc = L["Progressive fade out icon below x seconds"],
-			order = 28,
+			order = 31,
 			min	= 0,
 			max	= 10,
 			step = 1,
@@ -935,7 +976,7 @@ core.DefaultSpellOptionsTable = {
 			type = "range",
 			name = L["Min duration for Blink/Fade"],
 			desc = L["Blink and fade effects will only apply to auras with a duration longer than this value."],
-			order = 29,
+			order = 32,
 			min = 3,
 			max = 10,
 			step = 1,
@@ -945,7 +986,7 @@ core.DefaultSpellOptionsTable = {
 			type = "toggle",
 			name = L["Only blink on target"],
 			desc = L["Restrict blinking effect to auras on the target's nameplate only"],
-			order = 30,
+			order = 33,
 			disabled = function() return not P.enableBlinkFade end
 		},
 		fadeTargetOnly = {
@@ -953,37 +994,37 @@ core.DefaultSpellOptionsTable = {
 			name = L["Only fade on target"],
 			desc = L["Restrict fade effect to auras on the target's nameplate only"],
 			width = "double",
-			order = 31,
+			order = 34,
 			disabled = function() return not P.enableBlinkFade end
 		},
-		blank7 = {
+		blank9 = {
 			type = "description",
 			name = " ",
-			order = 31.5,
+			order = 34.5,
 		},
-		showCooldownTexture = {
+		showClockOverlay = {
 			type = "toggle",
 			name = L["Show 'clock' overlay"],
 			desc = L["Show a vertical 'clock' overlay over spell textures showing the time remaining."] ,
-			order = 32
+			order = 35
 		},
-		legacyCooldownTexture = {
+		legacyCooldownClock = {
 			type = "toggle",
 			name = L["Legacy 'clock' overlay"],
 			desc = L["Use the old radial clock overlay which tends to disappear when the frame's moving.\nRequires UI Reload."],
-			disabled = function() return (UnitAffectingCombat("player") or InCombatLockdown() or not P.showCooldownTexture) end,
-			order = 33
+			disabled = function() return (UnitAffectingCombat("player") or InCombatLockdown() or not P.showClockOverlay) end,
+			order = 36
 		},
-		blank8 = {
+		blank10 = {
 			type = "description",
 			name = " ",
-			order = 33.5,
+			order = 36.5,
 		},
 		enableAdjustFreq = {
 			type = "toggle",
 			name = L["Adjust Update Interval"],
 			desc = L["Allows changing the time interval (in seconds) between updates for each icon."],
-			order = 34,
+			order = 37,
 			set = function(_, val)
 				P.enableAdjustFreq = val
 				if not val then
@@ -995,7 +1036,7 @@ core.DefaultSpellOptionsTable = {
 			type = "range",
 			name = L["Update Interval"],
 			desc = L["Lower values make animations smoother but can significantly increase CPU usage."],
-			order = 35,
+			order = 38,
 			min = 0,
 			max = 0.2,
 			step = 0.01,
@@ -1045,7 +1086,7 @@ do
 			spellName = list[i]
 			data = P.spellOpts[spellName]
 			spellID = P.spellOpts[spellName].spellID or "No spellID"
-			iconSize = data.increase or P.increase
+			iconSize = data.iconScale or P.iconScale
 			iconTexture = SpellString(spellID)
 
 			if data.show == 1 then
@@ -1113,12 +1154,28 @@ do
 					core:BuildSpellUI()
 				end
 			}
-
+			SpellOptionsTable.args.spellList.args[spellName].args.iconSize = {
+				type = "range",
+				name = L["Icon Scale"],
+				order = 3,
+				min = 1,
+				max = 3,
+				step = 0.1,
+				get = function(info)
+					return P.spellOpts[info[2]].iconScale or P.iconScale
+				end,
+				set = function(info, val)
+					P.spellOpts[info[2]].iconScale = val
+					core:ResetDurationSizes()
+					core:ResetStackSizes()
+					core:ResetIconSizes()
+					core:BuildSpellUI()
+				end
+			}
 			SpellOptionsTable.args.spellList.args[spellName].args.spellID = {
 				type = "input",
-				name = "Spell ID",
-				desc = "Change spellID",
-				order = 3,
+				name = L["Spell ID"],
+				order = 4,
 				get = function(info)
 					return tostring(P.spellOpts[info[2]].spellID or "Spell ID not set")
 				end,
@@ -1131,78 +1188,20 @@ do
 					end
 				end
 			}
-			SpellOptionsTable.args.spellList.args[spellName].args.iconSize = {
-				type = "range",
-				name = L["Icon multiplication"],
-				desc = L["Size of the icons."],
-				order = 4,
-				min = 1,
-				max = 3,
-				step = 0.1,
-				get = function(info)
-					return P.spellOpts[info[2]].increase or P.increase
-				end,
-				set = function(info, val)
-					P.spellOpts[info[2]].increase = val
-
-					core:ResetIconSizes()
-					core:BuildSpellUI()
-				end
-			}
-
-			SpellOptionsTable.args.spellList.args[spellName].args.cooldownSize = {
-				type = "range",
-				name = L["Cooldown Text Size"],
-				desc = L["Text size"],
-				order = 5,
-				min = 6,
-				max = 20,
-				step = 1,
-				get = function(info)
-					return P.spellOpts[info[2]].cooldownSize or P.cooldownSize
-				end,
-				set = function(info, val)
-					P.spellOpts[info[2]].cooldownSize = val
-
-					core:ResetCooldownSize()
-					core:ResetAllPlateIcons()
-					core:ResetIconSizes()
-					core:ShowAllKnownSpells()
-					core:BuildSpellUI()
-				end
-			}
-
-			SpellOptionsTable.args.spellList.args[spellName].args.stackSize = {
-				type = "range",
-				name = L["Stack Text Size"],
-				desc = L["Text size"],
-				order = 6,
-				min = 6,
-				max = 20,
-				step = 1,
-				get = function(info)
-					return P.spellOpts[info[2]].stackSize or P.stackSize
-				end,
-				set = function(info, val)
-					P.spellOpts[info[2]].stackSize = val
-					core:ResetStackSizes()
-					core:BuildSpellUI()
-				end
-			}
 
 			if data.when then
 				SpellOptionsTable.args.spellList.args[spellName].args.addedWhen = {
 					type = "description",
 					name = L["Added: "] .. data.when,
-					order = 7
+					order = 5
 				}
 			end
 
 			SpellOptionsTable.args.spellList.args[spellName].args.grabID = {
 				type = "toggle",
-				name = L["Check SpellID"],
-				desc = L["Check SpellID"],
-				order = 8,
+				name = L["Check Spell ID"],
+				desc = L["Check exact Spell ID for this aura. Useful when different spells share a name"],
+				order = 6,
 				get = function(info)
 					return P.spellOpts[info[2]].grabid
 				end,

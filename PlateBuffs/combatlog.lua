@@ -5,6 +5,7 @@ local playerGUID
 local Debug = core.Debug
 local guidBuffs = core.guidBuffs
 local nametoGUIDs = core.nametoGUIDs
+local InterruptsDuration = core.InterruptsDuration
 local _
 
 local bit_band = bit.band
@@ -41,6 +42,7 @@ do
 			LibAI.RegisterCallback(self, "LibAuraInfo_AURA_REFRESH")
 			LibAI.RegisterCallback(self, "LibAuraInfo_AURA_APPLIED_DOSE")
 			LibAI.RegisterCallback(self, "LibAuraInfo_AURA_CLEAR")
+			LibAI.RegisterCallback(self, "LibAuraInfo_SPELL_INTERRUPT")
 
 			CombatLogClearEntries()
 		end
@@ -98,7 +100,6 @@ function core:AddSpellToGUID(dstGUID, spellID, srcName, spellName, spellTexture,
 		self:RemoveOldSpells(dstGUID)
 	end
 
-	local dstName, dstFlags = LibAI:GetGUIDInfo(dstGUID)
 	local getTime = GetTime()
 	local count = #guidBuffs[dstGUID]
 	if count == 0 then
@@ -178,16 +179,16 @@ do
 			spellTexture = spellTexture:upper():gsub("INTERFACE\\ICONS\\", "")
 
 			local updateBars = false
-			local spellOpts = core:HaveSpellOpts(spellName, spellID)
+			local spellOpts = self:HaveSpellOpts(spellName, spellID)
 
 			if spellOpts and spellOpts.show and CheckFilter(auraType, true) then
 				if
 					P.spellOpts[spellName].show == 1 or
 					(P.spellOpts[spellName].show == 2 and srcGUID == playerGUID) or
-					(P.spellOpts[spellName].show == 4 and core:FlagIsFriendly(dstFlags)) or
-					(P.spellOpts[spellName].show == 5 and core:FlagIsHostle(dstFlags))
+					(P.spellOpts[spellName].show == 4 and self:FlagIsFriendly(dstFlags)) or
+					(P.spellOpts[spellName].show == 5 and self:FlagIsHostle(dstFlags))
 				then
-					updateBars = self:AddSpellToGUID(dstGUID, spellID, LibAI:GetGUIDInfo(srcGUID), spellName, spellTexture, duration, srcGUID, isDebuff, debuffType, expires, stackCount, spellOpts.increase)
+					updateBars = self:AddSpellToGUID(dstGUID, spellID, LibAI:GetGUIDInfo(srcGUID), spellName, spellTexture, duration, srcGUID, isDebuff, debuffType, expires, stackCount, spellOpts.iconScale)
 				end
 			else
 				if
@@ -201,7 +202,7 @@ do
 			end
 
 			if updateBars then
-				core:ForceNameplateUpdate(dstGUID)
+				self:ForceNameplateUpdate(dstGUID)
 			end
 		end
 	end
@@ -236,7 +237,7 @@ function core:LibAuraInfo_AURA_REFRESH(event, dstGUID, spellID, srcGUID, spellSc
 		end
 	end
 
-	local dstName = LibAI:GetGUIDInfo(dstGUID)
+	--local dstName = LibAI:GetGUIDInfo(dstGUID)
 	--[[ if not LibAI:GUIDAuraID(dstGUID, spellID) then
 		Debug("SPELL_AURA_REFRESH", LibAI:GUIDAuraID(dstGUID, spellID), dstName, GetSpellInfo(spellID), "passing to SPELL_AURA_APPLIED")
 	end ]]
@@ -257,7 +258,7 @@ function core:LibAuraInfo_AURA_APPLIED_DOSE(event, dstGUID, spellID, srcGUID, sp
 		end
 	end
 
-	local dstName = LibAI:GetGUIDInfo(dstGUID)
+	--local dstName = LibAI:GetGUIDInfo(dstGUID)
 	--[[ if not LibAI:GUIDAuraID(dstGUID, spellID) then
 		Debug("AURA_APPLIED_DOSE", dstName, GetSpellInfo(spellID), "passing to SPELL_AURA_APPLIED")
 	end ]]
@@ -276,4 +277,38 @@ do
 			self:ForceNameplateUpdate(dstGUID)
 		end
 	end
+end
+
+function core:AddInterruptToGUID(dstGUID, spellID, srcName, duration, srcGUID)
+	guidBuffs[dstGUID] = guidBuffs[dstGUID] or {}
+	if #guidBuffs[dstGUID] > 0 then
+		self:RemoveOldSpells(dstGUID)
+	end
+	local getTime = GetTime()
+	local spellName, _, spellTexture = GetSpellInfo(spellID)
+	spellTexture = spellTexture:upper():gsub("INTERFACE\\ICONS\\", "")
+	table_insert(guidBuffs[dstGUID], #guidBuffs[dstGUID] + 1, {
+		name = spellName,
+		icon = spellTexture,
+		duration = duration,
+		playerCast = srcGUID == playerGUID and 1,
+		stackCount = 0,
+		isDebuff = true,
+		debuffType = "Interrupt",
+		startTime = getTime,
+		expirationTime = getTime + duration,
+		sID = spellID,
+		caster = srcName,
+		scale = P.interruptsScale
+	})
+end
+
+function core:LibAuraInfo_SPELL_INTERRUPT(event, srcGUID, srcName, dstGUID, dstFlags, spellID)
+	if not P.showInterrupts then return end
+	if dstGUID == playerGUID then return end
+	local duration = InterruptsDuration[spellID]
+	if not duration then return end
+	if not self:FlagIsPlayer(dstFlags) then return end
+	self:AddInterruptToGUID(dstGUID, spellID, srcName, duration, srcGUID)
+	self:ForceNameplateUpdate(dstGUID)
 end

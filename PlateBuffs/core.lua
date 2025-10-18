@@ -146,14 +146,6 @@ do
 			LibNameplates.RegisterCallback(self, "LibNameplates_ThreatChange")
 		end
 
-		-- Update old options.
-		if P.cooldownSize < 6 then
-			P.cooldownSize = core.defaultSettings.profile.cooldownSize
-		end
-		if P.stackSize < 6 then
-			P.stackSize = core.defaultSettings.profile.stackSize
-		end
-
 		for plate in pairs(core.buffBars) do
 			for i = 1, table_getn(core.buffBars[plate]) do
 				core.buffBars[plate][i]:Show() --reshow incase user disabled addon.
@@ -203,7 +195,7 @@ end
 function core:ShouldAddBuffs(plate)
 	local plateName = GetPlateName(plate) or "UNKNOWN"
 
-	if P.showTotems == false and totems[plateName] then
+	if P.blacklistTotems and totems[plateName] then
 		return false
 	end
 
@@ -310,7 +302,9 @@ do
 
 			--Remove all the entries.
 			for i = table_getn(guidBuffs[GUID]), 1, -1 do
-				table_remove(guidBuffs[GUID], i)
+				if guidBuffs[GUID][i].debuffType ~= "Interrupt" then
+					table_remove(guidBuffs[GUID], i)
+				end
 			end
 
 			local i = 1
@@ -337,7 +331,7 @@ do
 							stackCount = count,
 							sID = spellId,
 							caster = unitCaster and core:GetFullName(unitCaster),
-							scale = spellOpts.increase or 1
+							scale = spellOpts.iconScale or 1
 						})
 					end
 				elseif duration > 0 then
@@ -388,7 +382,7 @@ do
 							isDebuff = true,
 							sID = spellId,
 							caster = unitCaster and core:GetFullName(unitCaster),
-							scale = spellOpts.increase or 1
+							scale = spellOpts.iconScale or 1
 						})
 					end
 				elseif duration > 0 then
