@@ -9,7 +9,8 @@ This repository contains a modified version of Kader's backport, featuring enhan
 - Added new categories for Default Spells, plus a control list to filter specific spells by spellID (to handle spells that share name). Also included class-based logic to dynamically add more Default Spells depending on the player's class.
 - Improved the blink animation and added a complementary fade-out animation, both designed as timing cues to help the user better perceive when a buff or debuff is about to expire.
 - Reorganized the user interface, arranging features in a more appropriate order.
-- Improved nameplate-GUID mapping via target and mouseover
+- Improved nameplate-GUID mapping via target and mouseover.
+- Shows interrupt effects as simulated debuffs on players.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/KhalGH/PlateBuffs-WoTLK/refs/heads/assets/assets/screenshot.jpg" 
@@ -17,12 +18,12 @@ This repository contains a modified version of Kader's backport, featuring enhan
 </p>
 
 ## Installation
-1. [Download](https://github.com/KhalGH/PlateBuffs-WotLK/releases/download/r233/PlateBuffs-r233.zip) the addon
+1. [Download](https://github.com/KhalGH/PlateBuffs-WotLK/releases/download/r234/PlateBuffs-r234.zip) the addon
 2. Extract the **PlateBuffs** folder into `World of Warcraft/Interface/AddOns/`.  
 3. Restart the game and enable the addon.
 
 ## Information  
-- **Addon Version:** 1.19.0 (r233)
+- **Addon Version:** 1.19.1 (r234)
 - **Game Version:** 3.3.5a (WotLK)
 - **Original Author:** Cyprias
 - **Backported by:** Kader
