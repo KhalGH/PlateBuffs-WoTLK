@@ -50,7 +50,7 @@ L["Icon Scale"] = "Échelle de l’icône"
 L["Icons per row"] = "Icônes par ligne"
 L["Input a spell name. (case sensitive)"] = "Entrer un nom de sort. (sensible à la case)"
 L[ [=[Input a spell name. (case sensitive)
-Or spellID]=] ] = [=[Entrez un nom de sort. (sensible à la casse)
+Or spell ID]=] ] = [=[Entrez un nom de sort. (sensible à la casse)
 Ou un ID de sort]=]
 L["Larger self spells"] = "Sorts personnels plus gros"
 L["Left"] = "Gauche"

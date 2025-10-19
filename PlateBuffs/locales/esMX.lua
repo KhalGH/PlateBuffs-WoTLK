@@ -50,7 +50,7 @@ L["Icon Scale"] = "Escala de icono"
 L["Icons per row"] = "Iconos por fila"
 L["Input a spell name. (case sensitive)"] = "Introduce un nombre de hechizo (distingue mayúsculas)"
 L[ [=[Input a spell name. (case sensitive)
-Or spellID]=] ] = [=[Introduce nombre de hechizo (distingue mayúsculas)
+Or spell ID]=] ] = [=[Introduce nombre de hechizo (distingue mayúsculas)
 O ID de hechizo]=]
 L["Larger self spells"] = "Aumentar hechizos propios"
 L["Left"] = "Izquierda"

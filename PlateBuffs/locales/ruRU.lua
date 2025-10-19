@@ -50,8 +50,8 @@ L["Icon Scale"] = "Масштаб иконки"
 L["Icons per row"] = "Количество иконок в ряду"
 L["Input a spell name. (case sensitive)"] = "Введите название заклинания. (соблюдайте регистр)"
 L[ [=[Input a spell name. (case sensitive)
-Or spellID]=] ] = [=[Введите название заклинания. (С учетом регистра)
-Или spellID]=]
+Or spell ID]=] ] = [=[Введите название заклинания. (С учетом регистра)
+Или spell ID]=]
 L["Larger self spells"] = "Свои заклинания крупнее"
 L["Left"] = "Слева"
 L["Left to right offset."] = "Смещение слева направо"

@@ -44,7 +44,7 @@ L["Icon Scale"] = "아이콘 크기"
 L["Icons per row"] = "행 당 아이콘"
 L["Input a spell name. (case sensitive)"] = "주문 이름을 입력합니다. (대소문자 구분)"
 L[ [=[Input a spell name. (case sensitive)
-Or spellID]=] ] = "주문 이름을 입력합니다. (대소문자 구분) 또는 주문ID"
+Or spell ID]=] ] = "주문 이름을 입력합니다. (대소문자 구분) 또는 주문ID"
 L["Larger self spells"] = "자신의 주문 크게"
 L["Left"] = "좌측"
 L["Left to right offset."] = "좌우 간격"

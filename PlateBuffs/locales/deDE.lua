@@ -50,7 +50,7 @@ L["Icon Scale"] = "Symbolskalierung"
 L["Icons per row"] = "Symbole pro Reihe"
 L["Input a spell name. (case sensitive)"] = "Einen Zaubernamen eingeben. (Groß- und Kleinschreibung wird berücksichtigt)"
 L[ [=[Input a spell name. (case sensitive)
-Or spellID]=] ] = [=[Einen Zauber-Namen eingeben. (Groß- und Kleinschreibung wird berücksichtigt)
+Or spell ID]=] ] = [=[Einen Zauber-Namen eingeben. (Groß- und Kleinschreibung wird berücksichtigt)
 Oder Zauber-ID]=]
 L["Larger self spells"] = "Größere eigene Zauber"
 L["Left"] = "Links"

@@ -50,7 +50,7 @@ L["Icon Scale"] = "圖示縮放"
 L["Icons per row"] = "每行圖示數量"
 L["Input a spell name. (case sensitive)"] = "輸入法術名字"
 L[ [=[Input a spell name. (case sensitive)
-Or spellID]=] ] = [=[輸入法術名稱
+Or spell ID]=] ] = [=[輸入法術名稱
 或 該法術id]=]
 L["Larger self spells"] = "加大自身法術圖示"
 L["Left"] = "左"

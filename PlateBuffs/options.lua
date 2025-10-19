@@ -535,7 +535,7 @@ core.SpellOptionsTable = {
 		inputName = {
 			type = "input",
 			name = L["Spell name"],
-			desc = L["Input a spell name. (case sensitive)\nOr spellID"],
+			desc = L["Input a spell name. (case sensitive)\nOr spell ID"],
 			order = 1,
 			get = function(info)
 				return tmpNewName, tmpNewID
@@ -554,7 +554,7 @@ core.SpellOptionsTable = {
 					end
 				end
 				tmpNewName = val
-				tmpNewID = "No spellID"
+				tmpNewID = "No Spell ID"
 			end
 		},
 		addName = {
@@ -569,6 +569,7 @@ core.SpellOptionsTable = {
 					else
 						core:AddNewSpell(tmpNewName)
 					end
+					LibStub("AceConfigDialog-3.0"):SelectGroup(core.title .. "Spells", "spellList", tmpNewName)
 					tmpNewName = ""
 				end
 			end
@@ -1124,6 +1125,16 @@ do
 				order = i,
 				args = {}
 			}
+			SpellOptionsTable.args.spellList.args[spellName].args.spellTitle = {
+				type = "header",
+				name = spellName,
+				order = 1
+			}
+			SpellOptionsTable.args.spellList.args[spellName].args.blank = {
+				type = "description",
+				name = "",
+				order = 0.5
+			}
 			if P.addSpellDescriptions == true then
 				SpellOptionsTable.args.spellList.args[spellName].args.spellDesc = {
 					type = "description",
@@ -1131,9 +1142,14 @@ do
 					image = spellTexture,
 					imageWidth = 32,
 					imageHeight = 32,
-					order = 1
+					order = 2
 				}
 			end
+			SpellOptionsTable.args.spellList.args[spellName].args.blank2 = {
+				type = "description",
+				name = "",
+				order = 2.5
+			}
 			SpellOptionsTable.args.spellList.args[spellName].args.showOpt = {
 				type = "select",
 				name = L["Show"],
@@ -1145,7 +1161,7 @@ do
 					L["Only Friend"],
 					L["Only Enemy"]
 				},
-				order = 2,
+				order = 3,
 				get = function(info)
 					return P.spellOpts[info[2]].show or 1
 				end,
@@ -1157,7 +1173,7 @@ do
 			SpellOptionsTable.args.spellList.args[spellName].args.iconSize = {
 				type = "range",
 				name = L["Icon Scale"],
-				order = 3,
+				order = 4,
 				min = 1,
 				max = 3,
 				step = 0.1,
@@ -1175,7 +1191,7 @@ do
 			SpellOptionsTable.args.spellList.args[spellName].args.spellID = {
 				type = "input",
 				name = L["Spell ID"],
-				order = 4,
+				order = 5,
 				get = function(info)
 					return tostring(P.spellOpts[info[2]].spellID or "Spell ID not set")
 				end,
@@ -1188,20 +1204,18 @@ do
 					end
 				end
 			}
-
 			if data.when then
 				SpellOptionsTable.args.spellList.args[spellName].args.addedWhen = {
 					type = "description",
 					name = L["Added: "] .. data.when,
-					order = 5
+					order = 6
 				}
 			end
-
 			SpellOptionsTable.args.spellList.args[spellName].args.grabID = {
 				type = "toggle",
 				name = L["Check Spell ID"],
 				desc = L["Check exact Spell ID for this aura. Useful when different spells share a name"],
-				order = 6,
+				order = 7,
 				get = function(info)
 					return P.spellOpts[info[2]].grabid
 				end,
@@ -1209,7 +1223,6 @@ do
 					P.spellOpts[info[2]].grabid = not P.spellOpts[info[2]].grabid
 				end
 			}
-
 			SpellOptionsTable.args.spellList.args[spellName].args.removeSpell = {
 				type = "execute",
 				order = 100,

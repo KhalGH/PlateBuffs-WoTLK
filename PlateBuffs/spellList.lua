@@ -170,7 +170,7 @@ local spellList4 = {
 -- Spells with "Check SpellID" enabled (must also exist in a spellLists)
 local CheckSpellID = {
 	50334,	-- Berserk
-	6789,	-- Death Coil
+	47860,	-- Death Coil
 	26669,	-- Evasion
 	12355,	-- Impact
 	20230,	-- Retaliation

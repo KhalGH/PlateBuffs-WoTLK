@@ -179,8 +179,8 @@ end
 
 -- /da function brings up the UI options
 function core:MySlashProcessorFunc(input)
-	InterfaceOptionsFrame_OpenToCategory(self.titleFull)
-	InterfaceOptionsFrame_OpenToCategory(self.titleFull)
+	InterfaceOptionsFrame_OpenToCategory(self.title)
+	InterfaceOptionsFrame_OpenToCategory(self.title)
 end
 
 -- note to self, not buffBars
