@@ -52,7 +52,7 @@ local spellList2 = {
 	14327,	-- Scare Beast
 	10326,	-- Turn Evil
 	-- Unbreakable CCs
-	6789,	-- Death Coil (CheckSpellID)
+	47860,	-- Death Coil (CheckSpellID)
 	605,	-- Mind Control
 	64058,	-- Psychic Horror
 	-- Stuns
