@@ -524,14 +524,3 @@ function core:SkinCallback(skin, glossAlpha, gloss, _, _, colors)
 	self.db.profile.skin_Backdrop = gloss
 	self.db.profile.skin_Colors = colors
 end
-
-function core:GetAllSpellIDs()
-	local spells, name = {}, nil
-	for i = 76567, 1, -1 do --76567
-		name = GetSpellInfo(i)
-		if name and not spells[name] then
-			spells[name] = i
-		end
-	end
-	return spells
-end

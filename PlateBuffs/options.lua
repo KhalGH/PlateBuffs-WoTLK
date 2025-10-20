@@ -36,11 +36,6 @@ local prev_OnEnable = core.OnEnable
 function core:OnEnable()
 	prev_OnEnable(self)
 	P = self.db.profile
-
-	if P.addSpellDescriptions == true then
-		spellIDs = self:GetAllSpellIDs()
-	end
-
 	self:BuildSpellUI()
 end
 
@@ -51,7 +46,6 @@ defaultSettings.defaultDebuffShow = 3
 defaultSettings.unknownSpellDataIcon = false
 defaultSettings.saveNameToGUID = true
 defaultSettings.watchCombatlog = true
-defaultSettings.addSpellDescriptions = false
 defaultSettings.watchUnitIDAuras = true
 defaultSettings.abovePlayers = true
 defaultSettings.aboveNPC = true
@@ -184,77 +178,61 @@ core.DisplayOptionsTable = {
 			desc = L["Show Interrupts as simulated debuffs above player nameplates."],
 			order = 4
 		},
-		addSpellDescriptions = {
-			type = "toggle",
-			name = L["Add Spell Description"],
-			desc = L["Add spell descriptions to the specific spell's list.\nDisabling this will lower memory usage and login time."],
-			order = 5,
-			get = function()
-				return P.addSpellDescriptions
-			end,
-			set = function(info, val)
-				P.addSpellDescriptions = not P.addSpellDescriptions
-				if P.addSpellDescriptions then
-					spellIDs = core:GetAllSpellIDs()
-					core:BuildSpellUI()
-				end
-			end
-		},
 		typeHeader = {
 			type = "header",
 			name = L["Unit type"],
-			order = 6
+			order = 5
 		},
 		abovePlayers = {
 			type = "toggle",
 			name = L["Players"],
 			desc = L["Add buffs above players. 'Class Color in Nameplates' must be enabled."],
-			order = 7
+			order = 6
 		},
 		aboveNPC = {
 			type = "toggle",
 			name = L["NPC"],
 			desc = L["Add buffs above NPCs"],
-			order = 8
+			order = 7
 		},
 		reactionHeader = {
 			name = L["Unit reaction"],
 			type = "header",
-			order = 9
+			order = 8
 		},
 		aboveFriendly = {
 			type = "toggle",
 			name = L["Friendly"],
 			desc = L["Add buffs above friendly plates"],
-			order = 10
+			order = 9
 		},
 		aboveNeutral = {
 			type = "toggle",
 			name = L["Neutral"],
 			desc = L["Add buffs above neutral plates"],
-			order = 11
+			order = 10
 		},
 		aboveHostile = {
 			type = "toggle",
 			name = L["Hostile"],
 			desc = L["Add buffs above hostile plates"],
-			order = 12
+			order = 11
 		},
 		otherHeader = {
 			name = L["Misc"],
 			type = "header",
-			order = 13
+			order = 12
 		},
 		spacer1 = {
 			type = "description",
 			name = "",
-			order = 14
+			order = 13
 		},
 		watchCombatlog = {
 			type = "toggle",
 			name = L["Watch Combatlog"],
 			desc = L["Watch combatlog for people gaining/losing spells.\nDisable this if you're having performance issues."],
-			order = 15,
+			order = 14,
 			get = function()
 				return P.watchCombatlog
 			end,
@@ -267,7 +245,7 @@ core.DisplayOptionsTable = {
 			type = "toggle",
 			name = L["Save player GUID"],
 			desc = L["Remember player GUID's so target/mouseover isn't needed every time nameplate appears.\nKeep this enabled"],
-			order = 16,
+			order = 15,
 			get = function(info)
 				return P.saveNameToGUID
 			end,
@@ -279,19 +257,19 @@ core.DisplayOptionsTable = {
 			type = "toggle",
 			name = L["Show question mark"],
 			desc = L["Displays a question mark above unidentified nameplates. Identify them by target or mouseover."],
-			order = 17
+			order = 16
 		},
 		blacklistTotems = {
 			type = "toggle",
 			name = L["Blacklist Totems"],
 			desc = L["Ignore PlateBuffs on totem nameplates"],
-			order = 18
+			order = 17
 		},
 		playerCombatWithOnly = {
 			type = "toggle",
 			name = L["Player combat only"],
 			desc = L["Only show spells above nameplates that are in combat."],
-			order = 19,
+			order = 18,
 			set = function(info, val)
 				P.playerCombatWithOnly = val
 				core:Disable()
@@ -302,7 +280,7 @@ core.DisplayOptionsTable = {
 			type = "toggle",
 			name = L["NPC combat only"],
 			desc = L["Only show spells above nameplates that are in combat."],
-			order = 20,
+			order = 19,
 			set = function(info, val)
 				P.npcCombatWithOnly = val
 				core:Disable()
@@ -554,7 +532,7 @@ core.SpellOptionsTable = {
 					end
 				end
 				tmpNewName = val
-				tmpNewID = "No Spell ID"
+				tmpNewID = L["ID not set"]
 			end
 		},
 		addName = {
@@ -1086,7 +1064,7 @@ do
 		for i = 1, table_getn(list) do
 			spellName = list[i]
 			data = P.spellOpts[spellName]
-			spellID = P.spellOpts[spellName].spellID or "No spellID"
+			spellID = P.spellOpts[spellName].spellID or L["ID not set"]
 			iconSize = data.increase or P.increase
 			iconTexture = SpellString(spellID)
 
@@ -1102,18 +1080,16 @@ do
 				nameColour = "|cffffff00%s|r" --yellow
 			end
 
-			spellDesc = "??"
+			spellDesc = L["To show a description you can assign a valid Spell ID.\nThis aura will still be tracked based on the Spell Name"]
 			spellTexture = "Interface\\Icons\\" .. core.unknownIcon
 
-			if spellIDs[spellName] or (spellID and type(spellID) == "number") then
-				spellIDs[spellName] = spellIDs[spellName] or spellID
-				tooltip:SetHyperlink("spell:" .. spellIDs[spellName])
-
-				spellTexture = select(3, GetSpellInfo(spellIDs[spellName]))
-
+			if spellID and type(spellID) == "number" then
+				tooltip:SetHyperlink("spell:" .. spellID)
+				spellTexture = select(3, GetSpellInfo(spellID))
+				
 				local lines = tooltip:NumLines()
 				if lines > 0 then
-					spellDesc = _G[folder .. "TooltipTextLeft" .. lines] and _G[folder .. "TooltipTextLeft" .. lines]:GetText() or "??"
+					spellDesc = _G[folder .. "TooltipTextLeft" .. lines] and _G[folder .. "TooltipTextLeft" .. lines]:GetText() or spellDesc
 				end
 			end
 
@@ -1135,16 +1111,14 @@ do
 				name = "",
 				order = 0.5
 			}
-			if P.addSpellDescriptions == true then
-				SpellOptionsTable.args.spellList.args[spellName].args.spellDesc = {
-					type = "description",
-					name = spellDesc,
-					image = spellTexture,
-					imageWidth = 32,
-					imageHeight = 32,
-					order = 2
-				}
-			end
+			SpellOptionsTable.args.spellList.args[spellName].args.spellDesc = {
+				type = "description",
+				name = spellDesc,
+				image = spellTexture,
+				imageWidth = 32,
+				imageHeight = 32,
+				order = 2
+			}
 			SpellOptionsTable.args.spellList.args[spellName].args.blank2 = {
 				type = "description",
 				name = "",
@@ -1193,15 +1167,17 @@ do
 				name = L["Spell ID"],
 				order = 5,
 				get = function(info)
-					return tostring(P.spellOpts[info[2]].spellID or "Spell ID not set")
+					return tostring(P.spellOpts[info[2]].spellID or L["ID not set"])
 				end,
 				set = function(info, val)
 					local num = tonumber(val)
-					if num then
+					if num and info[2] == GetSpellInfo(num) then
 						P.spellOpts[info[2]].spellID = num
 					else
-						P.spellOpts[info[2]].spellID = "No SpellID"
+						P.spellOpts[info[2]].spellID = L["ID not set"]
+						P.spellOpts[info[2]].grabid = false
 					end
+					core:BuildSpellUI()
 				end
 			}
 			if data.when then
@@ -1221,6 +1197,9 @@ do
 				end,
 				set = function(info, val)
 					P.spellOpts[info[2]].grabid = not P.spellOpts[info[2]].grabid
+				end,
+				disabled = function(info)
+					return type(P.spellOpts[info[2]].spellID) ~= "number"
 				end
 			}
 			SpellOptionsTable.args.spellList.args[spellName].args.removeSpell = {

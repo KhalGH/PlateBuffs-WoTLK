@@ -197,6 +197,8 @@ L["Show Interrupts"] = true
 L["Show Interrupts as simulated debuffs above player nameplates."] = true
 L["Blacklist Totems"] = true
 L["Ignore PlateBuffs on totem nameplates"] = true
+L["To show a description you can assign a valid Spell ID.\nThis aura will still be tracked based on the Spell Name"] = true
+L["ID not set"] = true
 
 L.about = "About"
 L.clickCopy = "Click and press Ctrl-C to copy"

@@ -95,6 +95,7 @@ local spellList2 = {
 	47585,	-- Dispersion
 	498,	-- Divine Protection
 	26669,	-- Evasion (CheckSpellID)
+	6615,	-- Free Action
 	48792,	-- Icebound Fortitude
 	33206,	-- Pain Suppression
 	871,	-- Shield Wall
@@ -158,7 +159,6 @@ local spellList3 = {
 	12328,	-- Sweeping Strikes
 	-- Others
 	52418,	-- Carrying Seaforium
-	6615,	-- Free Action
 	53908,	-- Speed (CheckSpellID)
 }
 -- Fourth Category
