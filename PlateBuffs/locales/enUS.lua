@@ -199,6 +199,8 @@ L["Blacklist Totems"] = true
 L["Ignore PlateBuffs on totem nameplates"] = true
 L["To show a description you can assign a valid Spell ID.\nThis aura will still be tracked based on the Spell Name"] = true
 L["ID not set"] = true
+L["Duration Reduction"] = true
+L["Forces a duration reduction factor on all interrupts to conservatively handle healer talents cases (up to 30%)."] = true
 
 L.about = "About"
 L.clickCopy = "Click and press Ctrl-C to copy"

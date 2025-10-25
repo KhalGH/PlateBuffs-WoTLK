@@ -57,11 +57,13 @@ local spellList2 = {
 	64058,	-- Psychic Horror
 	-- Stuns
 	5211,	-- Bash
+	7922,	-- Charge Stun
 	1833,	-- Cheap Shot
 	12809,	-- Concussion Blow
 	44572,	-- Deep Freeze
 	47481,	-- Gnaw - Ghoul
 	853,	-- Hammer of Justice
+	20253,	-- Intercept
 	24394,	-- Intimidation
 	408,	-- Kidney Shot
 	22570,	-- Maim
@@ -69,9 +71,13 @@ local spellList2 = {
 	12355,	-- Impact (CheckSpellID)
 	9005,	-- Pounce
 	50518,	-- Ravage - Ravager
+	12798, 	-- Revenge Stun
 	30283,	-- Shadowfury
 	46968,	-- Shockwave
 	50519,	-- Sonic Blast (Bat)
+	32752,	-- Summoning Disorientation
+	39796,	-- Stoneclaw Stun
+	20170,	-- Stun (Seal of Justice)
 	-- Silences
 	1330,	-- Garrote - Silence
 	15487,	-- Silence
@@ -104,6 +110,21 @@ local spellList2 = {
 	47486,	-- Mortal Strike
 	64850,	-- Unrelenting Assault
 	57975,	-- Wound Poison VII
+	-- Roots
+	--19306,	-- Counterattack
+	--64695,	-- Earthgrab
+	--19185,	-- Entrapment
+	--19675,	-- Feral Charge Effect
+	--33395,	-- Freeze (Water Elemental)
+	--122,	-- Frost Nova
+	--12494,	-- Frostbite
+	--55536,	-- Frostweave Net
+	--58373,	-- Glyph of Hamstring
+	--23694,	-- Improved Hamstring
+	--50245,	-- Pin (Crab)
+	--55080,	-- Shattered Barrier
+	--54706,	-- Venom Web Spray (Spider)
+	--4167,	-- Web (Spider)
 }
 -- Third Category
 local iconScale3 = 1.2
@@ -115,6 +136,7 @@ local spellList3 = {
 	22812,	-- Barkskin
 	50334,	-- Berserk (CheckSpellID)
 	18658,	-- Hibernate
+	29166,	-- Innervate
 	48451,	-- Lifebloom
 	16689,	-- Nature's Grasp
 	69369,	-- Predator's Swiftness
@@ -127,6 +149,8 @@ local spellList3 = {
 	34692,	-- The Beast Within
 	-- Mage
 	12472,	-- Icy Veins
+	44544, -- Fingers of Frost
+	12043,	-- Presence of Mind
 	-- Paladin
 	31821,	-- Aura Mastery
 	31884,	-- Avenging Wrath
@@ -146,9 +170,14 @@ local spellList3 = {
 	-- Shaman
 	2825,	-- Bloodlust
 	49284,	-- Earth Shield
+	16166,	-- Elemental Mastery
 	8178,	-- Grounding Totem Effect
 	32182,	-- Heroism
+	16188,	-- Nature's Swiftness
 	61301,	-- Riptide
+	55166, 	-- Tidal Force
+	-- Warlock
+	18708,	-- Fel Domination
 	-- Warrior
 	46924,	-- Bladestorm
 	12292,	-- Death Wish
@@ -157,8 +186,8 @@ local spellList3 = {
 	2565,	-- Shield Block
 	23920,	-- Spell Reflection
 	12328,	-- Sweeping Strikes
+	60503,	-- Taste for Blood
 	-- Others
-	52418,	-- Carrying Seaforium
 	53908,	-- Speed (CheckSpellID)
 }
 -- Fourth Category
@@ -221,6 +250,10 @@ local spellsByClass = {
         },
     },
     MAGE = {
+        spellList3 = {
+			31842, -- Divine Illumination
+			54833, -- Glyph of Innervate
+        },
         spellList4 = {
             42945, -- Blast Wave
             7321,  -- Chilled
@@ -255,7 +288,10 @@ local spellsByClass = {
     },
     PRIEST = {
         spellList3 = {
+			18499, -- Berserker Rage
+			31842, -- Divine Illumination
             6346,  -- Fear Ward
+			54833, -- Glyph of Innervate
             49039, -- Lichborne
         },
         spellList4 = {
@@ -266,6 +302,7 @@ local spellsByClass = {
     },
     ROGUE = {
         spellList3 = {
+			18499, -- Berserker Rage
             16882, -- Detect Greater Invisibility
             132,   -- Detect Invisibility
             6512,  -- Detect Lesser Invisibility
@@ -281,6 +318,10 @@ local spellsByClass = {
         },
     },
     SHAMAN = {
+        spellList3 = {
+			31842, -- Divine Illumination
+			54833, -- Glyph of Innervate
+        },
         spellList4 = {
             49231, -- Earth Shock
             3600,  -- Earthbind
@@ -293,6 +334,7 @@ local spellsByClass = {
     },
     WARLOCK = {
         spellList3 = {
+			18499, -- Berserker Rage
             6346,  -- Fear Ward
             49039, -- Lichborne
         },
@@ -312,15 +354,18 @@ local spellsByClass = {
         },
     },
     WARRIOR = {
+        spellList3 = {
+			18499, -- Berserker Rage
+        },
         spellList4 = {
-            7922,  -- Charge Stun
+			47437, -- Demoralizing Shoot
             1715,  -- Hamstring
             23694, -- Improved Hamstring
-            20253, -- Intercept
             47486, -- Mortal Strike
             12323, -- Piercing Howl
             47465, -- Rend
             7386,  -- Sunder Armor
+			47502, -- Thunder Clap
         },
     },
 }
@@ -339,14 +384,14 @@ end
 
 ---- Interrupts list, assuming 30% duration reduction (worst-case scenario) ----
 core.InterruptsDuration = {
-	[6552]  = 4 * 0.7,	-- Warrior: Pummel
-	[72]    = 6 * 0.7,	-- Warrior: Shield Bash
-	[1766]  = 5 * 0.7,	-- Rogue: Kick
-	[47528] = 4 * 0.7,	-- DK: Mind Freeze
-	[57994] = 2 * 0.7,	-- Shaman: Wind Shear
-	[19647] = 6 * 0.7,	-- Warlock: Spell Lock (Felhunter)
-	[2139]  = 8 * 0.7,	-- Mage: Counterspell
-	[16979] = 4 * 0.7	-- Druid: Feral Charge (Bear)
+	[6552]  = 4,	-- Warrior: Pummel
+	[72]    = 6,	-- Warrior: Shield Bash
+	[1766]  = 5,	-- Rogue: Kick
+	[47528] = 4,	-- DK: Mind Freeze
+	[57994] = 2,	-- Shaman: Wind Shear
+	[19647] = 6,	-- Warlock: Spell Lock (Felhunter)
+	[2139]  = 8,	-- Mage: Counterspell
+	[16979] = 4		-- Druid: Feral Charge (Bear)
 }
 
 ------ Core default spell configurations by category ------

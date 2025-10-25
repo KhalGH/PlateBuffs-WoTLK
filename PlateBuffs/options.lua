@@ -56,7 +56,7 @@ defaultSettings.textureSize = 0
 defaultSettings.barAnchorPoint = "BOTTOM"
 defaultSettings.plateAnchorPoint = "TOP"
 defaultSettings.barOffsetX = 0
-defaultSettings.barOffsetY = -1
+defaultSettings.barOffsetY = -2
 defaultSettings.iconsPerBar = 4
 defaultSettings.barGrowth = 1
 defaultSettings.numBars = 3
@@ -101,6 +101,7 @@ defaultSettings.showCooldownTexture = false
 defaultSettings.legacyCooldownTexture = false
 defaultSettings.enableAdjustFreq = false
 defaultSettings.UpdateRate = 0.1
+defaultSettings.interruptsReduction = 0.3
 
 core.CoreOptionsTable = {
 	name = core.title,
@@ -884,21 +885,10 @@ core.DefaultSpellOptionsTable = {
 			name = " ",
 			order = 25.5
 		},
-		color7 = {
-			name = L["Border Color"],
-			type = "color",
-			order = 26,
-			get = function(info)
-				return P.color7[1], P.color7[2], P.color7[3], 1
-			end,
-			set = function(info, r, g, b)
-				P.color7 = {r, g, b}
-			end
-		},
 		interruptsScale = {
 			type = "range",
 			name = L["Icon Scale"],
-			order = 27,
+			order = 26,
 			min = 1,
 			max = 3,
 			step = 0.1,
@@ -909,33 +899,53 @@ core.DefaultSpellOptionsTable = {
 				core:ResetIconSizes()
 			end
 		},
+		interruptsReduction = {
+			type = "range",
+			name = L["Duration Reduction"],
+			desc = L["Forces a duration reduction factor on all interrupts to conservatively handle healer talents cases (up to 30%)."],
+			order = 27,
+			min = 0,
+			max = 0.3,
+			step = 0.1,
+		},
+		color7 = {
+			name = L["Border Color"],
+			type = "color",
+			order = 28,
+			get = function(info)
+				return P.color7[1], P.color7[2], P.color7[3], 1
+			end,
+			set = function(info, r, g, b)
+				P.color7 = {r, g, b}
+			end
+		},
 		blank7 = {
 			type = "description",
 			name = " ",
-			order = 27.5
+			order = 28.5
 		},
 		animationHeader = {
 			type = "header",
 			name = L["Animation settings"],
-			order = 28
+			order = 29
 		},
 		enableBlinkFade = {
 			type = "toggle",
 			name = L["Enable Blink/Fade"],
 			desc = L["Enable Blink/Fade animation when duration is expiring"],
-			order = 29,
+			order = 30,
 			width = "full"
 		},
 		blank8 = {
 			type = "description",
 			name = " ",
-			order = 29.5,
+			order = 30.5,
 		},
 		blinkThreshold = {
 			type = "range",
 			name = L["Blink threshold time"],
 			desc = L["Blink icon below x seconds"],
-			order = 30,
+			order = 31,
 			min = 0,
 			max = 10,
 			step = 1,
@@ -945,7 +955,7 @@ core.DefaultSpellOptionsTable = {
 			type = "range",
 			name = L["Fade threshold time"],
 			desc = L["Progressive fade out icon below x seconds"],
-			order = 31,
+			order = 32,
 			min	= 0,
 			max	= 10,
 			step = 1,
@@ -955,7 +965,7 @@ core.DefaultSpellOptionsTable = {
 			type = "range",
 			name = L["Min duration for Blink/Fade"],
 			desc = L["Blink and fade effects will only apply to auras with a duration longer than this value."],
-			order = 32,
+			order = 33,
 			min = 3,
 			max = 10,
 			step = 1,
@@ -965,7 +975,7 @@ core.DefaultSpellOptionsTable = {
 			type = "toggle",
 			name = L["Only blink on target"],
 			desc = L["Restrict blinking effect to auras on the target's nameplate only"],
-			order = 33,
+			order = 34,
 			disabled = function() return not P.enableBlinkFade end
 		},
 		fadeTargetOnly = {
@@ -973,37 +983,37 @@ core.DefaultSpellOptionsTable = {
 			name = L["Only fade on target"],
 			desc = L["Restrict fade effect to auras on the target's nameplate only"],
 			width = "double",
-			order = 34,
+			order = 35,
 			disabled = function() return not P.enableBlinkFade end
 		},
 		blank9 = {
 			type = "description",
 			name = " ",
-			order = 34.5,
+			order = 35.5,
 		},
 		showCooldownTexture = {
 			type = "toggle",
 			name = L["Show 'clock' overlay"],
 			desc = L["Show a vertical 'clock' overlay over spell textures showing the time remaining."] ,
-			order = 35
+			order = 36
 		},
 		legacyCooldownTexture = {
 			type = "toggle",
 			name = L["Legacy 'clock' overlay"],
 			desc = L["Use the old radial clock overlay which tends to disappear when the frame's moving.\nRequires UI Reload."],
 			disabled = function() return (UnitAffectingCombat("player") or InCombatLockdown() or not P.showCooldownTexture) end,
-			order = 36
+			order = 37
 		},
 		blank10 = {
 			type = "description",
 			name = " ",
-			order = 36.5,
+			order = 37.5,
 		},
 		enableAdjustFreq = {
 			type = "toggle",
 			name = L["Adjust Update Interval"],
 			desc = L["Allows changing the time interval (in seconds) between updates for each icon."],
-			order = 37,
+			order = 38,
 			set = function(_, val)
 				P.enableAdjustFreq = val
 				if not val then
@@ -1015,7 +1025,7 @@ core.DefaultSpellOptionsTable = {
 			type = "range",
 			name = L["Update Interval"],
 			desc = L["Lower values make animations smoother but can significantly increase CPU usage."],
-			order = 38,
+			order = 39,
 			min = 0,
 			max = 0.2,
 			step = 0.01,

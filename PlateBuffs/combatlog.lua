@@ -308,6 +308,7 @@ function core:LibAuraInfo_SPELL_INTERRUPT(event, srcGUID, srcName, dstGUID, dstF
 	if dstGUID == playerGUID then return end
 	local duration = InterruptsDuration[spellID]
 	if not duration then return end
+	duration = duration * (1 - P.interruptsReduction)
 	if not self:FlagIsPlayer(dstFlags) then return end
 	self:AddInterruptToGUID(dstGUID, spellID, srcName, duration, srcGUID)
 	self:ForceNameplateUpdate(dstGUID)
