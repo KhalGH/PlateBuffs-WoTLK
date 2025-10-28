@@ -114,9 +114,9 @@ local spellList2 = {
 	--19306,	-- Counterattack
 	--64695,	-- Earthgrab
 	--19185,	-- Entrapment
-	--19675,	-- Feral Charge Effect
+	--45334,	-- Feral Charge Effect
 	--33395,	-- Freeze (Water Elemental)
-	--122,	-- Frost Nova
+	--122,		-- Frost Nova
 	--12494,	-- Frostbite
 	--55536,	-- Frostweave Net
 	--58373,	-- Glyph of Hamstring
@@ -124,7 +124,7 @@ local spellList2 = {
 	--50245,	-- Pin (Crab)
 	--55080,	-- Shattered Barrier
 	--54706,	-- Venom Web Spray (Spider)
-	--4167,	-- Web (Spider)
+	--4167,		-- Web (Spider)
 }
 -- Third Category
 local iconScale3 = 1.2
@@ -149,7 +149,6 @@ local spellList3 = {
 	34692,	-- The Beast Within
 	-- Mage
 	12472,	-- Icy Veins
-	44544, -- Fingers of Frost
 	12043,	-- Presence of Mind
 	-- Paladin
 	31821,	-- Aura Mastery
@@ -384,14 +383,17 @@ end
 
 ---- Interrupts list, assuming 30% duration reduction (worst-case scenario) ----
 core.InterruptsDuration = {
+	[47528] = 4,	-- DK: Mind Freeze
+	[19675] = 4,	-- Druid: Feral Charge (Bear)
+	[26090] = 2,	-- Hunter: Pummel (Gorilla)
+	[2139]  = 8,	-- Mage: Counterspell
+	[1766]  = 5,	-- Rogue: Kick
+	[51680] = 3,	-- Rogue: Throwing Specialization
+	[57994] = 2,	-- Shaman: Wind Shear
+	[19244] = 5,	-- Warlock: Spell Lock Rank 1 (Felhunter)
+	[19647] = 6,	-- Warlock: Spell Lock Rank 2 (Felhunter)
 	[6552]  = 4,	-- Warrior: Pummel
 	[72]    = 6,	-- Warrior: Shield Bash
-	[1766]  = 5,	-- Rogue: Kick
-	[47528] = 4,	-- DK: Mind Freeze
-	[57994] = 2,	-- Shaman: Wind Shear
-	[19647] = 6,	-- Warlock: Spell Lock (Felhunter)
-	[2139]  = 8,	-- Mage: Counterspell
-	[16979] = 4		-- Druid: Feral Charge (Bear)
 }
 
 ------ Core default spell configurations by category ------
