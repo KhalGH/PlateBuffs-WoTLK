@@ -504,64 +504,6 @@ core.BarOptionsTable = {
 	}
 }
 
-local tmpNewName = ""
-local tmpNewID = ""
-
-core.SpellOptionsTable = {
-	type = "group",
-	name = core.titleFull,
-	args = {
-		inputName = {
-			type = "input",
-			name = L["Spell name"],
-			desc = L["Input a spell name. (case sensitive)\nOr spell ID"],
-			order = 1,
-			get = function(info)
-				return tmpNewName, tmpNewID
-			end,
-			set = function(info, val)
-				local spellLink = GetSpellLink(tonumber(val) or val)
-				if spellLink then
-					local spellID = spellLink:match("spell:(%d+)")
-					if spellID then
-						local spellName = GetSpellInfo(spellID)
-						if spellName then
-							tmpNewName = spellName
-							tmpNewID = tonumber(spellID)
-							return
-						end
-					end
-				end
-				tmpNewName = val
-				tmpNewID = L["ID not set"]
-			end
-		},
-		addName = {
-			type = "execute",
-			name = L["Add spell"],
-			desc = L["Add spell to list."],
-			order = 2,
-			func = function(info)
-				if tmpNewName ~= "" then
-					if tmpNewID ~= "" then
-						core:AddNewSpell(tmpNewName, tmpNewID)
-					else
-						core:AddNewSpell(tmpNewName)
-					end
-					LibStub("AceConfigDialog-3.0"):SelectGroup(core.title .. "Spells", "spellList", tmpNewName)
-					tmpNewName = ""
-				end
-			end
-		},
-		spellList = {
-			type = "group",
-			order = 3,
-			name = L["Specific Spells"],
-			args = {} --done late
-		}
-	}
-}
-
 core.DefaultSpellOptionsTable = {
 	type = "group",
 	name = core.titleFull,
@@ -1034,6 +976,64 @@ core.DefaultSpellOptionsTable = {
 	}
 }
 
+local tmpNewName = ""
+local tmpNewID = ""
+
+core.SpellOptionsTable = {
+	type = "group",
+	name = core.titleFull,
+	args = {
+		inputName = {
+			type = "input",
+			name = L["Spell name"],
+			desc = L["Input a spell name. (case sensitive)\nOr spell ID"],
+			order = 1,
+			get = function(info)
+				return tmpNewName, tmpNewID
+			end,
+			set = function(info, val)
+				local spellLink = GetSpellLink(tonumber(val) or val)
+				if spellLink then
+					local spellID = spellLink:match("spell:(%d+)")
+					if spellID then
+						local spellName = GetSpellInfo(spellID)
+						if spellName then
+							tmpNewName = spellName
+							tmpNewID = tonumber(spellID)
+							return
+						end
+					end
+				end
+				tmpNewName = val
+				tmpNewID = L["ID not set"]
+			end
+		},
+		addName = {
+			type = "execute",
+			name = L["Add spell"],
+			desc = L["Add spell to list."],
+			order = 2,
+			func = function(info)
+				if tmpNewName ~= "" then
+					if tmpNewID ~= "" then
+						core:AddNewSpell(tmpNewName, tmpNewID)
+					else
+						core:AddNewSpell(tmpNewName)
+					end
+					LibStub("AceConfigDialog-3.0"):SelectGroup(core.title .. "Spells", "spellList", tmpNewName)
+					tmpNewName = ""
+				end
+			end
+		},
+		spellList = {
+			type = "group",
+			order = 3,
+			name = L["Specific Spells"],
+			args = {} --done late
+		}
+	}
+}
+
 do
 	local _spelliconcache = {}
 	local function SpellString(spellID, size)
@@ -1076,7 +1076,7 @@ do
 			data = P.spellOpts[spellName]
 			spellID = P.spellOpts[spellName].spellID or L["ID not set"]
 			iconSize = data.increase or P.increase
-			iconTexture = SpellString(spellID)
+			iconTexture = SpellString(spellID, 40)
 
 			if data.show == 1 then
 				nameColour = "|cff00ff00%s|r" --green

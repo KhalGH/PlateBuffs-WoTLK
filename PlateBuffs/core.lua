@@ -90,6 +90,7 @@ function core:OnInitialize()
 
 	local config = LibStub("AceConfig-3.0")
 	local dialog = LibStub("AceConfigDialog-3.0")
+
 	config:RegisterOptionsTable(self.title, self.CoreOptionsTable)
 	dialog:AddToBlizOptions(self.title, self.title)
 
