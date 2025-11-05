@@ -169,7 +169,7 @@ local spellList3 = {
 	-- Shaman
 	2825,	-- Bloodlust
 	49284,	-- Earth Shield
-	16166,	-- Elemental Mastery
+	16166,	-- Elemental Mastery (CheckSpellID)
 	8178,	-- Grounding Totem Effect
 	32182,	-- Heroism
 	16188,	-- Nature's Swiftness
@@ -204,6 +204,7 @@ local CheckSpellID = {
 	20230,	-- Retaliation
 	53908,	-- Speed
 	43523,	-- Unstable Affliction
+	16166,	-- Elemental Mastery
 }
 
 ---------- Class-specific Additional Buff/Debuff ----------

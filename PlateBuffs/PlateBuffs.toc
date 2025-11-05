@@ -10,7 +10,7 @@
 ## X-Modder: Khal
 ## X-Website: https://github.com/KhalGH/PlateBuffs-WoTLK
 ## X-Packaged-Version: r234
-## X-Date: 2025-11-01
+## X-Date: 2025-11-04
 
 libs\embeds.xml
 locales\locales.xml
