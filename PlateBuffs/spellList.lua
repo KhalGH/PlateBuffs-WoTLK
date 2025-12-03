@@ -1,6 +1,6 @@
 local _, core = ...
 
-local table_insert, table_getn, GetSpellInfo = table.insert, table.getn, GetSpellInfo
+local table_insert, table_remove, table_getn, GetSpellInfo = table.insert, table.remove, table.getn, GetSpellInfo
 
 ------------------ Default Buff/Debuff Lists ------------------
 -- First Category
@@ -351,6 +351,7 @@ local spellsByClass = {
             47811, -- Immolate
             47836, -- Seed of Corruption
             61291, -- Shadowflame
+			43523, -- Unstable Affliction
         },
     },
     WARRIOR = {
@@ -370,6 +371,14 @@ local spellsByClass = {
     },
 }
 local myClass = select(2, UnitClass("player"))
+if myClass == "WARLOCK" then
+	for i, v in ipairs(CheckSpellID) do
+		if v == 43523 then
+			table_remove(CheckSpellID, i)
+			break
+		end
+	end
+end
 local classSpells = myClass and spellsByClass[myClass]
 if classSpells and classSpells.spellList3 then
 	for _, id in ipairs(classSpells.spellList3) do
