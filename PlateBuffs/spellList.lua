@@ -85,6 +85,7 @@ local spellList2 = {
 	55021,	-- Silenced - Improved Counterspell
 	18425,	-- Silenced - Improved Kick
 	63529,	-- Silenced - Shield of the Templar
+	34490,	-- Silencing Shot
 	24259,	-- Spell Lock - Felhunter
 	47476,	-- Strangulate
 	43523,	-- Unstable Affliction (CheckSpellID)
@@ -239,6 +240,7 @@ local spellsByClass = {
     HUNTER = {
         spellList4 = {
             5116,  -- Concussive Shot
+			35101, -- Concussive Barrage
             49050, -- Aimed Shot
             64804, -- Entrapment
             13810, -- Frost Trap Aura
