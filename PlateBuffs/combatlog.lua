@@ -2,7 +2,6 @@ local folder, core = ...
 
 local P
 local playerGUID
-local Debug = core.Debug
 local guidBuffs = core.guidBuffs
 local nametoGUIDs = core.nametoGUIDs
 local InterruptsDuration = core.InterruptsDuration
@@ -12,6 +11,7 @@ local bit_band = bit.band
 local GetTime = GetTime
 local table_insert = table.insert
 local table_remove = table.remove
+local string_match = string.match
 
 local GetSpellInfo = GetSpellInfo
 
@@ -87,7 +87,7 @@ function core:ForceNameplateUpdate(dstGUID)
 		-- nameplate that matches the player's name.
 		local dstName, dstFlags = LibAI:GetGUIDInfo(dstGUID)
 		if dstFlags and self:FlagIsPlayer(dstFlags) then
-			local shortName = self:RemoveServerName(dstName) -- Nameplates don't have server names.
+			local shortName = string_match(dstName, "(.+)-") or dstName -- Nameplates don't have server names.
 			nametoGUIDs[shortName] = dstGUID
 			self:UpdatePlateByName(shortName)
 		end
@@ -169,7 +169,8 @@ do
 
 	function core:LibAuraInfo_AURA_APPLIED(event, dstGUID, spellID, srcGUID, spellSchool, auraType)
 		if dstGUID == playerGUID then return end
-
+		if auraType == "BUFF" and P.defaultBuffShow == 5 then return end
+		if auraType == "DEBUFF" and P.defaultDebuffShow == 5 then return end
 		local found, stackCount, debuffType, duration, expires, isDebuff, casterGUID = LibAI:GUIDAuraID(dstGUID, spellID)
 		
 		local spellName, _, spellTexture = GetSpellInfo(spellID)
@@ -237,10 +238,6 @@ function core:LibAuraInfo_AURA_REFRESH(event, dstGUID, spellID, srcGUID, spellSc
 		end
 	end
 
-	--local dstName = LibAI:GetGUIDInfo(dstGUID)
-	--[[ if not LibAI:GUIDAuraID(dstGUID, spellID) then
-		Debug("SPELL_AURA_REFRESH", LibAI:GUIDAuraID(dstGUID, spellID), dstName, GetSpellInfo(spellID), "passing to SPELL_AURA_APPLIED")
-	end ]]
 	self:LibAuraInfo_AURA_APPLIED(event, dstGUID, spellID, srcGUID, spellSchool, auraType)
 end
 
@@ -258,10 +255,6 @@ function core:LibAuraInfo_AURA_APPLIED_DOSE(event, dstGUID, spellID, srcGUID, sp
 		end
 	end
 
-	--local dstName = LibAI:GetGUIDInfo(dstGUID)
-	--[[ if not LibAI:GUIDAuraID(dstGUID, spellID) then
-		Debug("AURA_APPLIED_DOSE", dstName, GetSpellInfo(spellID), "passing to SPELL_AURA_APPLIED")
-	end ]]
 	self:LibAuraInfo_AURA_APPLIED(event, dstGUID, spellID, srcGUID, spellSchool, auraType)
 end
 

@@ -49,7 +49,6 @@ local nametoGUIDs = core.nametoGUIDs
 local buffFrames = core.buffFrames
 local defaultSettings = core.defaultSettings
 local totems = core.totems
-local Debug = core.Debug
 
 local function GetPlateName(plate) return LibNameplates:GetName(plate) end
 local function GetPlateType(plate) return LibNameplates:GetType(plate) end
@@ -107,7 +106,7 @@ function core:OnInitialize()
 	dialog:AddToBlizOptions(self.title .. "Spells", L["Specific Spells"], self.title)
 
 	config:RegisterOptionsTable(self.title .. "About", self.AboutOptionsTable)
-	dialog:AddToBlizOptions(self.title .. "About", L.about, self.title)
+	dialog:AddToBlizOptions(self.title .. "About", L["About"], self.title)
 
 	--last UI
 	local optionsTable = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db)
@@ -286,6 +285,17 @@ do
 	local UnitBuff = UnitBuff
 	local UnitDebuff = UnitDebuff
 
+	-- Returns a unit's name with server if server isn't our own.
+	-- This name matches the one shown in combatlog.
+	local function GetFullName(unitID)
+		local name, realm = UnitName(unitID)
+		local fullname = name
+		if realm and realm ~= "" then
+			fullname = fullname.."-"..realm
+		end
+		return fullname
+	end
+
 	function core:CollectUnitInfo(unitID)
 
 		if not unitID or UnitIsUnit(unitID, "player") then return end
@@ -298,127 +308,126 @@ do
 			nametoGUIDs[unitName] = GUID
 		end
 
-		if P.watchUnitIDAuras == true then
-			guidBuffs[GUID] = guidBuffs[GUID] or {}
+		guidBuffs[GUID] = guidBuffs[GUID] or {}
 
-			--Remove all the entries.
-			for i = table_getn(guidBuffs[GUID]), 1, -1 do
-				if guidBuffs[GUID][i].debuffType ~= "Interrupt" then
-					table_remove(guidBuffs[GUID], i)
+		--Remove all the entries.
+		for i = table_getn(guidBuffs[GUID]), 1, -1 do
+			if guidBuffs[GUID][i].debuffType ~= "Interrupt" then
+				table_remove(guidBuffs[GUID], i)
+			end
+		end
+
+		local i = 1
+		local name, icon, count, duration, expirationTime, unitCaster, spellId, debuffType
+
+		while P.defaultBuffShow ~= 5 and UnitBuff(unitID, i) do
+			name, _, icon, count, _, duration, expirationTime, unitCaster, _, _, spellId = UnitBuff(unitID, i)
+			icon = icon:upper():gsub("(.+)\\(.+)\\", "")
+			local spellOpts = self:HaveSpellOpts(name, spellId)
+			if spellOpts and spellOpts.show and P.defaultBuffShow ~= 4 then
+				if
+					spellOpts.show == 1 or
+					(spellOpts.show == 2 and unitCaster == "player") or
+					(spellOpts.show == 4 and not UnitCanAttack("player", unitID)) or
+					(spellOpts.show == 5 and UnitCanAttack("player", unitID))
+				then
+					table_insert(guidBuffs[GUID], {
+						name = name,
+						icon = icon,
+						expirationTime = expirationTime,
+						startTime = expirationTime - duration,
+						duration = duration,
+						playerCast = (unitCaster == "player") and 1,
+						stackCount = count,
+						sID = spellId,
+						caster = unitCaster and GetFullName(unitCaster),
+						scale = spellOpts.increase or 1
+					})
+				end
+			elseif duration > 0 then
+				if
+					P.defaultBuffShow == 1 or
+					(P.defaultBuffShow == 2 and unitCaster == "player") or
+					(P.defaultBuffShow == 4 and unitCaster == "player")
+				then
+					table_insert(guidBuffs[GUID], {
+						name = name,
+						icon = icon,
+						expirationTime = expirationTime,
+						startTime = expirationTime - duration,
+						duration = duration,
+						playerCast = (unitCaster == "player") and 1,
+						stackCount = count,
+						sID = spellId,
+						caster = unitCaster and GetFullName(unitCaster),
+						scale = 1
+					})
 				end
 			end
 
-			local i = 1
-			local name, icon, count, duration, expirationTime, unitCaster, spellId, debuffType
+			i = i + 1
+		end
 
-			while UnitBuff(unitID, i) do
-				name, _, icon, count, _, duration, expirationTime, unitCaster, _, _, spellId = UnitBuff(unitID, i)
-				icon = icon:upper():gsub("(.+)\\(.+)\\", "")
-				local spellOpts = self:HaveSpellOpts(name, spellId)
-				if spellOpts and spellOpts.show and P.defaultBuffShow ~= 4 then
-					if
-						spellOpts.show == 1 or
-						(spellOpts.show == 2 and unitCaster == "player") or
-						(spellOpts.show == 4 and not UnitCanAttack("player", unitID)) or
-						(spellOpts.show == 5 and UnitCanAttack("player", unitID))
-					then
-						table_insert(guidBuffs[GUID], {
-							name = name,
-							icon = icon,
-							expirationTime = expirationTime,
-							startTime = expirationTime - duration,
-							duration = duration,
-							playerCast = (unitCaster == "player") and 1,
-							stackCount = count,
-							sID = spellId,
-							caster = unitCaster and core:GetFullName(unitCaster),
-							scale = spellOpts.increase or 1
-						})
-					end
-				elseif duration > 0 then
-					if
-						P.defaultBuffShow == 1 or
-						(P.defaultBuffShow == 2 and unitCaster == "player") or
-						(P.defaultBuffShow == 4 and unitCaster == "player")
-					then
-						table_insert(guidBuffs[GUID], {
-							name = name,
-							icon = icon,
-							expirationTime = expirationTime,
-							startTime = expirationTime - duration,
-							duration = duration,
-							playerCast = (unitCaster == "player") and 1,
-							stackCount = count,
-							sID = spellId,
-							caster = unitCaster and core:GetFullName(unitCaster),
-							scale = 1
-						})
-					end
+		i = 1
+		while P.defaultDebuffShow ~= 5 and UnitDebuff(unitID, i) do
+			name, _, icon, count, debuffType, duration, expirationTime, unitCaster, _, _, spellId = UnitDebuff(unitID, i)
+			icon = icon:upper():gsub("INTERFACE\\ICONS\\", "")
+			local spellOpts = self:HaveSpellOpts(name, spellId)
+			if spellOpts and spellOpts.show and P.defaultDebuffShow ~= 4 then
+				if
+					spellOpts.show == 1 or
+					(spellOpts.show == 2 and unitCaster == "player") or
+					(spellOpts.show == 4 and not UnitCanAttack("player", unitID)) or
+					(spellOpts.show == 5 and UnitCanAttack("player", unitID))
+				then
+					table_insert(guidBuffs[GUID], {
+						name = name,
+						icon = icon,
+						expirationTime = expirationTime,
+						startTime = expirationTime - duration,
+						duration = duration,
+						playerCast = (unitCaster == "player") and 1,
+						stackCount = count,
+						debuffType = debuffType,
+						isDebuff = true,
+						sID = spellId,
+						caster = unitCaster and GetFullName(unitCaster),
+						scale = spellOpts.increase or 1
+					})
 				end
-
-				i = i + 1
-			end
-
-			i = 1
-			while UnitDebuff(unitID, i) do
-				name, _, icon, count, debuffType, duration, expirationTime, unitCaster, _, _, spellId = UnitDebuff(unitID, i)
-				icon = icon:upper():gsub("INTERFACE\\ICONS\\", "")
-				local spellOpts = self:HaveSpellOpts(name, spellId)
-				if spellOpts and spellOpts.show and P.defaultDebuffShow ~= 4 then
-					if
-						spellOpts.show == 1 or
-						(spellOpts.show == 2 and unitCaster == "player") or
-						(spellOpts.show == 4 and not UnitCanAttack("player", unitID)) or
-						(spellOpts.show == 5 and UnitCanAttack("player", unitID))
-					then
-						table_insert(guidBuffs[GUID], {
-							name = name,
-							icon = icon,
-							expirationTime = expirationTime,
-							startTime = expirationTime - duration,
-							duration = duration,
-							playerCast = (unitCaster == "player") and 1,
-							stackCount = count,
-							debuffType = debuffType,
-							isDebuff = true,
-							sID = spellId,
-							caster = unitCaster and core:GetFullName(unitCaster),
-							scale = spellOpts.increase or 1
-						})
-					end
-				elseif duration > 0 then
-					if
-						P.defaultDebuffShow == 1 or
-						(P.defaultDebuffShow == 2 and unitCaster == "player") or
-						(P.defaultDebuffShow == 4 and unitCaster == "player")
-					then
-						table_insert(guidBuffs[GUID], {
-							name = name,
-							icon = icon,
-							expirationTime = expirationTime,
-							startTime = expirationTime - duration,
-							duration = duration,
-							playerCast = (unitCaster == "player") and 1,
-							stackCount = count,
-							debuffType = debuffType,
-							isDebuff = true,
-							sID = spellId,
-							caster = unitCaster and core:GetFullName(unitCaster),
-							scale = 1
-						})
-					end
+			elseif duration > 0 then
+				if
+					P.defaultDebuffShow == 1 or
+					(P.defaultDebuffShow == 2 and unitCaster == "player") or
+					(P.defaultDebuffShow == 4 and unitCaster == "player")
+				then
+					table_insert(guidBuffs[GUID], {
+						name = name,
+						icon = icon,
+						expirationTime = expirationTime,
+						startTime = expirationTime - duration,
+						duration = duration,
+						playerCast = (unitCaster == "player") and 1,
+						stackCount = count,
+						debuffType = debuffType,
+						isDebuff = true,
+						sID = spellId,
+						caster = unitCaster and GetFullName(unitCaster),
+						scale = 1
+					})
 				end
-				i = i + 1
 			end
+			i = i + 1
+		end
 
-			if core.iconTestMode == true then
-				for j = table_getn(guidBuffs[GUID]), 1, -1 do
-					for t = 1, P.iconsPerBar - 1 do
-						table_insert(guidBuffs[GUID], j, guidBuffs[GUID][j]) --reinsert the entry abunch of times.
-					end
+		if core.iconTestMode == true then
+			for j = table_getn(guidBuffs[GUID]), 1, -1 do
+				for t = 1, P.iconsPerBar - 1 do
+					table_insert(guidBuffs[GUID], j, guidBuffs[GUID][j]) --reinsert the entry abunch of times.
 				end
 			end
 		end
+		
 		
 		if unitName and not self:UpdatePlateByGUID(GUID) and (UnitIsPlayer(unitID) or UnitClassification(unitID) == "worldboss") then
 			-- LibNameplates can't find a nameplate that matches that GUID. Since the unitID's a player/worldboss which have unique names, add buffs to the frame that matches that name.
@@ -469,7 +478,6 @@ function core:UNIT_AURA(event, unitID)
 end
 
 function core:AddNewSpell(spellName, spellID)
-	Debug("AddNewSpell", spellName, spellID)
 	P.ignoreDefaultSpell[spellName] = nil
 	P.spellOpts[spellName] = {show = 1, spellID = spellID}
 	self:BuildSpellUI()

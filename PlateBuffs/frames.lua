@@ -21,13 +21,14 @@ local table_remove = table.remove
 local table_sort = table.sort
 local type = type
 local table_getn = table.getn
-local Debug = core.Debug
 local DebuffTypeColor = DebuffTypeColor
 local select = select
 local string_gsub = string.gsub
 local math_min = math.min
 local math_max = math.max
+local math_ceil = math.ceil
 local UnitExists = UnitExists
+local string_format = string.format
 
 local P = {}
 local nametoGUIDs = core.nametoGUIDs
@@ -107,9 +108,28 @@ local function UpdateIconSize(frame, width, height)
 end
 
 -- Set cooldown text size.
-local function UpdateDurationSize(buffFrame, size)
+local function UpdateDurationFont(buffFrame, size)
 	local font = P.cooldownFont and LSM:Fetch("font", P.cooldownFont) or "Fonts\\FRIZQT__.TTF"
 	buffFrame.durationText:SetFont(font, size, "OUTLINE")
+end
+
+local function SetDurationAnchor(frame)
+	local anchor = P.cdAnchor
+	frame.durationText:ClearAllPoints()
+	if anchor == "TOP" then
+		frame.durationText:SetPoint("BOTTOM", frame.icon, "TOP", P.cdOffsetX, P.cdOffsetY + 3)
+	elseif anchor == "CENTER" then
+		frame.durationText:SetPoint("CENTER", frame.icon, "CENTER", P.cdOffsetX, P.cdOffsetY)
+	elseif anchor == "BOTTOM" then
+		frame.durationText:SetPoint("TOP", frame.icon, "BOTTOM", P.cdOffsetX, P.cdOffsetY -3)
+	end
+end
+
+local function UpdateDuration2(buffFrame)
+	local font = P.cooldown2Font and LSM:Fetch("font", P.cooldown2Font) or "Fonts\\FRIZQT__.TTF"
+	buffFrame.durationText2:SetFont(font, P.cooldown2Size, "NORMAL")
+	buffFrame.durationText2:SetPoint("TOP", buffFrame.icon, "BOTTOM", 0, P.cd2OffsetY - 1)
+	buffFrame.durationText2Bg:SetAlpha(P.cd2BgAlpha)
 end
 
 -- Set the stack text size.
@@ -117,16 +137,44 @@ local function UpdateStackSize(buffFrame, size)
 	buffFrame.stack:SetFont("Fonts\\FRIZQT__.TTF", size, "OUTLINE")
 end
 
+-- Returns the largest non-zero unit in a readable string format: "2h", "33m", "9.5"
+-- decimals only applies to the seconds case (0, 1 or 2)
+local function SecondsToString(seconds, decimals)
+	if seconds <= 0 then return "" end
+	if seconds <= 60 then
+		local mult = 10 ^ (decimals or 0)
+		return string_format("%." .. (decimals or 0) .. "f", math_ceil(seconds * mult) / mult)
+	end
+	if seconds <= 3600 then return math_ceil(seconds / 60) .. "m" end
+	if seconds <= 86400 then return math_ceil(seconds / 3600) .. "h" end
+	if seconds <= 2592000 then return math_ceil(seconds / 86400) .. "d" end
+	if seconds <= 31536000 then return math_ceil(seconds / 2592000) .. "mo" end
+	return math_ceil(seconds / 31536000) .. "y"
+end
+
+local function RedToGreen(current)
+	if current >= 7 then return 1, 1, 0 end
+	if current >= 3 then return 1, (current - 2) / 4, 0 end
+	return 1, 0, 0
+end
+
 -- Called when spell frames are shown.
 local function iconOnShow(self)
 	self:SetAlpha(1)
 	self.durationText:Hide()
 	self.clockOverlay:Hide()
+	self.durationText2Bg:Hide()
+	self.durationText2:Hide()
 	self.stack:Hide()
 	self.skin:Hide()
 	self.msqborder:Hide()
 
-	if P.borderTexture == "Masque" and MSQ then
+	local borderTexture = P.borderTexture
+	if not self.isDebuff then
+		borderTexture = P.borderTextureBuff
+	end
+
+	if borderTexture == "Masque" and MSQ then
 		Group = Group or MSQ:Group(folder)
 		if Group then
 			local skinID = Group.SkinID or Group.db and Group.db.SkinID
@@ -149,10 +197,10 @@ local function iconOnShow(self)
 			end
 		end
 	else
-		self.msqborder.bgtexture = P.borderTexture
+		self.msqborder.bgtexture = borderTexture
 		self.msqborder.bordersize = 42
 		self.msqborder.normalsize = 36
-		self.skin:SetTexture(P.borderTexture)
+		self.skin:SetTexture(borderTexture)
 	end
 
 	if self.expirationTime > 0 then
@@ -164,6 +212,10 @@ local function iconOnShow(self)
 			if P.legacyCooldownTexture and self.clockOverlay.SetCooldown then
 				self.clockOverlay:SetCooldown(self.startTime or GetTime(), self.duration)
 			end
+		end
+		if P.showCooldown2 then
+			self.durationText2Bg:Show()
+			self.durationText2:Show()
 		end
 	end
 
@@ -183,7 +235,7 @@ local function iconOnShow(self)
 		UpdateIconSize(self, P.iconSize * increase, P.iconSize2 * increase)
 	end
 
-	UpdateDurationSize(self, P.cooldownSize * increase)
+	UpdateDurationFont(self, P.cooldownSize * increase)
 	
 	if self.stackCount and self.stackCount > 1 then
 		self.stack:SetText(self.stackCount)
@@ -208,17 +260,17 @@ local function iconOnShow(self)
 				elseif color == "Interrupt" then
 					color = P.color7
 				end
-				self.skin:SetVertexColor(color[1], color[2], color[3])
+				self.skin:SetVertexColor(color[1], color[2], color[3], color[4])
 				self.skin:Show()
 				self.msqborder:Show()
 			else
-				self.skin:SetVertexColor(P.color1[1], P.color1[2], P.color1[3])
+				self.skin:SetVertexColor(P.color1[1], P.color1[2], P.color1[3], P.color1[4])
 				self.skin:Show()
 				self.msqborder:Show()
 			end
 		end
 	else
-		self.skin:SetVertexColor(P.color6[1], P.color6[2], P.color6[3])
+		self.skin:SetVertexColor(P.color6[1], P.color6[2], P.color6[3], P.color6[4])
 		self.skin:Show()
 		self.msqborder:Show()
 	end
@@ -232,6 +284,8 @@ local function iconOnHide(self)
 	if not P.legacyCooldownTexture then
 		self.clockOverlay:SetHeight(0.00001)
 	end
+	self.durationText2Bg:Hide()
+	self.durationText2:Hide()
 	self.stack:Hide()
 	self.skin:Hide()
 	self.msqborder:Hide()
@@ -245,16 +299,17 @@ local function iconOnUpdate(self, elapsed)
 		self.lastUpdate = 0
 		if self.expirationTime > 0 then
 			local rawTimeLeft = self.expirationTime - GetTime()
-			local timeLeft
-			if rawTimeLeft < P.decimalThreshold then
-				timeLeft = core:Ceil(rawTimeLeft, P.digitsnumber)
-			else
-				timeLeft = core:Ceil(rawTimeLeft)
-			end
-			
+
 			if P.showCooldown then
-				self.durationText:SetText(core:SecondsToString(timeLeft, 1))
-				self.durationText:SetTextColor(core:RedToGreen(timeLeft, self.duration))
+				local decimals = (rawTimeLeft < P.decimalThreshold or P.decimalThreshold == 0) and P.digitsnumber or 0
+				self.durationText:SetText(SecondsToString(rawTimeLeft, decimals))
+				self.durationText:SetTextColor(RedToGreen(rawTimeLeft))
+			end
+
+			if P.showCooldown2 then
+				local decimals = (rawTimeLeft < P.decimalThreshold2 or P.decimalThreshold2 == 0) and P.digitsnumber2 or 0
+				self.durationText2:SetText(SecondsToString(rawTimeLeft, decimals))
+				self.durationText2:SetTextColor(RedToGreen(rawTimeLeft))
 			end
 			
 			if P.showCooldownTexture and not P.legacyCooldownTexture then
@@ -338,7 +393,15 @@ local function CreateBuffFrame(parentFrame, realPlate)
 
 	f.durationText = f.icon:CreateFontString(nil, "ARTWORK", "ChatFontNormal")
 	f.durationText:SetText("")
-	core:SetDurationAnchor(f)
+	SetDurationAnchor(f)
+
+	f.durationText2 = f.icon:CreateFontString(nil, "ARTWORK", "ChatFontNormal")
+	f.durationText2:SetText("")
+	f.durationText2Bg = f.icon:CreateTexture(nil,"BACKGROUND")
+	f.durationText2Bg:SetTexture(0,0,0)
+	f.durationText2Bg:SetPoint("TOPLEFT", f.durationText2, -1, 0)
+	f.durationText2Bg:SetPoint("BOTTOMRIGHT", f.durationText2, 1, -1)
+	UpdateDuration2(f)
 
 	if P.legacyCooldownTexture then
 		f.clockOverlay = CreateFrame("Cooldown", "MainFrameTexture", f.icon, "CooldownFrameTemplate")
@@ -367,6 +430,8 @@ local function CreateBuffFrame(parentFrame, realPlate)
 	f:SetScript("OnUpdate", iconOnUpdate)
 	f.stackCount = 0
 
+	f.durationText2Bg:Hide()
+	f.durationText2:Hide()	
 	f.durationText:Hide()
 	f.clockOverlay:Hide()
 	f.stack:Hide()
@@ -569,31 +634,22 @@ function core:AddUnknownIcon(plate)
 		self:BuildBuffFrame(plate, nil, true)
 	end
 
-	local i = 1 --eaiser for me to copy/paste code elsewhere.
-	buffFrames[plate][i].spellName = false
-	buffFrames[plate][i].expirationTime = 0
-	buffFrames[plate][i].duration = 1
-	buffFrames[plate][i].stackCount = 0
-	buffFrames[plate][i].isDebuff = false
-	buffFrames[plate][i].debuffType = false
-	buffFrames[plate][i].playerCast = false
+	buffFrames[plate][1].spellName = false
+	buffFrames[plate][1].expirationTime = 0
+	buffFrames[plate][1].duration = 1
+	buffFrames[plate][1].stackCount = 0
+	buffFrames[plate][1].isDebuff = false
+	buffFrames[plate][1].debuffType = false
+	buffFrames[plate][1].playerCast = false
 
-	buffFrames[plate][i].texture:SetTexture("Interface\\Icons\\" .. core.unknownIcon)
+	buffFrames[plate][1].texture:SetTexture("Interface\\Icons\\" .. core.unknownIcon)
 
-	if buffFrames[plate][i]:IsShown() then
-		buffFrames[plate][i]:Hide()
+	if buffFrames[plate][1]:IsShown() then
+		buffFrames[plate][1]:Hide()
 	end
-	buffFrames[plate][i]:Show()
+	buffFrames[plate][1]:Show()
 
 	UpdateAllBarSizes(plate)
-end
-
-function core:UpdateAllFrameLevel()
-	for plate in pairs(buffFrames) do
-		for i = 1, table_getn(buffFrames[plate]) do
-			self:SetFrameLevel(buffFrames[plate][i])
-		end
-	end
 end
 
 function core:SetFrameLevel(frame)
@@ -603,24 +659,33 @@ function core:SetFrameLevel(frame)
     end
 end
 
-function core:SetDurationAnchor(frame)
-	local anchor = P.cdAnchor
-	frame.durationText:ClearAllPoints()
-	if anchor == "TOP" then
-		frame.durationText:SetPoint("BOTTOM", frame.icon, "TOP", P.cdOffsetX, P.cdOffsetY + 3)
-	elseif anchor == "CENTER" then
-		frame.durationText:SetPoint("CENTER", frame.icon, "CENTER", P.cdOffsetX, P.cdOffsetY)
-	elseif anchor == "BOTTOM" then
-		frame.durationText:SetPoint("TOP", frame.icon, "BOTTOM", P.cdOffsetX, P.cdOffsetY -3)
+function core:UpdateAllFrameLevel()
+	for _, frames in pairs(buffFrames) do
+		for i = 1, #frames do
+			self:SetFrameLevel(frames[i])
+		end
 	end
 end
 
 function core:UpdateAllDurationAnchors()
-    for plate, frames in pairs(buffFrames) do
+	local frame
+    for _, frames in pairs(buffFrames) do
         for i = 1, #frames do
-            local frame = frames[i]
+            frame = frames[i]
             if frame and frame.durationText then
-                self:SetDurationAnchor(frame)
+                SetDurationAnchor(frame)
+            end
+        end
+    end
+end
+
+function core:UpdateAllDuration2()
+	local frame
+    for _, frames in pairs(buffFrames) do
+        for i = 1, #frames do
+            frame = frames[i]
+            if frame and frame.durationText2 then
+                UpdateDuration2(frame)
             end
         end
     end
@@ -718,7 +783,6 @@ function core:ResetBarPoint(barFrame, plate)
 	barFrame:SetPoint(P.barAnchorPoint, plate, P.plateAnchorPoint, P.barOffsetX, P.barOffsetY)
 end
 
-
 local function UpdateIconSize(frame, width, height)
 	width, height = width or 24, height or 24
 
@@ -739,9 +803,9 @@ function core:ResetIconSizes()
 	local iconSize = P.iconSize
 	local iconSize2 = P.iconSize2
 	local frame, spellOpts, increase
-	for plate in pairs(buffFrames) do
-		for i = 1, table_getn(buffFrames[plate]) do
-			frame = buffFrames[plate][i]
+	for _, frames in pairs(buffFrames) do
+		for i = 1, #frames do
+			frame = frames[i]
 			spellOpts = self:HaveSpellOpts(frame.spellName, frame.sID)
 			if frame:IsShown() and spellOpts then
 				increase = spellOpts.increase or 1
@@ -756,20 +820,20 @@ end
 -- Reset cooldown text sizes. Called when user changes settings.
 function core:ResetDurationSizes()
 	local cooldownSize = P.cooldownSize
-	local buffFrame, increase, spellOpts
-	for plate in pairs(buffFrames) do
-		for i = 1, table_getn(buffFrames[plate]) do
-			buffFrame = buffFrames[plate][i]
+	local frame, increase, spellOpts
+	for _, frames in pairs(buffFrames) do
+		for i = 1, #frames do
+			frame = frames[i]
 			increase = P.increase
-			if buffFrame.debuffType == "Interrupt" then
+			if frame.debuffType == "Interrupt" then
 				increase = P.interruptsScale
 			else
-				spellOpts = self:HaveSpellOpts(buffFrame.spellName, buffFrame.sID)
+				spellOpts = self:HaveSpellOpts(frame.spellName, frame.sID)
 				if spellOpts then
 					increase = spellOpts.increase or increase
 				end
 			end
-			UpdateDurationSize(buffFrame, cooldownSize * increase)
+			UpdateDurationFont(frame, cooldownSize * increase)
 		end
 	end
 end
@@ -777,20 +841,20 @@ end
 -- Update stack text size.
 function core:ResetStackSizes()
 	local stackSize = P.stackSize
-	local buffFrame, increase, spellOpts
-	for plate in pairs(buffFrames) do
-		for i = 1, table_getn(buffFrames[plate]) do
-			buffFrame = buffFrames[plate][i]
+	local frame, increase, spellOpts
+	for _, frames in pairs(buffFrames) do
+		for i = 1, #frames do
+			frame = frames[i]
 			increase = P.increase
-			if buffFrame.debuffType == "Interrupt" then
+			if frame.debuffType == "Interrupt" then
 				increase = P.interruptsScale
 			else
-				spellOpts = self:HaveSpellOpts(buffFrame.spellName, buffFrame.sID)
+				spellOpts = self:HaveSpellOpts(frame.spellName, frame.sID)
 				if spellOpts then
 					increase = spellOpts.increase or increase
 				end
 			end
-			UpdateStackSize(buffFrame, stackSize * increase)
+			UpdateStackSize(frame, stackSize * increase)
 		end
 	end
 end
