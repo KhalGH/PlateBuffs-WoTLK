@@ -48,9 +48,8 @@ L["Bottom Right"] = true
 L["Nameplate's Anchor Point"] = true
 L["Point of the nameplate our buff frame gets anchored to.\ndefault = Top"] = true
 L["Offset X"] = true
-L["Left to right offset."] = true
 L["Offset Y"] = true
-L["Up to down offset."] = true
+L["Offset of the buff frame containing all icons."] = true
 L["Icons per row"] = true
 L["Number of icons to display per row."] = true
 L["Row Growth"] = true
