@@ -433,8 +433,8 @@ core.BarOptionsTable = {
 		},
 		intervalX = {
 			type = "range",
-			name = L["Interval X"],
-			desc = L["Change interval between icons."],
+			name = L["Spacing X"],
+			desc = L["Change spacing between icons."],
 			order = 12,
 			min = 0,
 			max = 80,
@@ -442,12 +442,14 @@ core.BarOptionsTable = {
 			set = function(info, val)
 				P.intervalX = val
 				core:ResetIconSizes()
+				core:ResetAllPlateIcons()
+				core:ShowAllKnownSpells()
 			end
 		},
 		intervalY = {
 			type = "range",
-			name = L["Interval Y"],
-			desc = L["Change interval between icons."],
+			name = L["Spacing Y"],
+			desc = L["Change spacing between icons."],
 			order = 13,
 			min = 0,
 			max = 80,
@@ -455,6 +457,8 @@ core.BarOptionsTable = {
 			set = function(info, val)
 				P.intervalY = val
 				core:ResetIconSizes()
+				core:ResetAllPlateIcons()
+				core:ShowAllKnownSpells()
 			end
 		},
 		blank5 = {
