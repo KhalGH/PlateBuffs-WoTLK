@@ -1,13 +1,13 @@
 --[[
 	Name: LibNameplates-1.0
 	Author(s): Kader (bkader@mail.com)
+	Modder: Khal
 	Description:
 		Alerts addons when a nameplate is shown or hidden.
 		Has API to get info such as name, level, class, ect from the nameplate.
-		LibNameplates tries to function with the default nameplates, Aloft and TidyPlates.
 	Dependencies: LibStub, CallbackHandler-1.0
 ]]
-local MAJOR, MINOR = "LibNameplates-1.0", 34
+local MAJOR, MINOR = "LibNameplates-1.0", 35
 if not LibStub then
 	error(MAJOR .. " requires LibStub.")
 	return
@@ -40,9 +40,16 @@ local UnitHealth = UnitHealth
 local UnitHealthMax = UnitHealthMax
 local _
 
+local hasNameplateAPI
+local C_NamePlate = C_NamePlate
+if C_NamePlate and C_NamePlate.GetNamePlateForUnit then
+	hasNameplateAPI = true
+end
+
 local fastOnFinishThrottle = 0.25 -- check combat & threat every x seconds.
 local slowOnFinishThrottle = 1 -- Check for lingering mouseover texture and for TidyPlates frame.
 local CheckForFakePlate -- checks fake frames
+local playerGUID
 
 local regionOrder = {
 	[1] = "threatTexture",
@@ -184,9 +191,10 @@ do
 		local WorldFrame = WorldFrame
 		local prevChildren, curChildren = 0
 		local function IsNamePlate(frame)
-			if frame.RealPlate  -- KhalPlates
+			if frame.RealPlate  -- RefinedBlizzPlates
 			or frame.extended   -- TidyPlates
 			or frame.UnitFrame  -- ElvUI
+			or frame.npHooked   -- NotPlater
 			or frame.kui        -- KuiNameplates
 			or frame.aloftData  -- Aloft
 			then
@@ -211,6 +219,8 @@ do
 end
 
 local function FoundPlateGUID(frame, GUID, unitID)
+	playerGUID = playerGUID or UnitGUID("player")
+	if GUID == playerGUID then return end
 	lib.nameplates[frame] = GUID
 	lib.callbacks:Fire(callbackFoundGUID, lib.fakePlate[frame] or frame, GUID, unitID)
 end
@@ -219,18 +229,18 @@ do
 	local checkFrames = {}
 	local f = CreateFrame("Frame")
 	f:SetScript("OnUpdate", function(self)
+		self:Hide()
 		for frame in pairs(checkFrames) do
-			if (not lib.nameplates[frame] or lib.nameplates[frame] == true) and lib:IsTarget(frame) then
+			CheckForFakePlate(frame)
+			if lib:IsTarget(frame) then
 				lib.callbacks:Fire(callbackOnTarget, lib.fakePlate[frame] or frame)
-				FoundPlateGUID(frame, UnitGUID("target"), "target")
-			end
-
-			if not lib.fakePlate[frame] then
-				CheckForFakePlate(frame)
+				local GUID = UnitGUID("target")
+				if lib.nameplates[frame] ~= GUID then
+					FoundPlateGUID(frame, GUID, "target")
+				end
 			end
 		end
 		wipe(checkFrames)
-		self:Hide()
 	end)
 
 	function lib:CheckFrameForTargetGUID(frame)
@@ -240,16 +250,30 @@ do
 end
 
 function lib:SetupNameplate(frame)
+
 	self.isOnScreen[frame] = true
 	self.nameplates[frame] = true
 
-	if not self.fakePlate[frame] then
-		CheckForFakePlate(frame)
-	end
+	local groups = self.onFinishedGroups[frame]
+	if groups then
+		for i = 1, #groups do groups[i]:Play() end
+	end	
+
+	CheckForFakePlate(frame)
 
 	self.callbacks:Fire(callbackOnShow, self.fakePlate[frame] or frame)
 
 	self:CheckFrameForTargetGUID(frame)
+
+	if hasNameplateAPI then
+		local nameplateID = (frame.RealPlate or frame).namePlateUnitToken
+		if nameplateID then
+			local GUID = UnitGUID(nameplateID)
+			if GUID then
+				FoundPlateGUID(frame, GUID, nameplateID)
+			end
+		end
+	end
 end
 
 function lib:NameplateOnShow(frame)
@@ -273,19 +297,13 @@ function lib:NameplateOnHide(frame)
 	-- silly KuiNameplates
 	if frame and frame.MOVING then return end
 	self.isOnScreen[frame] = false
-	for i, group in ipairs(self.onFinishedGroups[frame]) do
-		group:Play()
+
+	local groups = self.onFinishedGroups[frame]
+	if groups then
+		for i = 1, #groups do groups[i]:Stop() end
 	end
 
 	self:RecycleNameplate(frame)
-end
-
-function lib:NameplateOnUpdate(frame)
-	if self.nameplates[frame] and self.nameplates[frame] ~= true then return end
-	local region = self.plateRegions[frame].highlightTexture
-	if not region or not region:IsShown() or region:GetAlpha() == 0 then return end
-	if self:GetName(frame) ~= UnitName("mouseover") then return end
-	FoundPlateGUID(frame, UnitGUID("mouseover"), "mouseover")
 end
 
 local FindGUIDByRaidIcon
@@ -347,21 +365,33 @@ end
 
 do
 	function CheckForFakePlate(frame)
-		local f = frame and (frame.extended or frame.kui or frame.UnitFrame) or nil
-		if f then
-			lib.realPlate[f] = frame
-			lib.fakePlate[frame] = f
-			lib.callbacks:Fire(callbackOnHide, frame)
+		if not lib.fakePlate[frame] then
+			local f = frame and (frame.extended or frame.UnitFrame or frame.kui) or nil
+			if f then
+				lib.realPlate[f] = frame
+				lib.fakePlate[frame] = f
+				lib.callbacks:Fire(callbackOnHide, frame)
+			end
+		end
+	end
+
+	------------------------------------------------------------------------------------------------------------------
+	-- If we move the camera angle while the mouse is over a plate, that plate won't hide the mouseover texture.	--
+	-- So if we're mousing over someone's feet and a plate has the mouseover texture visible, 						--
+	-- it fools our code into thinking we're mousing over that plate.												--
+	-- This can be recreated by placing the mouse over a nameplate then holding rightclick and moving the camera.	--
+	------------------------------------------------------------------------------------------------------------------
+	local function FixMouseoverRegion(frame)
+		frame = lib.realPlate[frame] or frame
+		local region = lib.plateRegions[frame].highlightTexture
+		if region and region.IsShown and region:IsShown() and lib:GetName(frame) ~= UnitName("mouseover") then
+			region:Hide()
 		end
 	end
 
 	function lib:NameplateSlowAnimation(frame)
-		if self:IsMouseover(frame) and not UnitExists("mouseover") then
-			self:HideMouseoverRegion(frame)
-		end
-		if not self.fakePlate[frame] then
-			CheckForFakePlate(frame)
-		end
+		CheckForFakePlate(frame)
+		FixMouseoverRegion(frame)
 	end
 end
 
@@ -429,9 +459,6 @@ do
 	local function ourOnHide(...)
 		lib:NameplateOnHide(...)
 	end
-	local function ourOnUpdate(...)
-		lib:NameplateOnUpdate(...)
-	end
 	local function ourHealthOnValueChanged(...)
 		return lib:healthOnValueChanged(...)
 	end
@@ -444,7 +471,6 @@ do
 
 	lib.onHideHooks = lib.onHideHooks or {}
 	lib.onShowHooks = lib.onShowHooks or {}
-	lib.onUpdateHooks = lib.onUpdateHooks or {}
 	lib.healthOnValueChangedHooks = lib.healthOnValueChangedHooks or {}
 	lib.onFinishedGroups = lib.onFinishedGroups or {}
 
@@ -458,11 +484,6 @@ do
 		if frame:HasScript("OnShow") and not self.onShowHooks[frame] then
 			self.onShowHooks[frame] = true
 			frame:HookScript("OnShow", ourOnShow)
-		end
-
-		if frame:HasScript("OnUpdate") and not self.onUpdateHooks[frame] then
-			self.onUpdateHooks[frame] = true
-			frame:HookScript("OnUpdate", ourOnUpdate)
 		end
 
 		if not self.onFinishedGroups[frame] then
@@ -497,9 +518,7 @@ do
 	local f = CreateFrame("Frame")
 	f:SetScript("OnUpdate", function(self)
 		for frame in pairs(checkFrames) do
-			if not lib.fakePlate[frame] then
-				CheckForFakePlate()
-			end
+			CheckForFakePlate(frame)
 		end
 		wipe(checkFrames)
 		self:Hide()
@@ -582,6 +601,7 @@ do
 		end
 	end
 end
+
 --------------------------------------------------------------------------------------------------------------------------------------------
 
 local function GetHealthBarColor(frame)
@@ -621,19 +641,57 @@ local function combatByColor(r, g, b, a)
 end
 
 do
-	local GetMouseFocus = GetMouseFocus
-
 	local f = CreateFrame("Frame")
 	f:Hide()
 	f:RegisterEvent("PLAYER_TARGET_CHANGED")
 	f:RegisterEvent("RAID_TARGET_UPDATE")
+	f:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
+	if hasNameplateAPI then
+		f:RegisterEvent("NAME_PLATE_UNIT_ADDED")
+	end
 
-	local mouseoverPlate
+	local targetScanner = CreateFrame("Frame")
+	targetScanner:Hide()
+	targetScanner:SetScript("OnUpdate", function(self)
+		self:Hide()
+		for frame, guid in pairs(lib.nameplates) do	
+			if frame:IsShown() and lib:IsTarget(frame, true) then
+				lib.callbacks:Fire(callbackOnTarget, lib.fakePlate[frame] or frame)
+				local GUID = UnitGUID("target")
+				if guid ~= GUID then
+					FoundPlateGUID(frame, GUID, "target")
+				end
+				return
+			end
+		end
+	end)	
+
+	local mouseoverScanner = CreateFrame("Frame")
+	mouseoverScanner:Hide()
+	mouseoverScanner:SetScript("OnUpdate", function(self)
+		local mouseoverGUID = UnitGUID("mouseover")
+		if not mouseoverGUID then self:Hide() return end
+		for frame, guid in pairs(lib.nameplates) do
+			if guid == mouseoverGUID then
+				self:Hide()
+				return
+			elseif guid == true then
+				local region = lib.plateRegions[frame].highlightTexture
+				if region and region.IsShown and region:IsShown() then
+					if lib:GetName(frame) == UnitName("mouseover") then
+						FoundPlateGUID(frame, mouseoverGUID, "mouseover")
+						self:Hide()
+						return
+					end
+				end
+			end
+		end
+	end)
+
 	f:SetScript("OnEvent", function(self, event, ...)
 		if event == "PLAYER_TARGET_CHANGED" then
 			if UnitExists("target") and not UnitIsUnit("target", "player") then
-				self.pendingTarget = true
-				self:Show()
+				targetScanner:Show()
 			end
 		elseif event == "RAID_TARGET_UPDATE" then
 			for frame, guid in pairs(lib.nameplates) do
@@ -644,19 +702,21 @@ do
 					end
 				end
 			end
-		end
-	end)
-	f:SetScript("OnUpdate", function(self, elapsed)
-		for frame, guid in pairs(lib.nameplates) do	
-			if self.pendingTarget and frame:IsShown() and lib:IsTarget(frame, true) then
-				if guid == true then -- already set
-					FoundPlateGUID(frame, UnitGUID("target"), "target")
-				end
-				break
+		elseif event == "UPDATE_MOUSEOVER_UNIT" then
+			mouseoverScanner:Show()
+		elseif event == "NAME_PLATE_UNIT_ADDED" then
+			local nameplateID = ...
+			local Plate = C_NamePlate.GetNamePlateForUnit(nameplateID)
+			if not Plate then return end
+			Plate.namePlateUnitToken = nameplateID
+			local frame = Plate.VirtualPlate or Plate
+			local plateData = lib.nameplates[frame]
+			if not plateData then return end
+			local GUID = UnitGUID(nameplateID)
+			if GUID and plateData ~= GUID then
+				FoundPlateGUID(frame, GUID, nameplateID)
 			end
 		end
-		self.pendingTarget = nil
-		self:Hide()
 	end)
 end
 
@@ -910,24 +970,7 @@ end
 function lib:IsMouseover(frame)
 	frame = self.realPlate[frame] or frame
 	local region = self.plateRegions[frame].highlightTexture
-	if region and region.IsShown then
-        return region:IsShown() and (region:GetAlpha() > 0) or false
-	end
-end
-
-------------------------------------------------------------------------------------------------------------------
-function lib:HideMouseoverRegion(frame) --
--- If we move the camera angle while the mouse is over a plate, that plate won't hide the mouseover texture.	--
--- So if we're mousing over someone's feet and a plate has the mouseover texture visible, 						--
--- it fools our code into thinking we're mousing over that plate.												--
--- This can be recreated by placing the mouse over a nameplate then holding rightclick and moving the camera.	--
--- If our UpdateNameplateInfo sees the mouseover texture still visible when we have no mouseoverID, it'll call	--
--- this function to hide the texture.																			--
-------------------------------------------------------------------------------------------------------------------
-	local region = self.plateRegions[frame].highlightTexture
-	if region and region.Hide then
-		region:Hide()
-	end
+	return region and region.IsShown and region:IsShown() and self:GetName(frame) == UnitName("mouseover") or false
 end
 
 --------------------------------------------------------------------------------------------------------------------------------------------

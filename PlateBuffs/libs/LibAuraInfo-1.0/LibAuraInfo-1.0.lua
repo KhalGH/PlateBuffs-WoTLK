@@ -28,7 +28,7 @@ local COMBATLOG_OBJECT_TYPE_PLAYER = COMBATLOG_OBJECT_TYPE_PLAYER
 local tonumber = tonumber
 local strsplit = strsplit
 
-local MAJOR, MINOR = "LibAuraInfo-1.0", 7
+local MAJOR, MINOR = "LibAuraInfo-1.0", 8
 if not LibStub then error(MAJOR .. " requires LibStub.") return end
 
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
@@ -42,10 +42,6 @@ lib.confirmedDur = {}
 lib.GUIDDurations = {}
 
 local DEBUG = false
---[===[@debug@
-DEBUG = true
---@end-debug@]===]
-
 
 local function debugPrint(...)
 	if DEBUG then
