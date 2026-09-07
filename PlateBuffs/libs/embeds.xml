@@ -14,7 +14,6 @@
 <!--@no-lib-strip@-->
 <Script file="LibSharedMedia-3.0\LibSharedMedia-3.0.lua"/>
 <Include file="AceGUI-3.0-SharedMediaWidgets\widget.xml"/>
-<Include file="LibAuraInfo-1.0\lib.xml"/>
 <Script file="LibNameplates-1.0\LibNameplates-1.0.lua"/>
 <Script file="LibDualSpec-1.0\LibDualSpec-1.0.lua"/>
 </Ui>
