@@ -362,15 +362,14 @@ local function iconOnUpdate(self, elapsed)
 end
 
 function core:RemoveOldSpells(GUID)
-	for i = (P.numBars * P.iconsPerBar), 1, -1 do
-		if guidBuffs[GUID] and guidBuffs[GUID][i] then
-			if
-				guidBuffs[GUID][i].expirationTime and
-				guidBuffs[GUID][i].expirationTime > 0 and
-				GetTime() > guidBuffs[GUID][i].expirationTime
-			then
-				table_remove(guidBuffs[GUID], i)
-			end
+	local t = guidBuffs[GUID]
+	if not t then return end
+	local currentTime = GetTime()
+	local expirationTime
+	for i = #t, 1, -1 do
+		expirationTime = t[i].expirationTime
+		if expirationTime and expirationTime > 0 and currentTime > expirationTime then
+			table_remove(t, i)
 		end
 	end
 end
