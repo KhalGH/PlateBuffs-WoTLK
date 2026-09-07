@@ -245,7 +245,7 @@ end
 
 function core:LibNameplates_NewNameplate(event, plate)
 	if self:ShouldAddBuffs(plate) == true then
-		core:AddOurStuffToPlate(plate)
+		self:AddOurStuffToPlate(plate)
 	end
 end
 
@@ -275,168 +275,6 @@ function core:HaveSpellOpts(spellName, spellID)
 	return false
 end
 
-do
-	local UnitGUID = UnitGUID
-	local UnitName = UnitName
-	local UnitIsPlayer = UnitIsPlayer
-	local UnitClassification = UnitClassification
-	local table_remove = table.remove
-	local table_insert = table.insert
-	local UnitBuff = UnitBuff
-	local UnitDebuff = UnitDebuff
-
-	-- Returns a unit's name with server if server isn't our own.
-	-- This name matches the one shown in combatlog.
-	local function GetFullName(unitID)
-		local name, realm = UnitName(unitID)
-		local fullname = name
-		if realm and realm ~= "" then
-			fullname = fullname.."-"..realm
-		end
-		return fullname
-	end
-
-	function core:CollectUnitInfo(unitID)
-
-		if not unitID or UnitIsUnit(unitID, "player") then return end
-
-		local GUID = UnitGUID(unitID)
-		if not GUID then return end
-		
-		local unitName = UnitName(unitID)
-		if unitName and P.saveNameToGUID == true and UnitIsPlayer(unitID) or UnitClassification(unitID) == "worldboss" then
-			nametoGUIDs[unitName] = GUID
-		end
-
-		guidBuffs[GUID] = guidBuffs[GUID] or {}
-
-		--Remove all the entries.
-		for i = table_getn(guidBuffs[GUID]), 1, -1 do
-			if guidBuffs[GUID][i].debuffType ~= "Interrupt" then
-				table_remove(guidBuffs[GUID], i)
-			end
-		end
-
-		local i = 1
-		local name, icon, count, duration, expirationTime, unitCaster, spellId, debuffType
-
-		while P.defaultBuffShow ~= 5 and UnitBuff(unitID, i) do
-			name, _, icon, count, _, duration, expirationTime, unitCaster, _, _, spellId = UnitBuff(unitID, i)
-			icon = icon:upper():gsub("(.+)\\(.+)\\", "")
-			local spellOpts = self:HaveSpellOpts(name, spellId)
-			if spellOpts and spellOpts.show and P.defaultBuffShow ~= 4 then
-				if
-					spellOpts.show == 1 or
-					(spellOpts.show == 2 and unitCaster == "player") or
-					(spellOpts.show == 4 and not UnitCanAttack("player", unitID)) or
-					(spellOpts.show == 5 and UnitCanAttack("player", unitID))
-				then
-					table_insert(guidBuffs[GUID], {
-						name = name,
-						icon = icon,
-						expirationTime = expirationTime,
-						startTime = expirationTime - duration,
-						duration = duration,
-						playerCast = (unitCaster == "player") and 1,
-						stackCount = count,
-						sID = spellId,
-						caster = unitCaster and GetFullName(unitCaster),
-						scale = spellOpts.increase or 1
-					})
-				end
-			elseif duration > 0 then
-				if
-					P.defaultBuffShow == 1 or
-					(P.defaultBuffShow == 2 and unitCaster == "player") or
-					(P.defaultBuffShow == 4 and unitCaster == "player")
-				then
-					table_insert(guidBuffs[GUID], {
-						name = name,
-						icon = icon,
-						expirationTime = expirationTime,
-						startTime = expirationTime - duration,
-						duration = duration,
-						playerCast = (unitCaster == "player") and 1,
-						stackCount = count,
-						sID = spellId,
-						caster = unitCaster and GetFullName(unitCaster),
-						scale = 1
-					})
-				end
-			end
-
-			i = i + 1
-		end
-
-		i = 1
-		while P.defaultDebuffShow ~= 5 and UnitDebuff(unitID, i) do
-			name, _, icon, count, debuffType, duration, expirationTime, unitCaster, _, _, spellId = UnitDebuff(unitID, i)
-			icon = icon:upper():gsub("INTERFACE\\ICONS\\", "")
-			local spellOpts = self:HaveSpellOpts(name, spellId)
-			if spellOpts and spellOpts.show and P.defaultDebuffShow ~= 4 then
-				if
-					spellOpts.show == 1 or
-					(spellOpts.show == 2 and unitCaster == "player") or
-					(spellOpts.show == 4 and not UnitCanAttack("player", unitID)) or
-					(spellOpts.show == 5 and UnitCanAttack("player", unitID))
-				then
-					table_insert(guidBuffs[GUID], {
-						name = name,
-						icon = icon,
-						expirationTime = expirationTime,
-						startTime = expirationTime - duration,
-						duration = duration,
-						playerCast = (unitCaster == "player") and 1,
-						stackCount = count,
-						debuffType = debuffType,
-						isDebuff = true,
-						sID = spellId,
-						caster = unitCaster and GetFullName(unitCaster),
-						scale = spellOpts.increase or 1
-					})
-				end
-			elseif duration > 0 then
-				if
-					P.defaultDebuffShow == 1 or
-					(P.defaultDebuffShow == 2 and unitCaster == "player") or
-					(P.defaultDebuffShow == 4 and unitCaster == "player")
-				then
-					table_insert(guidBuffs[GUID], {
-						name = name,
-						icon = icon,
-						expirationTime = expirationTime,
-						startTime = expirationTime - duration,
-						duration = duration,
-						playerCast = (unitCaster == "player") and 1,
-						stackCount = count,
-						debuffType = debuffType,
-						isDebuff = true,
-						sID = spellId,
-						caster = unitCaster and GetFullName(unitCaster),
-						scale = 1
-					})
-				end
-			end
-			i = i + 1
-		end
-
-		if core.iconTestMode == true then
-			for j = table_getn(guidBuffs[GUID]), 1, -1 do
-				for t = 1, P.iconsPerBar - 1 do
-					table_insert(guidBuffs[GUID], j, guidBuffs[GUID][j]) --reinsert the entry abunch of times.
-				end
-			end
-		end
-		
-		
-		if unitName and not self:UpdatePlateByGUID(GUID) and (UnitIsPlayer(unitID) or UnitClassification(unitID) == "worldboss") then
-			-- LibNameplates can't find a nameplate that matches that GUID. Since the unitID's a player/worldboss which have unique names, add buffs to the frame that matches that name.
-			-- Note, this /can/ add buffs to the wrong frame if a hunter pet has the same name as a player. This is so rare that I'll risk it.
-			self:UpdatePlateByName(unitName, UnitHealthMax(unitID))
-		end
-	end
-end
-
 function core:PLAYER_TARGET_CHANGED(event, ...)
 	if UnitExists("target") then
 		self:CollectUnitInfo("target")
@@ -450,18 +288,18 @@ function core:UNIT_TARGET(event, unitID)
 end
 
 function core:LibNameplates_CombatChange(event, plate, inCombat)
-	if core:ShouldAddBuffs(plate) == true then
-		core:AddOurStuffToPlate(plate)
+	if self:ShouldAddBuffs(plate) == true then
+		self:AddOurStuffToPlate(plate)
 	else
-		core:HidePlateSpells(plate)
+		self:HidePlateSpells(plate)
 	end
 end
 
 function core:LibNameplates_ThreatChange(event, plate, threatSit)
-	if core:ShouldAddBuffs(plate) == true then
-		core:AddOurStuffToPlate(plate)
+	if self:ShouldAddBuffs(plate) == true then
+		self:AddOurStuffToPlate(plate)
 	else
-		core:HidePlateSpells(plate)
+		self:HidePlateSpells(plate)
 	end
 end
 

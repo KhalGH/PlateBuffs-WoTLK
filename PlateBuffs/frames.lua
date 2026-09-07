@@ -21,7 +21,6 @@ local table_remove = table.remove
 local table_sort = table.sort
 local type = type
 local table_getn = table.getn
-local DebuffTypeColor = DebuffTypeColor
 local select = select
 local string_gsub = string.gsub
 local math_min = math.min

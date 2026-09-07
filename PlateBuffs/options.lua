@@ -248,7 +248,7 @@ core.DisplayOptionsTable = {
 			end,
 			set = function(info, val)
 				P.watchCombatlog = not P.watchCombatlog
-				core:RegisterLibAuraInfo()
+				core:RegisterCLEU()
 			end
 		},
 		saveNameToGUID = {
