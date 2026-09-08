@@ -2,7 +2,6 @@ local folder, core = ...
 local L = LibStub("AceLocale-3.0"):NewLocale(folder, "zhTW")
 if not L then return end
 
-L["ShowDescription"] = "\n  在姓名板上顯示增益與減益效果。\n\n  作者：Cyprias（Kader Backport），修改：Khal\n\n  版本：%s\n\n"
 L["Add buffs above NPCs"] = "為NPC血條添加Buff顯示"
 L["Add buffs above friendly plates"] = "為友善目標血條添加Buff顯示"
 L["Add buffs above hostile plates"] = "為敵對目標血條添加Buff顯示"
@@ -22,8 +21,6 @@ L["Center"] = "中間"
 L["Style settings"] = "風格設定"
 L["Displays a question mark above unidentified nameplates. Identify them by target or mouseover."] = "在未識別的名牌上顯示問號。透過選取目標或滑鼠懸停來識別它們。"
 L["Down"] = "下"
-L["Enable"] = "啟用"
-L["Enables / Disables the addon"] = "啟用/關閉此插件"
 L["For each spell on someone, multiply it by the number of icons per bar.\nThis option won't be saved at logout."] = "依目標身上每個法術的數目來增加相應圖示數量.\n此項設定需重新登入方能生效."
 L["Friendly"] = "友善"
 L["Hostile"] = "敵對"

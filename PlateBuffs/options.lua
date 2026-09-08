@@ -17,7 +17,6 @@ local table_getn = table.getn
 local tonumber = tonumber
 local GetSpellInfo = GetSpellInfo
 local select = select
-local string_format = string.format
 local GetAddOnMetadata = GetAddOnMetadata
 
 core.tooltip = core.tooltip or CreateFrame("GameTooltip", folder .. "Tooltip", UIParent, "GameTooltipTemplate")
@@ -124,35 +123,13 @@ core.CoreOptionsTable = {
 		local key = info[#info]
 		P[key] = v
 	end,
-	args = {
-		text1 = {
-			type = "description",
-			name = string_format(L["ShowDescription"], GetAddOnMetadata(folder, "Version")),
-			order = 1,
-		},
-		enable = {
-			type = "toggle",
-			name = L["Enable"],
-			desc = L["Enables / Disables the addon"],
-			order = 2,
-			width = "full",
-			get = function(info)
-				return core:IsEnabled()
-			end,
-			set = function(info, val)
-				if val == true then
-					core:Enable()
-				else
-					core:Disable()
-				end
-			end
-		}
-	}
+	args = {}
 }
 
 core.DisplayOptionsTable = {
 	type = "group",
-	name = core.titleFull,
+	name = L["Display conditions"],
+	order = 2,
 	childGroups = "tab",
 	get = function(info)
 		local key = info[#info]
@@ -302,7 +279,8 @@ core.DisplayOptionsTable = {
 
 core.BarOptionsTable = {
 	type = "group",
-	name = core.titleFull,
+	name = L["Position settings"],
+	order = 4,
 	childGroups = "tab",
 	get = function(info)
 		local key = info[#info]
@@ -519,7 +497,8 @@ core.BarOptionsTable = {
 
 core.DefaultSpellOptionsTable = {
 	type = "group",
-	name = core.titleFull,
+	name = L["Style settings"],
+	order = 3,
 	get = function(info)
 		local key = info[#info]
 		return P[key]
@@ -1114,7 +1093,8 @@ local tmpNewID = ""
 
 core.SpellOptionsTable = {
 	type = "group",
-	name = core.titleFull,
+	name = L["Specific Spells"],
+	order = 5,
 	args = {
 		inputName = {
 			type = "input",
@@ -1153,19 +1133,20 @@ core.SpellOptionsTable = {
 					else
 						core:AddNewSpell(tmpNewName)
 					end
-					LibStub("AceConfigDialog-3.0"):SelectGroup(core.title .. "Spells", "spellList", tmpNewName)
+					LibStub("AceConfigDialog-3.0"):SelectGroup(core.title, "spells", tmpNewName)
 					tmpNewName = ""
 				end
 			end
 		},
-		spellList = {
-			type = "group",
-			order = 3,
-			name = L["Specific Spells"],
-			args = {} --done late
-		}
 	}
 }
+
+-- Panel layout: these four tables are tabs inside CoreOptionsTable, not standalone
+-- Blizzard panels. Only About and Profiles stay in the side tree (see core:OnInitialize).
+core.CoreOptionsTable.args.display  = core.DisplayOptionsTable
+core.CoreOptionsTable.args.style    = core.DefaultSpellOptionsTable
+core.CoreOptionsTable.args.position = core.BarOptionsTable
+core.CoreOptionsTable.args.spells   = core.SpellOptionsTable
 
 do
 	local _spelliconcache = {}
@@ -1186,7 +1167,12 @@ do
 
 	function core:BuildSpellUI()
 		local SpellOptionsTable = core.SpellOptionsTable
-		SpellOptionsTable.args.spellList.args = {}
+		
+		for key in pairs(SpellOptionsTable.args) do
+			if key ~= "inputName" and key ~= "addName" then
+				SpellOptionsTable.args[key] = nil
+			end
+		end
 
 		local list = {}
 		for name, data in pairs(P.spellOpts) do
@@ -1209,7 +1195,7 @@ do
 			data = P.spellOpts[spellName]
 			spellID = P.spellOpts[spellName].spellID or L["ID not set"]
 			iconSize = data.increase or P.increase
-			iconTexture = SpellString(spellID, 40)
+			iconTexture = SpellString(spellID, 28)
 
 			if data.show == 1 then
 				nameColour = "|cff00ff00%s|r" --green
@@ -1237,24 +1223,24 @@ do
 			end
 
 			--add spell to table.
-			SpellOptionsTable.args.spellList.args[spellName] = {
+			SpellOptionsTable.args[spellName] = {
 				type = "group",
 				name = iconTexture .. " " .. nameColour:format(spellName .. " (" .. iconSize .. ") #" .. spellID),
 				desc = spellDesc,
 				order = i,
 				args = {}
 			}
-			SpellOptionsTable.args.spellList.args[spellName].args.spellTitle = {
+			SpellOptionsTable.args[spellName].args.spellTitle = {
 				type = "header",
 				name = spellName,
 				order = 1
 			}
-			SpellOptionsTable.args.spellList.args[spellName].args.blank = {
+			SpellOptionsTable.args[spellName].args.blank = {
 				type = "description",
 				name = "",
 				order = 2
 			}
-			SpellOptionsTable.args.spellList.args[spellName].args.spellDesc = {
+			SpellOptionsTable.args[spellName].args.spellDesc = {
 				type = "description",
 				name = spellDesc,
 				image = spellTexture,
@@ -1262,12 +1248,12 @@ do
 				imageHeight = 32,
 				order = 3
 			}
-			SpellOptionsTable.args.spellList.args[spellName].args.blank2 = {
+			SpellOptionsTable.args[spellName].args.blank2 = {
 				type = "description",
 				name = "",
 				order = 4
 			}
-			SpellOptionsTable.args.spellList.args[spellName].args.showOpt = {
+			SpellOptionsTable.args[spellName].args.showOpt = {
 				type = "select",
 				name = L["Show"],
 				desc = L["Always show spell, only show your spell, never show spell"],
@@ -1280,14 +1266,14 @@ do
 				},
 				order = 5,
 				get = function(info)
-					return P.spellOpts[info[2]].show or 1
+					return P.spellOpts[info[#info-1]].show or 1
 				end,
 				set = function(info, val)
-					P.spellOpts[info[2]].show = val
+					P.spellOpts[info[#info-1]].show = val
 					core:BuildSpellUI()
 				end
 			}
-			SpellOptionsTable.args.spellList.args[spellName].args.iconSize = {
+			SpellOptionsTable.args[spellName].args.iconSize = {
 				type = "range",
 				name = L["Icon Scale"],
 				order = 6,
@@ -1295,144 +1281,128 @@ do
 				max = 3,
 				step = 0.1,
 				get = function(info)
-					return P.spellOpts[info[2]].increase or P.increase
+					return P.spellOpts[info[#info-1]].increase or P.increase
 				end,
 				set = function(info, val)
-					P.spellOpts[info[2]].increase = val
+					P.spellOpts[info[#info-1]].increase = val
 					core:ResetDurationSizes()
 					core:ResetStackSizes()
 					core:ResetIconSizes()
 					core:BuildSpellUI()
 				end
 			}
-			SpellOptionsTable.args.spellList.args[spellName].args.spellID = {
+			SpellOptionsTable.args[spellName].args.spellID = {
 				type = "input",
 				name = L["Spell ID"],
 				order = 7,
 				get = function(info)
-					return tostring(P.spellOpts[info[2]].spellID or L["ID not set"])
+					return tostring(P.spellOpts[info[#info-1]].spellID or L["ID not set"])
 				end,
 				set = function(info, val)
 					local num = tonumber(val)
-					if num and info[2] == GetSpellInfo(num) then
-						P.spellOpts[info[2]].spellID = num
+					if num and info[#info-1] == GetSpellInfo(num) then
+						P.spellOpts[info[#info-1]].spellID = num
 					else
-						P.spellOpts[info[2]].spellID = L["ID not set"]
-						P.spellOpts[info[2]].grabid = false
+						P.spellOpts[info[#info-1]].spellID = L["ID not set"]
+						P.spellOpts[info[#info-1]].grabid = false
 					end
 					core:BuildSpellUI()
 				end
 			}
 			if data.when then
-				SpellOptionsTable.args.spellList.args[spellName].args.addedWhen = {
+				SpellOptionsTable.args[spellName].args.addedWhen = {
 					type = "description",
 					name = L["Added: "] .. data.when,
 					order = 8
 				}
 			end
-			SpellOptionsTable.args.spellList.args[spellName].args.grabID = {
+			SpellOptionsTable.args[spellName].args.grabID = {
 				type = "toggle",
 				name = L["Check Spell ID"],
 				desc = L["Check exact Spell ID for this aura. Useful when different spells share a name"],
 				order = 9,
 				get = function(info)
-					return P.spellOpts[info[2]].grabid
+					return P.spellOpts[info[#info-1]].grabid
 				end,
 				set = function(info, val)
-					P.spellOpts[info[2]].grabid = not P.spellOpts[info[2]].grabid
+					P.spellOpts[info[#info-1]].grabid = not P.spellOpts[info[#info-1]].grabid
 				end,
 				disabled = function(info)
-					return type(P.spellOpts[info[2]].spellID) ~= "number"
+					return type(P.spellOpts[info[#info-1]].spellID) ~= "number"
 				end
 			}
-			SpellOptionsTable.args.spellList.args[spellName].args.removeSpell = {
+			SpellOptionsTable.args[spellName].args.removeSpell = {
 				type = "execute",
 				order = 10,
 				name = L["Remove Spell"],
 				desc = L["Remove spell from list"],
 				func = function(info)
-					core:RemoveSpell(info[2])
+					core:RemoveSpell(info[#info-1])
 				end
 			}
 		end
 	end
 end
 
-do
-	core.AboutOptionsTable = {
-		name = core.titleFull,
-		type = "group",
-		childGroups = "tab",
-		get = function(info)
-			local key = info[#info]
-			return P[key]
-		end,
-		set = function(info, v)
-			local key = info[#info]
-			P[key] = v
-		end,
-		args = {}
-	}
-
-	local tostring = tostring
-
-	local fields = {
-		"Title",
-		"Notes",
-		"Author",
-		"X-Backporter",
-		"X-Modder",
-		"Version",
-		"X-Date",
-		"X-Website",
-	}
-	local haseditbox = {
-		["X-Website"] = true,
-	}
-	local fNames = {
-		["X-Backporter"] = "Backporter",
-		["X-Modder"] = "Modder",
-		["X-Date"] = "Date",
-		["X-Website"] = "Website",
-	}
-	local yellow = "|cffffd100%s|r"
-
-	local val
-	function core:BuildAboutMenu()
-		self.AboutOptionsTable.args.about = {
-			type = "group",
-			name = L["About"],
-			order = 99,
-			args = {}
+core.AboutOptionsTable = {
+	name = L["About"],
+	type = "group",
+	childGroups = "tab",
+	get = function(info)
+		local key = info[#info]
+		return P[key]
+	end,
+	set = function(info, v)
+		local key = info[#info]
+		P[key] = v
+	end,
+	args = (function()
+		local args = {}
+		local fields = {
+			"Title",
+			"Notes",
+			"Author",
+			"X-Backporter",
+			"X-Modder",
+			"Version",
+			"X-Date",
+			"X-Website",
 		}
-
-		for i, field in pairs(fields) do
-			val = GetAddOnMetadata(folder, field)
+		local haseditbox = {
+			["X-Website"] = true,
+		}
+		local fNames = {
+			["X-Backporter"] = "Backporter",
+			["X-Modder"] = "Modder",
+			["X-Date"] = "Date",
+			["X-Website"] = "Website",
+		}
+		local yellow = "|cffffd100%s|r"
+		for i, field in ipairs(fields) do
+			local val = GetAddOnMetadata(folder, field)
 			if val then
 				if haseditbox[field] then
-					self.AboutOptionsTable.args.about.args[field] = {
+					args[field] = {
 						type = "input",
 						name = fNames[field] or field,
 						desc = L["Click and press Ctrl-C to copy"],
-						order = i + 10,
 						width = "double",
+						order = i,
 						get = function(info)
 							local key = info[#info]
 							return GetAddOnMetadata(folder, key)
 						end
 					}
 				else
-					self.AboutOptionsTable.args.about.args[field] = {
+					args[field] = {
 						type = "description",
 						name = yellow:format((fNames[field] or field) .. ": ") .. val,
-						width = "double",
-						order = i + 10
+						width = "full",
+						order = i,
 					}
 				end
 			end
 		end
-
-		LibStub("AceConfig-3.0"):RegisterOptionsTable(self.title, self.AboutOptionsTable) --
-		LibStub("AceConfigDialog-3.0"):SetDefaultSize(self.title, 600, 500) --680
-	end
-end
+		return args
+	end)()
+}

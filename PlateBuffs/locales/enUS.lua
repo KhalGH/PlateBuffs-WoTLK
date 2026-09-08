@@ -1,7 +1,6 @@
 local folder, core = ...
 local L = LibStub("AceLocale-3.0"):NewLocale(folder, "enUS", true)
 
-L["ShowDescription"] = "\n  Show buffs and debuffs on nameplates.\n\n  Author: Cyprias (Kader Backport), modified by Khal\n\n  Version: %s\n\n"
 L["increase texture zoom.\nDefault=0.0"] = true
 L["Physical"] = true
 L["Magic"] = true
@@ -10,10 +9,8 @@ L["Disease"] = true
 L["Poison"] = true
 L["Buff"] = true
 L["Display conditions"] = true
-L["Enable"] = true
 L["Position settings"] = true
 L["Profiles"] = true
-L["Enables / Disables the addon"] = true
 L["Mine Only"] = true
 L["None"] = true
 L["Show question mark"] = true

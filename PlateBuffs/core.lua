@@ -83,33 +83,18 @@ function core:OnInitialize()
 
 	if LDS then LDS:EnhanceDatabase(self.db, self.title) end
 
-	self:BuildAboutMenu()
-
 	local config = LibStub("AceConfig-3.0")
 	local dialog = LibStub("AceConfigDialog-3.0")
 
 	config:RegisterOptionsTable(self.title, self.CoreOptionsTable)
 	dialog:AddToBlizOptions(self.title, self.title)
 
-	config:RegisterOptionsTable(self.title .. "Display", self.DisplayOptionsTable)
-	dialog:AddToBlizOptions(self.title .. "Display", L["Display conditions"], self.title)
-
-	config:RegisterOptionsTable(self.title .. "Style", self.DefaultSpellOptionsTable)
-	dialog:AddToBlizOptions(self.title .. "Style", L["Style settings"], self.title)
-
-	config:RegisterOptionsTable(self.title .. "Position", self.BarOptionsTable)
-	dialog:AddToBlizOptions(self.title .. "Position", L["Position settings"], self.title)
-
-	config:RegisterOptionsTable(self.title .. "Spells", self.SpellOptionsTable)
-	dialog:AddToBlizOptions(self.title .. "Spells", L["Specific Spells"], self.title)
-
-	config:RegisterOptionsTable(self.title .. "About", self.AboutOptionsTable)
-	dialog:AddToBlizOptions(self.title .. "About", L["About"], self.title)
-
-	--last UI
 	local optionsTable = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db)
 	config:RegisterOptionsTable(self.title .. "Profile", optionsTable)
 	dialog:AddToBlizOptions(self.title .. "Profile", L["Profiles"], self.title)
+
+	config:RegisterOptionsTable(self.title .. "About", self.AboutOptionsTable)
+	dialog:AddToBlizOptions(self.title .. "About", L["About"], self.title)
 
 	if LDS then LDS:EnhanceOptions(optionsTable, self.db) end
 end

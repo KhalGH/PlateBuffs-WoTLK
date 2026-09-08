@@ -2,7 +2,6 @@ local folder, core = ...
 local L = LibStub("AceLocale-3.0"):NewLocale(folder, "frFR")
 if not L then return end
 
-L["ShowDescription"] = "\n  Affiche les buffs et debuffs sur les barres de nom.\n\n  Auteur : Cyprias (Kader Backport), modifié par Khal\n\n  Version : %s\n\n"
 L["Add buffs above NPCs"] = "Ajouter les buffs au-dessus des PNJ"
 L["Add buffs above friendly plates"] = "Ajouter les buffs au-dessus des alliés"
 L["Add buffs above hostile plates"] = "Ajouter les buffs au-dessus des ennemis"
@@ -22,8 +21,6 @@ L["Center"] = "Centre"
 L["Style settings"] = "Paramètres de style"
 L["Displays a question mark above unidentified nameplates. Identify them by target or mouseover."] = "Affiche un point d'interrogation au-dessus des barres de nom non identifiées. Identifiez-les en les ciblant ou en passant la souris dessus."
 L["Down"] = "Bas"
-L["Enable"] = "Activer"
-L["Enables / Disables the addon"] = "Activer / Désactiver l'Addon"
 L["For each spell on someone, multiply it by the number of icons per bar.\nThis option won't be saved at logout."] = "Pour chaque sort sur quelqu'un, le multiplier par le nombre d'icônes par barre.\nCette option se sera pas sauvegardé à la déconnexion."
 L["Friendly"] = "Amical"
 L["Hostile"] = "Hostile"

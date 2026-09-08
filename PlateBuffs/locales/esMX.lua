@@ -2,7 +2,6 @@ local folder, core = ...
 local L = LibStub("AceLocale-3.0"):NewLocale(folder, "esMX")
 if not L then return end
 
-L["ShowDescription"] = "\n  Muestra buffs y debuffs en las placas de nombre.\n\n  Autor: Cyprias (Kader Backport), modificado por Khal\n\n  Versión: %s\n\n"
 L["Add buffs above NPCs"] = "Añadir beneficios sobre PNJs"
 L["Add buffs above friendly plates"] = "Añadir beneficios sobre placas amistosas"
 L["Add buffs above hostile plates"] = "Añadir beneficios sobre placas hostiles"
@@ -22,8 +21,6 @@ L["Center"] = "Centro"
 L["Style settings"] = "Ajustes de estilo"
 L["Displays a question mark above unidentified nameplates. Identify them by target or mouseover."] = "Mostrar interrogación sobre placas desconocidas. Targetea o pasa el cursor sobre esas placas."
 L["Down"] = "Abajo"
-L["Enable"] = "Habilitar"
-L["Enables / Disables the addon"] = "Habilita/inhabilita el complemento "
 L["For each spell on someone, multiply it by the number of icons per bar.\nThis option won't be saved at logout."] = "Para cada hechizo en alguien, multiplícalo por el número de iconos por barra.\nEsta opción no se guardará al desconectar."
 L["Friendly"] = "Amistoso"
 L["Hostile"] = "Hostil"

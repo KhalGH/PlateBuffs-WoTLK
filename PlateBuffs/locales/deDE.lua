@@ -2,7 +2,6 @@ local folder, core = ...
 local L = LibStub("AceLocale-3.0"):NewLocale(folder, "deDE")
 if not L then return end
 
-L["ShowDescription"] = "\n  Zeigt Buffs und Debuffs auf Namensplaketten an.\n\n  Autor: Cyprias (Kader Backport), modifiziert von Khal\n\n  Version: %s\n\n"
 L["Add buffs above NPCs"] = "Stärkungszauber über NPCs anzeigen"
 L["Add buffs above friendly plates"] = "Stärkungszauber über freundlichen Einheiten anzeigen"
 L["Add buffs above hostile plates"] = "Stärkungszauber über feindlichen Einheiten anzeigen"
@@ -22,8 +21,6 @@ L["Center"] = "Mitte"
 L["Style settings"] = "Stil-Einstellungen"
 L["Displays a question mark above unidentified nameplates. Identify them by target or mouseover."] = "Zeigt ein Fragezeichen über nicht identifizierten Namensleisten an. Identifiziere sie durch Anvisieren oder indem du mit der Maus darüber fährst."
 L["Down"] = "Nach unten"
-L["Enable"] = "Aktivieren"
-L["Enables / Disables the addon"] = "Aktiviert/Deaktiviert das Addon"
 L["For each spell on someone, multiply it by the number of icons per bar.\nThis option won't be saved at logout."] = "Jeden Zauber auf jemanden mit der Anzahl an Symbolen pro Leiste vervielfachen.\nDiese Option wird beim Ausloggen nicht gespeichert."
 L["Friendly"] = "Freundlich"
 L["Hostile"] = "Feindlich"

@@ -2,7 +2,6 @@ local folder, core = ...
 local L = LibStub("AceLocale-3.0"):NewLocale(folder, "koKR")
 if not L then return end
 
-L["ShowDescription"] = "\n  이름표에 버프와 디버프 표시.\n\n  제작자: Cyprias (Kader Backport), 수정: Khal\n\n  버전: %s\n\n"
 L["Add buffs above NPCs"] = "NPC 이름표에 버프를 추가합니다."
 L["Add buffs above friendly plates"] = "우호적 대상의 이름표에 버프를 추가합니다."
 L["Add buffs above hostile plates"] = "적대적 대상의 이름표에 버프를 추가합니다."
@@ -22,8 +21,6 @@ L["Center"] = "중앙"
 L["Style settings"] = "스타일 설정"
 L["Displays a question mark above unidentified nameplates. Identify them by target or mouseover."] = "확인되지 않은 이름표 위에 물음표를 표시합니다. 대상 지정 또는 마우스오버로 확인하세요."
 L["Down"] = "아래"
-L["Enable"] = "사용"
-L["Enables / Disables the addon"] = "애드온 사용 / 사용 안함"
 L["Friendly"] = "우호적"
 L["Hostile"] = "적대적"
 L["Icon Scale"] = "아이콘 크기"

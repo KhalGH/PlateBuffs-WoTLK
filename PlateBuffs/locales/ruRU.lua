@@ -2,7 +2,6 @@ local folder, core = ...
 local L = LibStub("AceLocale-3.0"):NewLocale(folder, "ruRU")
 if not L then return end
 
-L["ShowDescription"] = "\n  Показывать баффы и дебаффы на индикаторах имени.\n\n  Автор: Cyprias (Kader Backport), изменено Khal\n\n  Версия: %s\n\n"
 L["Add buffs above NPCs"] = "Добавить баффы над НИПами"
 L["Add buffs above friendly plates"] = "Добавить баффы над полосками здоровья союзников"
 L["Add buffs above hostile plates"] = "Добавить баффы над полосками здоровья противников"
@@ -22,8 +21,6 @@ L["Center"] = "По центру"
 L["Style settings"] = "Настройки стиля"
 L["Displays a question mark above unidentified nameplates. Identify them by target or mouseover."] = "Отображает вопросительный знак над неопознанными индикаторами здоровья. Определяйте их, наведя курсор или выбрав цель."
 L["Down"] = "Вниз"
-L["Enable"] = "Включить"
-L["Enables / Disables the addon"] = "Включает / выключает аддон"
 L["For each spell on someone, multiply it by the number of icons per bar.\nThis option won't be saved at logout."] = "Для каждого заклинания на ком либо, умножать на количество иконок на каждой панели.\nЭта опция сбросится при выходе из игры."
 L["Friendly"] = "Дружественный"
 L["Hostile"] = "Враждебный"
