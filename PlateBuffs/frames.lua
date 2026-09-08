@@ -12,17 +12,14 @@ core.LSM = LSM
 
 local Testreversepos = false
 
-local L = core.L or LibStub("AceLocale-3.0"):GetLocale(folder, true)
-local _G = _G
 local pairs = pairs
 local GetTime = GetTime
 local CreateFrame = CreateFrame
 local table_remove = table.remove
 local table_sort = table.sort
-local type = type
 local table_getn = table.getn
 local select = select
-local string_gsub = string.gsub
+local string_match = string.match
 local math_min = math.min
 local math_max = math.max
 local math_ceil = math.ceil
@@ -36,6 +33,7 @@ local buffFrames = core.buffFrames
 local guidBuffs = core.guidBuffs
 
 core.unknownIcon = "Inv_misc_questionmark"
+local unknownIconPath = "Interface\\Icons\\" .. core.unknownIcon
 
 local defaultSettings = core.defaultSettings
 defaultSettings.profile.skin_SkinID = "Blizzard"
@@ -46,20 +44,12 @@ defaultSettings.profile.skin_Colors = {}
 -- NEW API ---------
 
 local GetPlateName = core.GetPlateName
-local GetPlateType = core.GetPlateType
-local IsPlateInCombat = core.IsPlateInCombat
-local GetPlateThreat = core.GetPlateThreat
-local GetPlateReaction = core.GetPlateReaction
 local GetPlateGUID = core.GetPlateGUID
-local PlateIsBoss = core.PlateIsBoss
-local PlateIsElite = core.PlateIsElite
-local GetPlateByGUID = core.GetPlateByGUID
-local GetPlateByName = core.GetPlateByName
 
 -------------------
 
 do
-	local OnEnable = core.OnEnable or core.noop
+	local OnEnable = core.OnEnable
 	function core:OnEnable()
 		OnEnable(self)
 		P = self.db.profile --this can change on profile change.
@@ -109,7 +99,10 @@ end
 -- Set cooldown text size.
 local function UpdateDurationFont(buffFrame, size)
 	local font = P.cooldownFont and LSM:Fetch("font", P.cooldownFont) or "Fonts\\FRIZQT__.TTF"
-	buffFrame.durationText:SetFont(font, size, "OUTLINE")
+	if buffFrame.cdFont ~= font or buffFrame.cdSize ~= size then
+		buffFrame.cdFont, buffFrame.cdSize = font, size
+		buffFrame.durationText:SetFont(font, size, "OUTLINE")
+	end
 end
 
 local function SetDurationAnchor(frame)
@@ -133,16 +126,23 @@ end
 
 -- Set the stack text size.
 local function UpdateStackSize(buffFrame, size)
-	buffFrame.stack:SetFont("Fonts\\FRIZQT__.TTF", size, "OUTLINE")
+	if buffFrame.stackFontSize ~= size then
+		buffFrame.stackFontSize = size
+		buffFrame.stack:SetFont("Fonts\\FRIZQT__.TTF", size, "OUTLINE")
+	end
 end
+
+local secondsFormat = { [0] = "%.0f", [1] = "%.1f", [2] = "%.2f" }
+local secondsMult   = { [0] = 1,      [1] = 10,     [2] = 100 }
 
 -- Returns the largest non-zero unit in a readable string format: "2h", "33m", "9.5"
 -- decimals only applies to the seconds case (0, 1 or 2)
 local function SecondsToString(seconds, decimals)
 	if seconds <= 0 then return "" end
 	if seconds <= 60 then
-		local mult = 10 ^ (decimals or 0)
-		return string_format("%." .. (decimals or 0) .. "f", math_ceil(seconds * mult) / mult)
+		decimals = decimals or 0
+		local mult = secondsMult[decimals] or 10 ^ decimals
+		return string_format(secondsFormat[decimals] or ("%." .. decimals .. "f"), math_ceil(seconds * mult) / mult)
 	end
 	if seconds <= 3600 then return math_ceil(seconds / 60) .. "m" end
 	if seconds <= 86400 then return math_ceil(seconds / 3600) .. "h" end
@@ -313,7 +313,7 @@ local function iconOnUpdate(self, elapsed)
 			
 			if P.showCooldownTexture and not P.legacyCooldownTexture then
 				if not self.clockOverlay.SetCooldown then
-					self.clockOverlay:SetHeight(max(0.00001, (1 - rawTimeLeft / self.duration) * self.icon:GetHeight()))
+					self.clockOverlay:SetHeight(math_max(0.00001, (1 - rawTimeLeft / self.duration) * self.icon:GetHeight()))
 				end
 			end
 
@@ -374,16 +374,11 @@ function core:RemoveOldSpells(GUID)
 	end
 end
 
-local function SetBarSize(barFrame, width, height)
-	barFrame:SetWidth(width)
-	barFrame:SetHeight(height)
-end
-
 local function CreateBuffFrame(parentFrame, realPlate)
-	local f = CreateFrame("Frame", "MainFrame", parentFrame)
+	local f = CreateFrame("Frame", nil, parentFrame)
 	f.realPlate = realPlate
 
-	f.icon = CreateFrame("Frame", "MainFrameIcon", f)
+	f.icon = CreateFrame("Frame", nil, f)
 	f.icon:SetPoint("TOP", f)
 
 	f.texture = f.icon:CreateTexture(nil, "BACKGROUND")
@@ -402,7 +397,7 @@ local function CreateBuffFrame(parentFrame, realPlate)
 	UpdateDuration2(f)
 
 	if P.legacyCooldownTexture then
-		f.clockOverlay = CreateFrame("Cooldown", "MainFrameTexture", f.icon, "CooldownFrameTemplate")
+		f.clockOverlay = CreateFrame("Cooldown", nil, f.icon, "CooldownFrameTemplate")
 		f.clockOverlay:SetAllPoints(true)
 		f.clockOverlay:SetReverse(true)
 	else
@@ -434,7 +429,7 @@ local function CreateBuffFrame(parentFrame, realPlate)
 	f.clockOverlay:Hide()
 	f.stack:Hide()
 
-	f.msqborder = CreateFrame("Frame", "MainFrameMSQBorders", f.icon)
+	f.msqborder = CreateFrame("Frame", nil, f.icon)
 	f.msqborder:SetPoint("CENTER", f.icon, "CENTER")
 	f.msqborder:SetFrameLevel(f.icon:GetFrameLevel())
 	f.skin = f.msqborder:CreateTexture(nil, "BORDER")
@@ -489,6 +484,16 @@ local function CreateBarFrame(parentFrame, realPlate)
 	return f
 end
 
+-- Points used to stack bar r onto bar r-1: honours Row Growth and keeps
+-- the horizontal alignment (LEFT/RIGHT/centre) of the user's bar anchor.
+local function GetStackPoints()
+	local side = string_match(P.barAnchorPoint, "LEFT$") or string_match(P.barAnchorPoint, "RIGHT$") or ""
+	if P.barGrowth == 1 then -- up
+		return "BOTTOM" .. side, "TOP" .. side
+	end
+	return "TOP" .. side, "BOTTOM" .. side
+end
+
 -- Build all our bar frames for a plate.
 -- We anchor these to the plate and our spell frames to the bar.
 local function BuildPlateBars(plate, visibleFrame)
@@ -500,26 +505,14 @@ local function BuildPlateBars(plate, visibleFrame)
 	buffBars[plate][1]:SetPoint(P.barAnchorPoint, visibleFrame, P.plateAnchorPoint, P.barOffsetX, P.barOffsetY)
 	buffBars[plate][1]:SetParent(visibleFrame)
 
-	local barPoint = P.barAnchorPoint
-	local parentPoint = P.plateAnchorPoint
-	if P.barGrowth == 1 then --up
-		barPoint = string_gsub(barPoint, "TOP", "BOTTOM")
-		parentPoint = string_gsub(parentPoint, "BOTTOM", "TOP")
-	else
-		barPoint = string_gsub(barPoint, "BOTTOM,", "TOP")
-		parentPoint = string_gsub(parentPoint, "TOP", "BOTTOM")
-	end
-
-	if P.numBars > 1 then
-		for r = 2, P.numBars do
-			if not buffBars[plate][r] then
-				buffBars[plate][r] = CreateBarFrame(visibleFrame, plate)
-			end
-			buffBars[plate][r]:ClearAllPoints()
-
-			buffBars[plate][r]:SetPoint(barPoint, buffBars[plate][r - 1], parentPoint, 0, 0)
-			buffBars[plate][r]:SetParent(visibleFrame)
+	local barPoint, parentPoint = GetStackPoints()
+	for r = 2, P.numBars do
+		if not buffBars[plate][r] then
+			buffBars[plate][r] = CreateBarFrame(visibleFrame, plate)
 		end
+		buffBars[plate][r]:ClearAllPoints()
+		buffBars[plate][r]:SetPoint(barPoint, buffBars[plate][r - 1], parentPoint, 0, 0)
+		buffBars[plate][r]:SetParent(visibleFrame)
 	end
 end
 
@@ -590,40 +583,43 @@ function core:AddBuffsToPlate(plate, GUID)
 	if not buffFrames[plate] or not buffFrames[plate][P.iconsPerBar] then
 		self:BuildBuffFrame(plate)
 	end
-
-	local t, f
-	if guidBuffs[GUID] then
-		table_sort(guidBuffs[GUID], SortFunc)
-
-		for i = 1, P.numBars * P.iconsPerBar do
-			if buffFrames[plate][i] then
-				if guidBuffs[GUID][i] then
-					buffFrames[plate][i].spellName = guidBuffs[GUID][i].name or ""
-					buffFrames[plate][i].sID = guidBuffs[GUID][i].sID or ""
-					buffFrames[plate][i].expirationTime = guidBuffs[GUID][i].expirationTime or 0
-					buffFrames[plate][i].duration = guidBuffs[GUID][i].duration or 1
-					buffFrames[plate][i].startTime = guidBuffs[GUID][i].startTime or GetTime()
-					buffFrames[plate][i].stackCount = guidBuffs[GUID][i].stackCount or 0
-					buffFrames[plate][i].isDebuff = guidBuffs[GUID][i].isDebuff
-					buffFrames[plate][i].debuffType = guidBuffs[GUID][i].debuffType
-					buffFrames[plate][i].playerCast = guidBuffs[GUID][i].playerCast
-
-					buffFrames[plate][i].scale = guidBuffs[GUID][i].scale or 1
-
-					buffFrames[plate][i].texture:SetTexture("Interface\\Icons\\" .. guidBuffs[GUID][i].icon)
-					buffFrames[plate][i]:Show()
-					--make sure OnShow fires.
-					iconOnShow(buffFrames[plate][i])
-
-					iconOnUpdate(buffFrames[plate][i], 1)
-				else
-					buffFrames[plate][i]:Hide()
+	local t = guidBuffs[GUID]
+	if not t then return end
+	table_sort(t, SortFunc)
+	local frames = buffFrames[plate]
+	local f, rec
+	for i = 1, P.numBars * P.iconsPerBar do
+		f = frames[i]
+		if f then
+			rec = t[i]
+			if rec then
+				f.spellName = rec.name or ""
+				f.sID = rec.sID or ""
+				f.expirationTime = rec.expirationTime or 0
+				f.duration = rec.duration or 1
+				f.startTime = rec.startTime or GetTime()
+				f.stackCount = rec.stackCount or 0
+				f.isDebuff = rec.isDebuff
+				f.debuffType = rec.debuffType
+				f.playerCast = rec.playerCast
+				f.scale = rec.scale or 1
+				if f.iconPath ~= rec.icon then
+					f.iconPath = rec.icon
+					f.texture:SetTexture(rec.icon)
 				end
+				-- Show() only fires OnShow on a hidden frame; call it directly otherwise.
+				if f:IsShown() then
+					iconOnShow(f)
+				else
+					f:Show()
+				end
+				iconOnUpdate(f, 1)
+			else
+				f:Hide()
 			end
 		end
-
-		UpdateAllBarSizes(plate)
 	end
+	UpdateAllBarSizes(plate)
 end
 
 -- Display a question mark icon since we don't know the GUID of the plate/mob.
@@ -640,7 +636,8 @@ function core:AddUnknownIcon(plate)
 	buffFrames[plate][1].debuffType = false
 	buffFrames[plate][1].playerCast = false
 
-	buffFrames[plate][1].texture:SetTexture("Interface\\Icons\\" .. core.unknownIcon)
+	buffFrames[plate][1].iconPath = unknownIconPath
+	buffFrames[plate][1].texture:SetTexture(unknownIconPath)
 
 	if buffFrames[plate][1]:IsShown() then
 		buffFrames[plate][1]:Hide()
@@ -781,21 +778,6 @@ function core:ResetBarPoint(barFrame, plate)
 	barFrame:SetPoint(P.barAnchorPoint, plate, P.plateAnchorPoint, P.barOffsetX, P.barOffsetY)
 end
 
-local function UpdateIconSize(frame, width, height)
-	width, height = width or 24, height or 24
-
-	local d = (width * frame.msqborder.bordersize) / frame.msqborder.normalsize
-	local d2 = (height * frame.msqborder.bordersize) / frame.msqborder.normalsize
-	frame.msqborder:SetSize(d, d2)
-
-	frame.icon:SetSize(width, height)
-	GetTexCoordFromSize(frame.texture, width, height)
-
-	--Update the frame as a whole, this takes into account the size of the cooldown size.
-	frame:SetWidth(width + (P.intervalX or 12))
-	frame:SetHeight(height + (P.intervalY or 12))
-end
-
 -- Reset all icon sizes. Called when user changes settings.
 function core:ResetIconSizes()
 	local iconSize = P.iconSize
@@ -859,31 +841,21 @@ end
 
 -- Reset all bar anchors.
 function core:ResetAllBarPoints()
-	local barPoint = P.barAnchorPoint
-	local parentPoint = P.plateAnchorPoint
-
-	if P.barGrowth == 1 then --up
-		barPoint = string_gsub(barPoint, "TOP", "BOTTOM")
-		parentPoint = string_gsub(parentPoint, "BOTTOM", "TOP")
-	else
-		barPoint = string_gsub(barPoint, "BOTTOM,", "TOP")
-		parentPoint = string_gsub(parentPoint, "TOP", "BOTTOM")
-	end
-
 	for plate in pairs(buffBars) do
 		self:ResetPlateBarPoints(plate)
 	end
 end
 
 -- Reset bar anchors for a particular plate.
-function core:ResetPlateBarPoints(plate)--
-	if buffBars[plate][1] then
-		self:ResetBarPoint(buffBars[plate][1], plate)
+function core:ResetPlateBarPoints(plate)
+	local bars = buffBars[plate]
+	if bars[1] then
+		self:ResetBarPoint(bars[1], plate)
 	end
-
-	for r = 2, table_getn(buffBars[plate]) do
-		buffBars[plate][r]:ClearAllPoints()
-		buffBars[plate][r]:SetPoint(P.barAnchorPoint, buffBars[plate][r - 1], P.plateAnchorPoint, 0, 0)
+	local barPoint, parentPoint = GetStackPoints()
+	for r = 2, table_getn(bars) do
+		bars[r]:ClearAllPoints()
+		bars[r]:SetPoint(barPoint, bars[r - 1], parentPoint, 0, 0)
 	end
 end
 

@@ -80,23 +80,21 @@ do
 end
 
 local function FlagIsPlayer(flags)
-	return (bit_band(flags, COMBATLOG_OBJECT_TYPE_PLAYER) ~= 0)
+	return flags and (bit_band(flags, COMBATLOG_OBJECT_TYPE_PLAYER) ~= 0)
 end
 
 local function FlagIsFriendly(flags)
-	return (bit_band(flags, COMBATLOG_OBJECT_REACTION_FRIENDLY) ~= 0)
+	return flags and (bit_band(flags, COMBATLOG_OBJECT_REACTION_FRIENDLY) ~= 0)
 end
 
 local function FlagIsHostle(flags)
-	return (bit_band(flags, COMBATLOG_OBJECT_REACTION_HOSTILE) ~= 0)
+	return flags and (bit_band(flags, COMBATLOG_OBJECT_REACTION_HOSTILE) ~= 0)
 end
 
 local function ForceNameplateUpdate(dstGUID, dstName, dstFlags)
 	if not core:UpdateTargetPlate(dstGUID) and not core:UpdatePlateByGUID(dstGUID) then
-		-- We can't find a nameplate that matches that GUID.
-		-- Lets check if the GUID is a player, if so find a
-		-- nameplate that matches the player's name.
-		if dstFlags and FlagIsPlayer(dstFlags) then
+		-- No nameplate matches that GUID. Fall back to the plate whose name maps to it.
+		if dstName and FlagIsPlayer(dstFlags) then
 			local shortName = string_match(dstName, "(.+)-") or dstName -- Nameplates don't have server names.
 			nametoGUIDs[shortName] = dstGUID
 			core:UpdatePlateByName(shortName)
@@ -177,24 +175,24 @@ end
 
 --Return the duration of a spell.
 local function GetDuration(spellID, srcGUID, dstGUID, dstIsPlayer)
-	dstIsPlayer = dstIsPlayer or dstGUID and GUIDIsPlayer(dstGUID) or false
+	if dstIsPlayer == nil then
+		dstIsPlayer = dstGUID and GUIDIsPlayer(dstGUID) or false
+	end
 	if dstIsPlayer and auraInfoPvP[spellID] then
 		--Receiver is a player and the spell has a PvP duration. Return the pvp duration.
 		local duration = auraInfoPvP[spellID]
-		if dstGUID and duration then
+		if dstGUID then
 			--Check if there's dimminshing returns on the spell.
 			duration = GetDRDuration(dstGUID, spellID, duration)
 		end
-		return tonumber(duration or 0)
+		return duration
 	elseif spellDuration[spellID] then
-		--Check caster GUID was given.
+		--Check if we've seen that caster cast a spell with a duration that doesn't match our own (spec/glphed into something?)
 		if srcGUID then
-			--Check if we've seen that caster cast a spell with a duration that doesn't match our own (spec/glphed into something?)
-			if GUIDDurations[srcGUID.."-"..spellID] then
-				local dur = GUIDDurations[srcGUID.."-"..spellID]
-				--Check if receiver GUID was given.
+			local dur = GUIDDurations[srcGUID.."-"..spellID]
+			if dur then
+				--Check if there's dimminshing returns on the spell.
 				if dstGUID then
-					--Check if there's dimminshing returns on the spell.
 					dur = GetDRDuration(dstGUID, spellID, dur)
 				end
 				return dur
@@ -225,7 +223,7 @@ function core:CollectUnitInfo(unitID)
 	if not GUID then return end
 	local unitName = UnitName(unitID)
 
-	if unitName and P.saveNameToGUID == true and UnitIsPlayer(unitID) or UnitClassification(unitID) == "worldboss" then
+	if unitName and P.saveNameToGUID == true and (UnitIsPlayer(unitID) or UnitClassification(unitID) == "worldboss") then
 		nametoGUIDs[unitName] = GUID
 	end
 	guidBuffs[GUID] = guidBuffs[GUID] or {}
@@ -249,7 +247,6 @@ function core:CollectUnitInfo(unitID)
 		end
 		LearnAura(spellId, icon, duration, debuffKey, srcGUID)
 		
-		icon = icon:upper():gsub("(.+)\\(.+)\\", "")
 		local spellOpts = self:HaveSpellOpts(name, spellId)
 		if spellOpts and spellOpts.show and P.defaultBuffShow ~= 4 then
 			if
@@ -307,7 +304,6 @@ function core:CollectUnitInfo(unitID)
 		end
 		LearnAura(spellId, icon, duration, debuffKey, srcGUID)
 
-		icon = icon:upper():gsub("INTERFACE\\ICONS\\", "")
 		local spellOpts = self:HaveSpellOpts(name, spellId)
 		if spellOpts and spellOpts.show and P.defaultDebuffShow ~= 4 then
 			if
@@ -365,8 +361,6 @@ function core:CollectUnitInfo(unitID)
 	end
 	
 	if unitName and not self:UpdatePlateByGUID(GUID) and (UnitIsPlayer(unitID) or UnitClassification(unitID) == "worldboss") then
-		-- LibNameplates can't find a nameplate that matches that GUID. Since the unitID's a player/worldboss which have unique names, add buffs to the frame that matches that name.
-		-- Note, this /can/ add buffs to the wrong frame if a hunter pet has the same name as a player. This is so rare that I'll risk it.
 		self:UpdatePlateByName(unitName, UnitHealthMax(unitID))
 	end
 end
@@ -429,9 +423,9 @@ local function HandleAuraApply(srcGUID, dstGUID, dstName, dstFlags, spellID, spe
 	if auraType == "BUFF" and P.defaultBuffShow == 5 then return end
 	if auraType == "DEBUFF" and P.defaultDebuffShow == 5 then return end
 
-	local duration = GetDuration(spellID, srcGUID, dstGUID)
+	local duration = GetDuration(spellID, srcGUID, dstGUID, FlagIsPlayer(dstFlags))
 	local expires = duration ~= 0 and GetTime() + duration or 0
-	local texture = GetSpellIcon(spellID):upper():gsub("INTERFACE\\ICONS\\", "")
+	local texture = GetSpellIcon(spellID)
 	local isDebuff = auraType == "DEBUFF"
 	local debuffType = GetDebuffType(spellID)
 
@@ -439,10 +433,10 @@ local function HandleAuraApply(srcGUID, dstGUID, dstName, dstFlags, spellID, spe
 	local spellOpts = core:HaveSpellOpts(spellName, spellID)
 	if spellOpts and spellOpts.show and CheckFilter(auraType, true) then
 		if
-			P.spellOpts[spellName].show == 1 or
-			(P.spellOpts[spellName].show == 2 and srcGUID == playerGUID) or
-			(P.spellOpts[spellName].show == 4 and FlagIsFriendly(dstFlags)) or
-			(P.spellOpts[spellName].show == 5 and FlagIsHostle(dstFlags))
+			spellOpts.show == 1 or
+			(spellOpts.show == 2 and srcGUID == playerGUID) or
+			(spellOpts.show == 4 and FlagIsFriendly(dstFlags)) or
+			(spellOpts.show == 5 and FlagIsHostle(dstFlags))
 		then
 			updateBars = AddSpellToGUID(dstGUID, spellID, spellName, texture, duration, srcGUID, isDebuff, debuffType, expires, amount, spellOpts.increase)
 		end
@@ -554,7 +548,6 @@ function eventFrame:SPELL_INTERRUPT(srcGUID, dstGUID, dstName, dstFlags, spellID
 	end
 	local getTime = GetTime()
 	local spellName, _, spellTexture = GetSpellInfo(spellID)
-	spellTexture = spellTexture:upper():gsub("INTERFACE\\ICONS\\", "")
 	table_insert(guidBuffs[dstGUID], #guidBuffs[dstGUID] + 1, {
 		name = spellName,
 		icon = spellTexture,

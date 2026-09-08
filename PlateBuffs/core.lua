@@ -31,7 +31,6 @@ core.db = {}
 local db
 local P  --db.profile
 
-local _
 local pairs = pairs
 local UnitExists = UnitExists
 local UnitIsUnit = UnitIsUnit
@@ -47,7 +46,6 @@ local buffBars = core.buffBars
 local guidBuffs = core.guidBuffs
 local nametoGUIDs = core.nametoGUIDs
 local buffFrames = core.buffFrames
-local defaultSettings = core.defaultSettings
 local totems = core.totems
 
 local function GetPlateName(plate) return LibNameplates:GetName(plate) end
@@ -59,7 +57,7 @@ local function GetPlateGUID(plate) return LibNameplates:GetGUID(plate) end
 local function PlateIsBoss(plate) return LibNameplates:IsBoss(plate) end
 local function PlateIsElite(plate) return LibNameplates:IsElite(plate) end
 local function GetPlateByGUID(guid)	return LibNameplates:GetNameplateByGUID(guid) end
-local function GetPlateByName(name, maxhp) return LibNameplates:GetNameplateByName(name, maxhp) end
+local function GetPlateByName(name, maxhp, filter) return LibNameplates:GetNameplateByName(name, maxhp, filter) end
 local function GetTargetPlate()	return LibNameplates:GetTargetNameplate() end
 core.GetPlateName = GetPlateName
 core.GetPlateType = GetPlateType
@@ -146,9 +144,9 @@ do
 			LibNameplates.RegisterCallback(self, "LibNameplates_ThreatChange")
 		end
 
-		for plate in pairs(core.buffBars) do
-			for i = 1, table_getn(core.buffBars[plate]) do
-				core.buffBars[plate][i]:Show() --reshow incase user disabled addon.
+		for plate, bars in pairs(buffBars) do
+			for i = 1, table_getn(bars) do
+				bars[i]:Show() --reshow incase user disabled addon.
 			end
 		end
 	end
@@ -163,9 +161,9 @@ do
 
 		LibNameplates.UnregisterAllCallbacks(self)
 
-		for plate in pairs(core.buffBars) do
-			for i = 1, table_getn(core.buffBars[plate]) do
-				core.buffBars[plate][i]:Hide() --makesure all frames stop OnUpdating.
+		for plate, bars in pairs(buffBars) do
+			for i = 1, table_getn(bars) do
+				bars[i]:Hide() --makesure all frames stop OnUpdating.
 			end
 		end
 	end
@@ -338,14 +336,19 @@ function core:UpdatePlateByGUID(GUID)
 	return false
 end
 
+-- Pets can carry a player's name; only player/boss plates may claim a name-mapped GUID.
+local function IsPlayerOrBossPlate(plate)
+	return GetPlateType(plate) == "PLAYER" or PlateIsBoss(plate)
+end
+
 -- This will add buff frames to a frame matching a given name.
 -- This should only be used for player names because mobs/npcs can share the same name.
 function core:UpdatePlateByName(name, maxhp)
 	local GUID = nametoGUIDs[name]
 	if GUID then
-		local plate = GetPlateByName(name, maxhp)
+		local plate = GetPlateByName(name, maxhp, IsPlayerOrBossPlate)
 		if plate and self:ShouldAddBuffs(plate) == true then
-			core:AddBuffsToPlate(plate, GUID)
+			self:AddBuffsToPlate(plate, GUID)
 			return true
 		end
 	end
