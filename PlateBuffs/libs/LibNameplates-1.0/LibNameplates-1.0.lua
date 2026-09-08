@@ -7,7 +7,7 @@
 		Has API to get info such as name, level, class, ect from the nameplate.
 	Dependencies: LibStub, CallbackHandler-1.0
 ]]
-local MAJOR, MINOR = "LibNameplates-1.0", 35
+local MAJOR, MINOR = "LibNameplates-1.0", 36
 if not LibStub then
 	error(MAJOR .. " requires LibStub.")
 	return
@@ -1101,18 +1101,21 @@ function lib:GetNameplateByGUID(GUID)
 	end
 end
 
-function lib:GetNameplateByName(name, maxHp)
+function lib:GetNameplateByName(name, maxHp, filter)
 	for frame in pairs(self.nameplates) do
 		if frame:IsShown() then
 			if name == lib:GetName(frame) then
-				if not maxHp then
-					return self.fakePlate[frame] or frame
-				end
-				local bar = self.plateChildren[frame].healthBar
-				if bar and bar.GetMinMaxValues then
-					local _, barMax = bar:GetMinMaxValues()
-					if barMax == maxHp then
-						return self.fakePlate[frame] or frame
+				local f = self.fakePlate[frame] or frame
+				if not filter or filter(f) then
+					if not maxHp then
+						return f
+					end
+					local bar = self.plateChildren[frame].healthBar
+					if bar and bar.GetMinMaxValues then
+						local _, barMax = bar:GetMinMaxValues()
+						if barMax == maxHp then
+							return f
+						end
 					end
 				end
 			end
