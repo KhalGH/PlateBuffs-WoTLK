@@ -3,12 +3,13 @@ local folder, core = ...
 local pairs, select, tonumber, string_match, string_sub, math_floor, table_insert, table_remove, table_getn, bit_band, GetTime =
       pairs, select, tonumber, string.match, string.sub, math.floor, table.insert, table.remove, table.getn, bit.band, GetTime
 
-local UnitGUID, UnitName, UnitExists, UnitIsPlayer, UnitIsUnit, UnitClassification, UnitCanAttack, UnitBuff, UnitDebuff, UnitHealthMax, GetSpellInfo = 
-      UnitGUID, UnitName, UnitExists, UnitIsPlayer, UnitIsUnit, UnitClassification, UnitCanAttack, UnitBuff, UnitDebuff, UnitHealthMax, GetSpellInfo
+local UnitGUID, UnitName, UnitExists, UnitIsPlayer, UnitIsUnit, UnitPlayerControlled, UnitClassification, UnitCanAttack, UnitBuff, UnitDebuff, UnitHealthMax, GetSpellInfo = 
+      UnitGUID, UnitName, UnitExists, UnitIsPlayer, UnitIsUnit, UnitPlayerControlled, UnitClassification, UnitCanAttack, UnitBuff, UnitDebuff, UnitHealthMax, GetSpellInfo
 
 local COMBATLOG_OBJECT_TYPE_PLAYER 			= COMBATLOG_OBJECT_TYPE_PLAYER or 0x00000400
 local COMBATLOG_OBJECT_REACTION_FRIENDLY 	= COMBATLOG_OBJECT_REACTION_FRIENDLY or 0x00000010
 local COMBATLOG_OBJECT_REACTION_HOSTILE 	= COMBATLOG_OBJECT_REACTION_HOSTILE or 0x00000040
+local COMBATLOG_OBJECT_CONTROL_PLAYER 		= COMBATLOG_OBJECT_CONTROL_PLAYER or 0x00000100
 
 local spellDuration 		= core.spellDuration
 local spellDebuffType 		= core.spellDebuffType
@@ -38,11 +39,13 @@ local debuffTypes = {
 local pveDR = {
 	["ctrlstun"] = true,
 	["rndstun"] = true,
+	["cheapshot"] = true,
 	["taunt"] = true,
 	["cyclone"] = true,
+	["charge"] = true,
 }
 
-local resetDRTime = 18 --Time it tacks for DR to reset.
+local resetDRTime = 15
 local playerGUID = UnitGUID("player")
 local eventFrame = CreateFrame("Frame")
 
@@ -91,6 +94,10 @@ local function FlagIsHostle(flags)
 	return flags and (bit_band(flags, COMBATLOG_OBJECT_REACTION_HOSTILE) ~= 0)
 end
 
+local function FlagIsPlayerControlled(flags)
+	return flags and bit_band(flags, COMBATLOG_OBJECT_CONTROL_PLAYER) ~= 0
+end
+
 local function ForceNameplateUpdate(dstGUID, dstName, dstFlags)
 	if not core:UpdateTargetPlate(dstGUID) and not core:UpdatePlateByGUID(dstGUID) then
 		-- No nameplate matches that GUID. Fall back to the plate whose name maps to it.
@@ -119,7 +126,7 @@ local function GUIDBuffIndex(dstGUID, spellID, srcGUID)
 	return wildcard
 end
 
-local function AddSpellToGUID(dstGUID, spellID, spellName, spellTexture, duration, srcGUID, isDebuff, debuffType, expires, stackCount, scale)
+local function AddSpellToGUID(dstGUID, spellID, spellName, texture, duration, srcGUID, isDebuff, debuffType, expires, stackCount, scale)
 	guidBuffs[dstGUID] = guidBuffs[dstGUID] or {}
 	local t = guidBuffs[dstGUID]
 	if #t > 0 then
@@ -135,7 +142,7 @@ local function AddSpellToGUID(dstGUID, spellID, spellName, spellTexture, duratio
 	end
 	local rec = {
 		name = spellName,
-		icon = spellTexture,
+		icon = texture,
 		duration = (duration or 0),
 		playerCast = srcGUID == playerGUID and 1,
 		stackCount = stackCount or 0,
@@ -157,7 +164,6 @@ local function GUIDIsPlayer(guid)
 	local B = tonumber(string_sub(guid, 5, 5), 16);
 	local maskedB = B % 8; -- x % 8 has the same effect as x & 0x7 on numbers <= 0xf
 --	local knownTypes = {[0]="player", [3]="NPC", [4]="pet", [5]="vehicle"};
---	print("Your target is a " .. (knownTypes[maskedB] or " unknown entity!"));
 	return maskedB == 0
 end
 
@@ -167,51 +173,66 @@ local function GetDRDuration(dstGUID, spellID, duration)
 		local key = dstGUID..drType
 		local reset = GUIDDrEffects_reset[key]
 		if reset and GetTime() < reset then
-			return duration * (GUIDDrEffects_diminished[key] or 1)
+			local diminished = GUIDDrEffects_diminished[key] or 1
+			if diminished == 0 then
+				GUIDDrEffects_diminished[key] = 1
+				return duration
+			end
+			return duration * diminished
 		end
 	end
 	return duration
 end
 
---Return the duration of a spell.
-local function GetDuration(spellID, srcGUID, dstGUID, dstIsPlayer)
-	if dstIsPlayer == nil then
-		dstIsPlayer = dstGUID and GUIDIsPlayer(dstGUID) or false
-	end
-	if dstIsPlayer and auraInfoPvP[spellID] then
-		--Receiver is a player and the spell has a PvP duration. Return the pvp duration.
-		local duration = auraInfoPvP[spellID]
-		if dstGUID then
-			--Check if there's dimminshing returns on the spell.
-			duration = GetDRDuration(dstGUID, spellID, duration)
-		end
-		return duration
-	elseif spellDuration[spellID] then
-		--Check if we've seen that caster cast a spell with a duration that doesn't match our own (spec/glphed into something?)
-		if srcGUID then
-			local dur = GUIDDurations[srcGUID.."-"..spellID]
-			if dur then
-				--Check if there's dimminshing returns on the spell.
-				if dstGUID then
-					dur = GetDRDuration(dstGUID, spellID, dur)
-				end
-				return dur
-			end
-		end
-		return spellDuration[spellID]
-	end
+--True while the category's chain is live
+local function DRWindowIsOpen(dstGUID, spellID)
+	local drType = drSpells[spellID]
+	if not drType or not dstGUID then return false end
+	local reset = GUIDDrEffects_reset[dstGUID..drType]
+	return reset ~= nil and GetTime() < reset
 end
 
-local function LearnAura(spellID, texture, duration, debuffKey, srcGUID)
+--Return the duration of a spell.
+local function GetDuration(spellID, srcGUID, dstGUID, dstIsPlayerControlled)
+	if dstIsPlayerControlled == nil then
+		dstIsPlayerControlled = dstGUID and GUIDIsPlayer(dstGUID) or false
+	end
+	local duration
+	if dstIsPlayerControlled and auraInfoPvP[spellID] then
+		--Receiver is player controlled and the spell has a PvP duration.
+		duration = auraInfoPvP[spellID]
+	elseif spellDuration[spellID] then
+		--Check if we've seen that caster cast a spell with a duration that doesn't match our own (spec/glphed into something?)
+		duration = (srcGUID and GUIDDurations[srcGUID.."-"..spellID]) or spellDuration[spellID]
+	else
+		return
+	end
+	if dstGUID then
+		duration = GetDRDuration(dstGUID, spellID, duration)
+	end
+	return duration
+end
+
+local function LearnAura(spellID, texture, duration, debuffKey, srcGUID, dstGUID, dstIsPlayerControlled)
 	spellTexture[spellID] = texture
+	--UnitAura sometimes reports 0 duration for auras that do have one, and storing a 0
+	--would mark the spell as permanent: its icon would never expire on its own.
+	if duration <= 0 then return end
 	if not spellDuration[spellID] then
+		--Unknown spell: this observation becomes its duration for every target and every
+		--caster, so only take it when nothing could have shortened it. A PvP cap or an
+		--open DR chain would teach us a fraction of the real duration, permanently.
+		if drSpells[spellID] and (dstIsPlayerControlled or DRWindowIsOpen(dstGUID, spellID)) then
+			return
+		end
 		spellDuration[spellID] = duration
 		spellDebuffType[spellID] = debuffKey
-	elseif not auraInfoPvP[spellID] and srcGUID then
+	elseif srcGUID and not auraInfoPvP[spellID] and not drSpells[spellID] then
+		--Per caster override for specs and glyphs. Those can only lengthen an aura, so a
+		--shorter observation means a PvP cap or fewer combo points, never a real override.
+		--CC isn't extended by talents in 3.3.5, so a DR spell has nothing to gain here.
 		local baseDuration = GetDuration(spellID)
-		if baseDuration and baseDuration ~= duration and duration > 0 then
-			-- Sometimes UnitAura says a spell has 0 duration when it realy has more.
-			--caster's duration doesn't match our DB, they're probably speced into something. lets remember that.
+		if baseDuration and duration > baseDuration then
 			GUIDDurations[srcGUID.."-"..spellID] = duration
 		end
 	end
@@ -222,7 +243,7 @@ function core:CollectUnitInfo(unitID)
 	local GUID = UnitGUID(unitID)
 	if not GUID then return end
 	local unitName = UnitName(unitID)
-
+	local dstIsPlayerControlled = UnitPlayerControlled(unitID)
 	if unitName and P.saveNameToGUID == true and (UnitIsPlayer(unitID) or UnitClassification(unitID) == "worldboss") then
 		nametoGUIDs[unitName] = GUID
 	end
@@ -245,7 +266,7 @@ function core:CollectUnitInfo(unitID)
 		if UnitExists(unitCaster) then
 			srcGUID = UnitGUID(unitCaster)
 		end
-		LearnAura(spellId, icon, duration, debuffKey, srcGUID)
+		LearnAura(spellId, icon, duration, debuffKey, srcGUID, GUID, dstIsPlayerControlled)
 		
 		local spellOpts = self:HaveSpellOpts(name, spellId)
 		if spellOpts and spellOpts.show and P.defaultBuffShow ~= 4 then
@@ -302,7 +323,7 @@ function core:CollectUnitInfo(unitID)
 		if UnitExists(unitCaster) then
 			srcGUID = UnitGUID(unitCaster)
 		end
-		LearnAura(spellId, icon, duration, debuffKey, srcGUID)
+		LearnAura(spellId, icon, duration, debuffKey, srcGUID, GUID, dstIsPlayerControlled)
 
 		local spellOpts = self:HaveSpellOpts(name, spellId)
 		if spellOpts and spellOpts.show and P.defaultDebuffShow ~= 4 then
@@ -365,9 +386,9 @@ function core:CollectUnitInfo(unitID)
 	end
 end
 
-local function GUIDGainedDRAura(dstGUID, spellID, dstIsPlayer)
+local function GUIDGainedDRAura(dstGUID, spellID, dstIsPlayerControlled)
 	local drType = drSpells[spellID]
-	if dstIsPlayer or pveDR[drType] then
+	if dstIsPlayerControlled or pveDR[drType] then
 		local key = dstGUID..drType
 		local reset = GUIDDrEffects_reset[key]
 		if reset and reset <= GetTime() then
@@ -385,12 +406,12 @@ local function NextDR(diminished)
 	return 0
 end
 
-local function GUIDRemovedDRAura(dstGUID, spellID, dstIsPlayer)
+local function GUIDRemovedDRAura(dstGUID, spellID, dstIsPlayerControlled)
 	local drType = drSpells[spellID]
-	if dstIsPlayer or pveDR[drType] then
+	if dstIsPlayerControlled or pveDR[drType] then
 		local key = dstGUID..drType
 		GUIDDrEffects_reset[key] = GetTime() + resetDRTime
-		GUIDDrEffects_diminished[key] = NextDR( GUIDDrEffects_diminished[key] or 1.0 )
+		GUIDDrEffects_diminished[key] = NextDR(GUIDDrEffects_diminished[key] or 1.0)
 	end
 end
 
@@ -423,7 +444,7 @@ local function HandleAuraApply(srcGUID, dstGUID, dstName, dstFlags, spellID, spe
 	if auraType == "BUFF" and P.defaultBuffShow == 5 then return end
 	if auraType == "DEBUFF" and P.defaultDebuffShow == 5 then return end
 
-	local duration = GetDuration(spellID, srcGUID, dstGUID, FlagIsPlayer(dstFlags))
+	local duration = GetDuration(spellID, srcGUID, dstGUID, FlagIsPlayerControlled(dstFlags))
 	local expires = duration ~= 0 and GetTime() + duration or 0
 	local texture = GetSpellIcon(spellID)
 	local isDebuff = auraType == "DEBUFF"
@@ -442,10 +463,8 @@ local function HandleAuraApply(srcGUID, dstGUID, dstName, dstFlags, spellID, spe
 		end
 	else
 		if
-			(auraType == "BUFF" and P.defaultBuffShow == 1) or
-			((P.defaultBuffShow == 2 and srcGUID == playerGUID) or (P.defaultBuffShow == 4 and srcGUID == playerGUID)) or
-			(auraType == "DEBUFF" and P.defaultDebuffShow == 1) or
-			((P.defaultDebuffShow == 2 and srcGUID == playerGUID) or (P.defaultDebuffShow == 4 and srcGUID == playerGUID))
+			(auraType == "BUFF" and (P.defaultBuffShow == 1 or ((P.defaultBuffShow == 2 or P.defaultBuffShow == 4) and srcGUID == playerGUID))) or
+			(auraType == "DEBUFF" and (P.defaultDebuffShow == 1 or ((P.defaultDebuffShow == 2 or P.defaultDebuffShow == 4) and srcGUID == playerGUID)))
 		then
 			updateBars = AddSpellToGUID(dstGUID, spellID, spellName, texture, duration, srcGUID, isDebuff, debuffType, expires, amount)
 		end
@@ -457,7 +476,7 @@ end
 
 function eventFrame:SPELL_AURA_APPLIED(srcGUID, dstGUID, dstName, dstFlags, spellID, spellName, auraType, amount)
 	if drSpells[spellID] then
-		GUIDGainedDRAura(dstGUID, spellID, FlagIsPlayer(dstFlags))
+		GUIDGainedDRAura(dstGUID, spellID, FlagIsPlayerControlled(dstFlags))
 	end
 	if spellDuration[spellID] then
 		HandleAuraApply(srcGUID, dstGUID, dstName, dstFlags, spellID, spellName, auraType, amount)
@@ -466,9 +485,8 @@ end
 
 function eventFrame:SPELL_AURA_REMOVED(srcGUID, dstGUID, dstName, dstFlags, spellID, spellName, auraType, amount)
 	if drSpells[spellID] then
-		GUIDRemovedDRAura(dstGUID, spellID, FlagIsPlayer(dstFlags))
+		GUIDRemovedDRAura(dstGUID, spellID, FlagIsPlayerControlled(dstFlags))
 	end
-
 	local i = GUIDBuffIndex(dstGUID, spellID, srcGUID)
 	if i then
 		table_remove(guidBuffs[dstGUID], i)
@@ -479,21 +497,25 @@ eventFrame.SPELL_AURA_BROKEN		= eventFrame.SPELL_AURA_REMOVED
 eventFrame.SPELL_AURA_BROKEN_SPELL	= eventFrame.SPELL_AURA_REMOVED
 
 function eventFrame:SPELL_AURA_REFRESH(srcGUID, dstGUID, dstName, dstFlags, spellID, spellName, auraType, amount)
+	local dstIsPlayerControlled = FlagIsPlayerControlled(dstFlags)
 	if drSpells[spellID] then
-		GUIDRemovedDRAura(dstGUID, spellID, FlagIsPlayer(dstFlags))
-		GUIDGainedDRAura(dstGUID, spellID, FlagIsPlayer(dstFlags))
+		GUIDGainedDRAura(dstGUID, spellID, dstIsPlayerControlled)
+		GUIDRemovedDRAura(dstGUID, spellID, dstIsPlayerControlled)
 	end
-
 	local i = GUIDBuffIndex(dstGUID, spellID, srcGUID)
 	if i then
 		local rec = guidBuffs[dstGUID][i]
+		if drSpells[spellID] then
+			rec.duration = GetDuration(spellID, srcGUID, dstGUID, dstIsPlayerControlled) or rec.duration
+		end
 		rec.startTime = GetTime()
 		rec.expirationTime = rec.duration ~= 0 and rec.startTime + rec.duration or 0
 		ForceNameplateUpdate(dstGUID, dstName, dstFlags)
 		return
 	end
-
-	self:SPELL_AURA_APPLIED(srcGUID, dstGUID, dstName, dstFlags, spellID, spellName, auraType, amount)
+	if spellDuration[spellID] then
+		HandleAuraApply(srcGUID, dstGUID, dstName, dstFlags, spellID, spellName, auraType, amount)
+	end
 end
 
 function eventFrame:SPELL_AURA_APPLIED_DOSE(srcGUID, dstGUID, dstName, dstFlags, spellID, spellName, auraType, amount)
@@ -506,9 +528,10 @@ function eventFrame:SPELL_AURA_APPLIED_DOSE(srcGUID, dstGUID, dstName, dstFlags,
 		ForceNameplateUpdate(dstGUID, dstName, dstFlags)
 		return
 	end
-
-	--Spell isn't in our list, let's add it.
-	self:SPELL_AURA_APPLIED(srcGUID, dstGUID, dstName, dstFlags, spellID, spellName, auraType, amount)
+	--We're not tracking this aura yet: add it with the stack count the log reports.
+	if spellDuration[spellID] then
+		HandleAuraApply(srcGUID, dstGUID, dstName, dstFlags, spellID, spellName, auraType, amount)
+	end
 end
 
 function eventFrame:SPELL_AURA_REMOVED_DOSE(srcGUID, dstGUID, dstName, dstFlags, spellID, spellName, auraType, amount)
@@ -516,12 +539,11 @@ function eventFrame:SPELL_AURA_REMOVED_DOSE(srcGUID, dstGUID, dstName, dstFlags,
 	if i then
 		local rec = guidBuffs[dstGUID][i]
 		rec.stackCount = amount
-		rec.startTime = GetTime()
 		ForceNameplateUpdate(dstGUID, dstName, dstFlags)
 	end
 end
 
-function eventFrame:UNIT_DIED(srcGUID, dstGUID, dstName, dstFlags, spellID, spellName, auraType, amount)
+function eventFrame:UNIT_DIED(srcGUID, dstGUID, dstName, dstFlags)
 	local t = guidBuffs[dstGUID]
 	if t and #t > 0 then
 		-- Remove all known buffs for that person.
@@ -536,7 +558,7 @@ eventFrame.UNIT_DESTROYED	= eventFrame.UNIT_DIED
 eventFrame.UNIT_DISSIPATES	= eventFrame.UNIT_DIED
 eventFrame.PARTY_KILL		= eventFrame.UNIT_DIED
 
-function eventFrame:SPELL_INTERRUPT(srcGUID, dstGUID, dstName, dstFlags, spellID, spellName, auraType, amount)
+function eventFrame:SPELL_INTERRUPT(srcGUID, dstGUID, dstName, dstFlags, spellID, spellName)
 	if not P.showInterrupts then return end
 	local duration = InterruptsDuration[spellID]
 	if not duration then return end
@@ -547,10 +569,9 @@ function eventFrame:SPELL_INTERRUPT(srcGUID, dstGUID, dstName, dstFlags, spellID
 		core:RemoveOldSpells(dstGUID)
 	end
 	local getTime = GetTime()
-	local spellName, _, spellTexture = GetSpellInfo(spellID)
 	table_insert(guidBuffs[dstGUID], #guidBuffs[dstGUID] + 1, {
 		name = spellName,
-		icon = spellTexture,
+		icon = GetSpellIcon(spellID),
 		duration = duration,
 		playerCast = srcGUID == playerGUID and 1,
 		stackCount = 0,

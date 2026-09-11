@@ -7,7 +7,8 @@
 		Has API to get info such as name, level, class, ect from the nameplate.
 	Dependencies: LibStub, CallbackHandler-1.0
 ]]
-local MAJOR, MINOR = "LibNameplates-1.0", 36
+
+local MAJOR, MINOR = "LibNameplates-1.0", 37
 if not LibStub then
 	error(MAJOR .. " requires LibStub.")
 	return
@@ -28,6 +29,7 @@ local pairs = pairs
 local ipairs = ipairs
 local select = select
 local wipe = wipe
+local unpack = unpack
 local tonumber = tonumber
 local math_floor = math.floor
 local table_insert = table.insert
@@ -855,7 +857,7 @@ end
 function lib:IsTarget(frame, quick)
 	if not frame then return end
 	quick = quick or (frame:IsShown() and UnitExists("target"))
-	
+
 	if frame.UnitFrame then -- ElvUI
 		if not self.fakePlate[frame] then
 			self.fakePlate[frame] = frame.UnitFrame
@@ -863,7 +865,7 @@ function lib:IsTarget(frame, quick)
 		end
 		return quick and (frame.UnitFrame.alpha == 1) or false
 	end
-	
+
 	frame = self.realPlate[frame] or frame
 	return quick and (frame:GetAlpha() == 1) or false
 end
@@ -1081,6 +1083,8 @@ function lib:GetGUID(frame)
 	end
 end
 
+-- Reads nameplate alpha, which Blizzard updates one frame after PLAYER_TARGET_CHANGED.
+-- Use the LibNameplates_TargetNameplate callback when the timing matters.
 function lib:GetTargetNameplate()
 	if UnitExists("target") then
 		for frame in pairs(self.nameplates) do
@@ -1135,21 +1139,22 @@ function lib:GetNameplateByUnit(unitID)
 end
 
 do
-	local unpack = unpack
 	local frames = {}
-
-	function lib:GetAllNameplates()
+	function lib:GetAllNameplates(preferFake)
 		wipe(frames)
 		for frame in pairs(self.nameplates) do
-			table_insert(frames, frame)
+			table_insert(frames, preferFake and (self.fakePlate[frame] or frame) or frame)
 		end
 		return unpack(frames)
 	end
+end
 
-	function lib:IteratePlates()
+do
+	local frames = {}
+	function lib:IteratePlates(preferFake)
 		wipe(frames)
 		for frame in pairs(self.nameplates) do
-			table_insert(frames, frame)
+			table_insert(frames, preferFake and (self.fakePlate[frame] or frame) or frame)
 		end
 		return pairs(frames)
 	end

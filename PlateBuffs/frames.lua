@@ -97,14 +97,16 @@ local function UpdateIconSize(frame, width, height)
 end
 
 -- Set cooldown text size.
-local function UpdateDurationFont(buffFrame, size)
+local function UpdateDurationFont(buffFrame, increase)
 	local font = P.cooldownFont and LSM:Fetch("font", P.cooldownFont) or "Fonts\\FRIZQT__.TTF"
+	local size = P.cooldownSize * increase
 	if buffFrame.cdFont ~= font or buffFrame.cdSize ~= size then
 		buffFrame.cdFont, buffFrame.cdSize = font, size
 		buffFrame.durationText:SetFont(font, size, "OUTLINE")
 	end
 end
 
+-- Set the duration text anchor
 local function SetDurationAnchor(frame)
 	local anchor = P.cdAnchor
 	frame.durationText:ClearAllPoints()
@@ -117,11 +119,14 @@ local function SetDurationAnchor(frame)
 	end
 end
 
-local function UpdateDuration2(buffFrame)
+-- Set alt. cooldown text size.
+local function UpdateDuration2Font(buffFrame, increase)
 	local font = P.cooldown2Font and LSM:Fetch("font", P.cooldown2Font) or "Fonts\\FRIZQT__.TTF"
-	buffFrame.durationText2:SetFont(font, P.cooldown2Size, "NORMAL")
-	buffFrame.durationText2:SetPoint("TOP", buffFrame.icon, "BOTTOM", 0, P.cd2OffsetY - 1)
-	buffFrame.durationText2Bg:SetAlpha(P.cd2BgAlpha)
+	local size = P.cd2Scaled and (P.cooldown2Size * increase) or P.cooldown2Size
+	if buffFrame.cd2Font ~= font or buffFrame.cd2Size ~= size then
+		buffFrame.cd2Font, buffFrame.cd2Size = font, size
+		buffFrame.durationText2:SetFont(font, size, "NORMAL")
+	end
 end
 
 -- Set the stack text size.
@@ -157,13 +162,27 @@ local function RedToGreen(current)
 	return 1, 0, 0
 end
 
+-- Show or hide the duration texts, honoring their duration limits.
+local function UpdateDurationVisibility(frame)
+	local active = frame.expirationTime > 0
+	if active and not frame.overLimit and P.showCooldown then
+		frame.durationText:Show()
+	else
+		frame.durationText:Hide()
+	end
+	if active and not frame.overLimit2 and P.showCooldown2 then
+		frame.durationText2Bg:Show()
+		frame.durationText2:Show()
+	else
+		frame.durationText2Bg:Hide()
+		frame.durationText2:Hide()
+	end
+end
+
 -- Called when spell frames are shown.
 local function iconOnShow(self)
 	self:SetAlpha(1)
-	self.durationText:Hide()
 	self.clockOverlay:Hide()
-	self.durationText2Bg:Hide()
-	self.durationText2:Hide()
 	self.stack:Hide()
 	self.skin:Hide()
 	self.msqborder:Hide()
@@ -202,19 +221,17 @@ local function iconOnShow(self)
 		self.skin:SetTexture(borderTexture)
 	end
 
+	local timeLeft = self.expirationTime - GetTime()
+	self.overLimit = P.durationLimit > 0 and timeLeft > P.durationLimit
+	self.overLimit2 = P.durationLimit2 > 0 and timeLeft > P.durationLimit2
+	UpdateDurationVisibility(self)
+
 	if self.expirationTime > 0 then
-		if P.showCooldown then
-			self.durationText:Show()
-		end
 		if P.showCooldownTexture then
 			self.clockOverlay:Show()
 			if P.legacyCooldownTexture and self.clockOverlay.SetCooldown then
 				self.clockOverlay:SetCooldown(self.startTime or GetTime(), self.duration)
 			end
-		end
-		if P.showCooldown2 then
-			self.durationText2Bg:Show()
-			self.durationText2:Show()
 		end
 	end
 
@@ -234,7 +251,8 @@ local function iconOnShow(self)
 		UpdateIconSize(self, P.iconSize * increase, P.iconSize2 * increase)
 	end
 
-	UpdateDurationFont(self, P.cooldownSize * increase)
+	UpdateDurationFont(self, increase)
+	UpdateDuration2Font(self, increase)
 	
 	if self.stackCount and self.stackCount > 1 then
 		self.stack:SetText(self.stackCount)
@@ -299,18 +317,25 @@ local function iconOnUpdate(self, elapsed)
 		if self.expirationTime > 0 then
 			local rawTimeLeft = self.expirationTime - GetTime()
 
-			if P.showCooldown then
+			local overLimit = P.durationLimit > 0 and rawTimeLeft > P.durationLimit
+			local overLimit2 = P.durationLimit2 > 0 and rawTimeLeft > P.durationLimit2
+			if overLimit ~= self.overLimit or overLimit2 ~= self.overLimit2 then
+				self.overLimit, self.overLimit2 = overLimit, overLimit2
+				UpdateDurationVisibility(self)
+			end
+
+			if P.showCooldown and not overLimit then
 				local decimals = (rawTimeLeft < P.decimalThreshold or P.decimalThreshold == 0) and P.digitsnumber or 0
 				self.durationText:SetText(SecondsToString(rawTimeLeft, decimals))
 				self.durationText:SetTextColor(RedToGreen(rawTimeLeft))
 			end
 
-			if P.showCooldown2 then
+			if P.showCooldown2 and not overLimit2 then
 				local decimals = (rawTimeLeft < P.decimalThreshold2 or P.decimalThreshold2 == 0) and P.digitsnumber2 or 0
 				self.durationText2:SetText(SecondsToString(rawTimeLeft, decimals))
 				self.durationText2:SetTextColor(RedToGreen(rawTimeLeft))
 			end
-			
+
 			if P.showCooldownTexture and not P.legacyCooldownTexture then
 				if not self.clockOverlay.SetCooldown then
 					self.clockOverlay:SetHeight(math_max(0.00001, (1 - rawTimeLeft / self.duration) * self.icon:GetHeight()))
@@ -390,11 +415,13 @@ local function CreateBuffFrame(parentFrame, realPlate)
 
 	f.durationText2 = f.icon:CreateFontString(nil, "ARTWORK", "ChatFontNormal")
 	f.durationText2:SetText("")
+	f.durationText2:SetPoint("TOP", f.icon, "BOTTOM", 0, P.cd2OffsetY - 1)
+
 	f.durationText2Bg = f.icon:CreateTexture(nil,"BACKGROUND")
 	f.durationText2Bg:SetTexture(0,0,0)
+	f.durationText2Bg:SetAlpha(P.cd2BgAlpha)
 	f.durationText2Bg:SetPoint("TOPLEFT", f.durationText2, -1, 0)
 	f.durationText2Bg:SetPoint("BOTTOMRIGHT", f.durationText2, 1, -1)
-	UpdateDuration2(f)
 
 	if P.legacyCooldownTexture then
 		f.clockOverlay = CreateFrame("Cooldown", nil, f.icon, "CooldownFrameTemplate")
@@ -417,6 +444,7 @@ local function CreateBuffFrame(parentFrame, realPlate)
 
 	f.lastUpdate = 0
 	f.expirationTime = 0
+	f.duration = 0
 	f:SetScript("OnShow", iconOnShow)
 	f:SetScript("OnHide", iconOnHide)
 
@@ -596,7 +624,7 @@ function core:AddBuffsToPlate(plate, GUID)
 				f.spellName = rec.name or ""
 				f.sID = rec.sID or ""
 				f.expirationTime = rec.expirationTime or 0
-				f.duration = rec.duration or 1
+				f.duration = rec.duration
 				f.startTime = rec.startTime or GetTime()
 				f.stackCount = rec.stackCount or 0
 				f.isDebuff = rec.isDebuff
@@ -630,7 +658,7 @@ function core:AddUnknownIcon(plate)
 
 	buffFrames[plate][1].spellName = false
 	buffFrames[plate][1].expirationTime = 0
-	buffFrames[plate][1].duration = 1
+	buffFrames[plate][1].duration = 0
 	buffFrames[plate][1].stackCount = 0
 	buffFrames[plate][1].isDebuff = false
 	buffFrames[plate][1].debuffType = false
@@ -675,15 +703,27 @@ function core:UpdateAllDurationAnchors()
 end
 
 function core:UpdateAllDuration2()
-	local frame
-    for _, frames in pairs(buffFrames) do
-        for i = 1, #frames do
-            frame = frames[i]
-            if frame and frame.durationText2 then
-                UpdateDuration2(frame)
-            end
-        end
-    end
+	local frame, increase, spellOpts
+	for _, frames in pairs(buffFrames) do
+		for i = 1, #frames do
+			frame = frames[i]
+			if frame and frame.durationText2 then
+				increase = P.increase
+				if frame.debuffType == "Interrupt" then
+					increase = P.interruptsScale
+				else
+					spellOpts = self:HaveSpellOpts(frame.spellName, frame.sID)
+					if spellOpts then
+						increase = spellOpts.increase or increase
+					end
+				end
+				UpdateDuration2Font(frame, increase)
+				frame.durationText2:SetPoint("TOP", frame.icon, "BOTTOM", 0, P.cd2OffsetY - 1)
+				frame.durationText2Bg:SetAlpha(P.cd2BgAlpha)
+				UpdateDurationVisibility(frame)
+			end
+		end
+	end
 end
 
 -- This will reset all the anchors on the spell frames.
@@ -782,24 +822,6 @@ end
 function core:ResetIconSizes()
 	local iconSize = P.iconSize
 	local iconSize2 = P.iconSize2
-	local frame, spellOpts, increase
-	for _, frames in pairs(buffFrames) do
-		for i = 1, #frames do
-			frame = frames[i]
-			spellOpts = self:HaveSpellOpts(frame.spellName, frame.sID)
-			if frame:IsShown() and spellOpts then
-				increase = spellOpts.increase or 1
-			else
-				increase = P.increase
-			end
-			UpdateIconSize(frame, iconSize * increase, iconSize2 * increase)
-		end
-	end
-end
-
--- Reset cooldown text sizes. Called when user changes settings.
-function core:ResetDurationSizes()
-	local cooldownSize = P.cooldownSize
 	local frame, increase, spellOpts
 	for _, frames in pairs(buffFrames) do
 		for i = 1, #frames do
@@ -813,7 +835,33 @@ function core:ResetDurationSizes()
 					increase = spellOpts.increase or increase
 				end
 			end
-			UpdateDurationFont(frame, cooldownSize * increase)
+			UpdateIconSize(frame, iconSize * increase, iconSize2 * increase)
+		end
+	end
+end
+
+-- Reset cooldown text sizes. Called when user changes settings.
+function core:ResetDurationSizes()
+	local frame, increase, spellOpts, timeLeft
+	local currentTime = GetTime()
+	for _, frames in pairs(buffFrames) do
+		for i = 1, #frames do
+			frame = frames[i]
+			increase = P.increase
+			if frame.debuffType == "Interrupt" then
+				increase = P.interruptsScale
+			else
+				spellOpts = self:HaveSpellOpts(frame.spellName, frame.sID)
+				if spellOpts then
+					increase = spellOpts.increase or increase
+				end
+			end
+			UpdateDurationFont(frame, increase)
+			UpdateDuration2Font(frame, increase)
+			timeLeft = frame.expirationTime - currentTime
+			frame.overLimit = P.durationLimit > 0 and timeLeft > P.durationLimit
+			frame.overLimit2 = P.durationLimit2 > 0 and timeLeft > P.durationLimit2
+			UpdateDurationVisibility(frame)
 		end
 	end
 end

@@ -59,6 +59,8 @@ local function PlateIsElite(plate) return LibNameplates:IsElite(plate) end
 local function GetPlateByGUID(guid)	return LibNameplates:GetNameplateByGUID(guid) end
 local function GetPlateByName(name, maxhp, filter) return LibNameplates:GetNameplateByName(name, maxhp, filter) end
 local function GetTargetPlate()	return LibNameplates:GetTargetNameplate() end
+local function IsTargetPlate(plate) return LibNameplates:IsTarget(plate) end
+local function IteratePlates(preferFake) return LibNameplates:IteratePlates(preferFake) end
 core.GetPlateName = GetPlateName
 core.GetPlateType = GetPlateType
 core.IsPlateInCombat = IsPlateInCombat
@@ -70,6 +72,8 @@ core.PlateIsElite = PlateIsElite
 core.GetPlateByGUID = GetPlateByGUID
 core.GetPlateByName = GetPlateByName
 core.GetTargetPlate = GetTargetPlate
+core.IsTargetPlate = IsTargetPlate
+core.IteratePlates = IteratePlates
 
 function core:OnInitialize()
 	self.db = LibStub("AceDB-3.0"):New("PB_DB", core.defaultSettings, true)
@@ -123,6 +127,7 @@ do
 		LibNameplates.RegisterCallback(self, "LibNameplates_NewNameplate")
 		LibNameplates.RegisterCallback(self, "LibNameplates_FoundGUID")
 		LibNameplates.RegisterCallback(self, "LibNameplates_RecycleNameplate")
+		LibNameplates.RegisterCallback(self, "LibNameplates_TargetNameplate")
 
 		if P.playerCombatWithOnly == true or P.npcCombatWithOnly == true then
 			LibNameplates.RegisterCallback(self, "LibNameplates_CombatChange")
@@ -176,9 +181,11 @@ function core:HidePlateSpells(plate)
 end
 
 function core:ShouldAddBuffs(plate)
-	local plateName = GetPlateName(plate) or "UNKNOWN"
+	if P.targetOnly and not IsTargetPlate(plate) then
+		return false
+	end
 
-	if P.blacklistTotems and totems[plateName] then
+	if P.blacklistTotems and totems[GetPlateName(plate)] then
 		return false
 	end
 
@@ -261,6 +268,8 @@ end
 function core:PLAYER_TARGET_CHANGED(event, ...)
 	if UnitExists("target") then
 		self:CollectUnitInfo("target")
+	elseif P.targetOnly then
+		self:UpdateAllPlates()
 	end
 end
 
@@ -283,6 +292,12 @@ function core:LibNameplates_ThreatChange(event, plate, threatSit)
 		self:AddOurStuffToPlate(plate)
 	else
 		self:HidePlateSpells(plate)
+	end
+end
+
+function core:LibNameplates_TargetNameplate(event, plate)
+	if P.targetOnly then
+		self:UpdateAllPlates()
 	end
 end
 
@@ -345,12 +360,23 @@ end
 function core:UpdateTargetPlate(GUID)
 	if UnitExists("target") and UnitGUID("target") == GUID then
 		local plate = GetTargetPlate()
-		if plate and self:ShouldAddBuffs(plate) == true then
+		if plate and GetPlateGUID(plate) == GUID and self:ShouldAddBuffs(plate) == true then
 			self:AddBuffsToPlate(plate, GUID)
 			return true
 		end
 	end
 	return false
+end
+
+-- Re-evaluate every plate; used when the target or the filter changes.
+function core:UpdateAllPlates()
+	for _, plate in IteratePlates(true) do
+		if self:ShouldAddBuffs(plate) == true then
+			self:AddOurStuffToPlate(plate)
+		else
+			self:HidePlateSpells(plate)
+		end
+	end
 end
 
 function core:SkinCallback(skin, glossAlpha, gloss, _, _, colors)

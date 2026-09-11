@@ -53,6 +53,7 @@ defaultSettings.unknownSpellDataIcon = false
 defaultSettings.blacklistTotems = true
 defaultSettings.playerCombatWithOnly = false
 defaultSettings.npcCombatWithOnly = false
+defaultSettings.targetOnly = false
 
 defaultSettings.barAnchorPoint = "BOTTOM"
 defaultSettings.plateAnchorPoint = "TOP"
@@ -88,13 +89,16 @@ defaultSettings.cdOffsetY = 0
 defaultSettings.cooldownFont = "Friz Quadrata TT"
 defaultSettings.decimalThreshold = 5
 defaultSettings.digitsnumber = 1
+defaultSettings.durationLimit = 0
 defaultSettings.showCooldown2 = false
 defaultSettings.cooldown2Font = "Friz Quadrata TT"
 defaultSettings.cooldown2Size = 10
+defaultSettings.cd2Scaled = false
 defaultSettings.cd2OffsetY = 0
 defaultSettings.cd2BgAlpha = 0.75
 defaultSettings.decimalThreshold2 = 0
 defaultSettings.digitsnumber2 = 1
+defaultSettings.durationLimit2 = 0
 defaultSettings.interruptsScale = 1.4
 defaultSettings.interruptsReduction = 0.3
 defaultSettings.color7 = {0.20, 0.80, 0.60, 1.00}
@@ -273,6 +277,32 @@ core.DisplayOptionsTable = {
 				core:Disable()
 				core:Enable()
 			end
+		},
+		targetOnly = {
+			type = "toggle",
+			name = L["Target Only"],
+			desc = L["Only show spell icons above your current target."],
+			order = 20,
+			set = function(info, val)
+				P.targetOnly = val
+				core:UpdateAllPlates()
+			end
+		},
+		enabled = {
+			type = "toggle",
+			name = L["Disable addon"],
+			desc = L["Disables all processes until the checkbox is unchecked or you reload the UI."],
+			order = 21,
+			get = function()
+				return not core:IsEnabled()
+			end,
+			set = function(info, val)
+				if val then
+					core:Disable()
+				else
+					core:Enable()
+				end
+			end
 		}
 	}
 }
@@ -347,10 +377,9 @@ core.BarOptionsTable = {
 			name = L["Offset X"],
 			desc = L["Offset of the buff frame containing all icons."],
 			order = 6,
-			min = -256,
-			max = 256,
+			min = -150,
+			max = 150,
 			step = 1,
-			bigStep = 10,
 			set = function(info, val)
 				P.barOffsetX = val
 				core:ResetAllBarPoints()
@@ -361,10 +390,9 @@ core.BarOptionsTable = {
 			name = L["Offset Y"],
 			desc = L["Offset of the buff frame containing all icons."],
 			order = 7,
-			min = -256,
-			max = 256,
+			min = -150,
+			max = 150,
 			step = 1,
-			bigStep = 10,
 			set = function(info, val)
 				P.barOffsetY = val
 				core:ResetAllBarPoints()
@@ -832,17 +860,31 @@ core.DefaultSpellOptionsTable = {
 			step = 1,
 			disabled = function() return not P.showCooldown end
 		},
+		durationLimit = {
+			type = "range",
+			name = L["Duration Threshold"],
+			desc = L["Hide the duration text while the remaining time is above this value (in seconds).\n0 = no limit."],
+			order = 32,
+			min = 0,
+			max = 300,
+			step = 1,
+			set = function(info, val)
+				P.durationLimit = val
+				core:ResetDurationSizes()
+			end,
+			disabled = function() return not P.showCooldown end
+		},
 		blank7 = {
 			type = "description",
 			name = "",
-			order = 32
+			order = 33
 		},
 		showCooldown2 = {
 			type = "toggle",
 			name = L["Alt. Duration Text"],
 			desc = L["Displays an alternative duration text below the icon with a dark background."],
 			width = "full",
-			order = 33,
+			order = 34,
 			set = function(info, val)
 				P.showCooldown2 = val
 				core:UpdateAllDuration2()
@@ -851,7 +893,7 @@ core.DefaultSpellOptionsTable = {
 		cooldown2Font = {
 			type = "select",
 			name = L["Text Font"],
-			order = 34,
+			order = 35,
 			values = LSM:HashTable("font"),
 			dialogControl = "LSM30_Font",
 			get = function()
@@ -866,7 +908,7 @@ core.DefaultSpellOptionsTable = {
 		cooldown2Size = {
 			type = "range",
 			name = L["Text Size"],
-			order = 35,
+			order = 36,
 			min = 6,
 			max = 20,
 			step = 1,
@@ -879,7 +921,7 @@ core.DefaultSpellOptionsTable = {
 		cd2OffsetY = {
 			type = "range",
 			name = L["Offset Y"],
-			order = 36,
+			order = 37,
 			min = -30,
 			max = 30,
 			step = 0.5,
@@ -892,7 +934,7 @@ core.DefaultSpellOptionsTable = {
 		cd2BgAlpha = {
 			type = "range",
 			name = L["Background Opacity"],
-			order = 37,
+			order = 38,
 			min = 0,
 			max = 1,
 			step = 0.01,
@@ -907,7 +949,7 @@ core.DefaultSpellOptionsTable = {
 			type = "range",
 			name = L["Decimal Threshold"],
 			desc = L["Show decimal digits for durations below this value (in seconds).\n0 = no threshold."],
-			order = 38,
+			order = 39,
 			min = 0,
 			max = 60,
 			step = 1,
@@ -917,31 +959,56 @@ core.DefaultSpellOptionsTable = {
 			type = "range",
 			name = L["Decimal precision"],
 			desc = L["Number of decimal places for duration values below 'Decimal Threshold'"],
-			order = 39,
+			order = 40,
 			min = 0,
 			max = 2,
 			step = 1,
 			disabled = function() return not P.showCooldown2 end
 		},
+		durationLimit2 = {
+			type = "range",
+			name = L["Duration Threshold"],
+			desc = L["Hide the duration text while the remaining time is above this value (in seconds).\n0 = no limit."],
+			order = 41,
+			min = 0,
+			max = 300,
+			step = 1,
+			set = function(info, val)
+				P.durationLimit2 = val
+				core:ResetDurationSizes()
+			end,
+			disabled = function() return not P.showCooldown2 end
+		},
+		cd2Scaled = {
+			type = "toggle",
+			name = L["Scale with Icon"],
+			desc = L["Scales the alt. duration text using each spell's icon scale."],
+			order = 42,
+			set = function(info, val)
+				P.cd2Scaled = val
+				core:UpdateAllDuration2()
+			end,
+			disabled = function() return not P.showCooldown2 end
+		},
 		blank8 = {
 			type = "description",
 			name = "\n",
-			order = 40
+			order = 43
 		},
 		interruptsHeader = {
 			type = "header",
 			name = L["Interrupts settings"],
-			order = 41
+			order = 44
 		},
 		blank9 = {
 			type = "description",
 			name = "",
-			order = 42
+			order = 45
 		},
 		interruptsScale = {
 			type = "range",
 			name = L["Icon Scale"],
-			order = 43,
+			order = 46,
 			min = 1,
 			max = 3,
 			step = 0.1,
@@ -956,7 +1023,7 @@ core.DefaultSpellOptionsTable = {
 			type = "range",
 			name = L["Duration Reduction"],
 			desc = L["Forces a duration reduction factor on all interrupts to conservatively handle healer talents cases (up to 30%)."],
-			order = 44,
+			order = 47,
 			min = 0,
 			max = 0.3,
 			step = 0.1,
@@ -964,7 +1031,7 @@ core.DefaultSpellOptionsTable = {
 		color7 = {
 			name = L["Border Color"],
 			type = "color",
-			order = 45,
+			order = 48,
 			hasAlpha = true,
 			get = function(info)
 				return P.color7[1], P.color7[2], P.color7[3], P.color7[4] or 1
@@ -976,30 +1043,30 @@ core.DefaultSpellOptionsTable = {
 		blank10 = {
 			type = "description",
 			name = "\n",
-			order = 46
+			order = 49
 		},
 		animationHeader = {
 			type = "header",
 			name = L["Animation settings"],
-			order = 47
+			order = 50
 		},
 		enableBlinkFade = {
 			type = "toggle",
 			name = L["Enable Blink/Fade"],
 			desc = L["Enable Blink/Fade animation when duration is expiring"],
-			order = 48,
+			order = 51,
 			width = "full"
 		},
 		blank11 = {
 			type = "description",
 			name = "",
-			order = 49,
+			order = 52,
 		},
 		blinkThreshold = {
 			type = "range",
 			name = L["Blink threshold time"],
 			desc = L["Blink icon below x seconds"],
-			order = 50,
+			order = 53,
 			min = 0,
 			max = 10,
 			step = 1,
@@ -1009,7 +1076,7 @@ core.DefaultSpellOptionsTable = {
 			type = "range",
 			name = L["Fade threshold time"],
 			desc = L["Progressive fade out icon below x seconds"],
-			order = 51,
+			order = 54,
 			min	= 0,
 			max	= 10,
 			step = 1,
@@ -1019,7 +1086,7 @@ core.DefaultSpellOptionsTable = {
 			type = "range",
 			name = L["Min duration for Blink/Fade"],
 			desc = L["Blink and fade effects will only apply to auras with a duration longer than this value."],
-			order = 52,
+			order = 55,
 			min = 3,
 			max = 10,
 			step = 1,
@@ -1029,7 +1096,7 @@ core.DefaultSpellOptionsTable = {
 			type = "toggle",
 			name = L["Only blink on target"],
 			desc = L["Restrict blinking effect to auras on the target's nameplate only"],
-			order = 53,
+			order = 56,
 			disabled = function() return not P.enableBlinkFade end
 		},
 		fadeTargetOnly = {
@@ -1037,37 +1104,37 @@ core.DefaultSpellOptionsTable = {
 			name = L["Only fade on target"],
 			desc = L["Restrict fade effect to auras on the target's nameplate only"],
 			width = "double",
-			order = 54,
+			order = 57,
 			disabled = function() return not P.enableBlinkFade end
 		},
 		blank12 = {
 			type = "description",
 			name = "",
-			order = 55,
+			order = 58,
 		},
 		showCooldownTexture = {
 			type = "toggle",
 			name = L["Show 'clock' overlay"],
 			desc = L["Show a vertical 'clock' overlay over spell textures showing the time remaining."] ,
-			order = 56
+			order = 59
 		},
 		legacyCooldownTexture = {
 			type = "toggle",
 			name = L["Legacy 'clock' overlay"],
 			desc = L["Use the old radial clock overlay which tends to disappear when the frame's moving.\nRequires UI Reload."],
 			disabled = function() return (UnitAffectingCombat("player") or InCombatLockdown() or not P.showCooldownTexture) end,
-			order = 57
+			order = 60
 		},
 		blank13 = {
 			type = "description",
 			name = "",
-			order = 58,
+			order = 61,
 		},
 		enableAdjustFreq = {
 			type = "toggle",
 			name = L["Adjust Update Interval"],
 			desc = L["Allows changing the time interval (in seconds) between updates for each icon."],
-			order = 59,
+			order = 62,
 			set = function(_, val)
 				P.enableAdjustFreq = val
 				if not val then
@@ -1079,7 +1146,7 @@ core.DefaultSpellOptionsTable = {
 			type = "range",
 			name = L["Update Interval"],
 			desc = L["Lower values make animations smoother but can significantly increase CPU usage."],
-			order = 60,
+			order = 63,
 			min = 0,
 			max = 0.2,
 			step = 0.01,
@@ -1141,8 +1208,6 @@ core.SpellOptionsTable = {
 	}
 }
 
--- Panel layout: these four tables are tabs inside CoreOptionsTable, not standalone
--- Blizzard panels. Only About and Profiles stay in the side tree (see core:OnInitialize).
 core.CoreOptionsTable.args.display  = core.DisplayOptionsTable
 core.CoreOptionsTable.args.style    = core.DefaultSpellOptionsTable
 core.CoreOptionsTable.args.position = core.BarOptionsTable

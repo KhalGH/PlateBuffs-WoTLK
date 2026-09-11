@@ -134,6 +134,14 @@ L["Decimal Threshold"] = true
 L["Show decimal digits for durations below this value (in seconds).\n0 = no threshold."] = true
 L["Decimal precision"] = true
 L["Number of decimal places for duration values below 'Decimal Threshold'"] = true
+L["Duration Threshold"] = true
+L["Hide the duration text while the remaining time is above this value (in seconds).\n0 = no limit."] = true
+L["Scale with Icon"] = true
+L["Scales the alt. duration text using each spell's icon scale."] = true
+L["Target Only"] = true
+L["Only show spell icons above your current target."] = true
+L["Disable addon"] = true
+L["Disables all processes until the checkbox is unchecked or you reload the UI."] = true
 L["Alt. Duration Text"] = true
 L["Displays an alternative duration text below the icon with a dark background."] = true
 L["Text Size"] = true
