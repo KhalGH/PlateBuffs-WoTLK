@@ -108,7 +108,8 @@ do
 		"PLAYER_TARGET_CHANGED",
 		"UPDATE_MOUSEOVER_UNIT",
 		"UNIT_AURA",
-		"UNIT_TARGET"
+		"UNIT_TARGET",
+		"PLAYER_ENTERING_WORLD"
 	}
 
 	local OnEnable = core.OnEnable
@@ -274,8 +275,11 @@ function core:PLAYER_TARGET_CHANGED(event, ...)
 end
 
 function core:UNIT_TARGET(event, unitID)
-	if not UnitIsUnit(unitID, "player") and UnitExists(unitID .. "target") then
-		self:CollectUnitInfo(unitID .. "target")
+	if not UnitIsUnit(unitID, "player") then
+		local unitTargetID = unitID .. "target"
+		if UnitExists(unitTargetID) then
+			self:CollectUnitInfo(unitTargetID)
+		end
 	end
 end
 

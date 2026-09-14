@@ -230,7 +230,7 @@ local function iconOnShow(self)
 		if P.showCooldownTexture then
 			self.clockOverlay:Show()
 			if P.legacyCooldownTexture and self.clockOverlay.SetCooldown then
-				self.clockOverlay:SetCooldown(self.startTime or GetTime(), self.duration)
+				self.clockOverlay:SetCooldown(self.expirationTime - self.duration, self.duration)
 			end
 		end
 	end
@@ -625,7 +625,6 @@ function core:AddBuffsToPlate(plate, GUID)
 				f.sID = rec.sID or ""
 				f.expirationTime = rec.expirationTime or 0
 				f.duration = rec.duration
-				f.startTime = rec.startTime or GetTime()
 				f.stackCount = rec.stackCount or 0
 				f.isDebuff = rec.isDebuff
 				f.debuffType = rec.debuffType

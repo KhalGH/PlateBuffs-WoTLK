@@ -206,6 +206,7 @@ local CheckSpellID = {
 	53908,	-- Speed
 	43523,	-- Unstable Affliction
 	16166,	-- Elemental Mastery
+	49012,	-- Wyvern Sting
 }
 
 ---------- Class-specific Additional Buff/Debuff ----------
