@@ -23,6 +23,7 @@ local string_match = string.match
 local math_min = math.min
 local math_max = math.max
 local math_ceil = math.ceil
+local math_floor = math.floor
 local UnitExists = UnitExists
 local string_format = string.format
 
@@ -32,8 +33,9 @@ local buffBars = core.buffBars
 local buffFrames = core.buffFrames
 local guidBuffs = core.guidBuffs
 
-core.unknownIcon = "Inv_misc_questionmark"
-local unknownIconPath = "Interface\\Icons\\" .. core.unknownIcon
+local unknownIconPath = "Interface\\Icons\\Inv_misc_questionmark"
+local COOLDOWN_RADIAL_TEXTURE = "Interface\\AddOns\\PlateBuffs\\media\\Swipe"
+local COOLDOWN_VERTICAL_TEXTURE = "Interface\\Buttons\\WHITE8X8"
 
 local defaultSettings = core.defaultSettings
 defaultSettings.profile.skin_SkinID = "Blizzard"
@@ -42,10 +44,9 @@ defaultSettings.profile.skin_Backdrop = false
 defaultSettings.profile.skin_Colors = {}
 
 -- NEW API ---------
-
 local GetPlateName = core.GetPlateName
 local GetPlateGUID = core.GetPlateGUID
-
+local IsTargetPlate = core.IsTargetPlate
 -------------------
 
 do
@@ -85,11 +86,9 @@ end
 -- Update a spell frame's texture size.
 local function UpdateIconSize(frame, width, height)
 	width, height = width or 24, height or 24
-
 	local d = (width * frame.msqborder.bordersize) / frame.msqborder.normalsize
 	local d2 = (height * frame.msqborder.bordersize) / frame.msqborder.normalsize
 	frame.msqborder:SetSize(d, d2)
-
 	frame.icon:SetSize(width, height)
 	GetTexCoordFromSize(frame.texture, width, height)
 	frame:SetWidth(width + (P.intervalX or 12))
@@ -179,9 +178,40 @@ local function UpdateDurationVisibility(frame)
 	end
 end
 
+-- Maps a 0-255 progress index onto the radial sprite sheet's 16x16 grid.
+local function SetCooldownSpriteFrame(texture, frameIndex)
+	local row = math_floor(frameIndex / 16)
+	local col = frameIndex - (row * 16)
+	texture:SetTexCoord((col + 1) / 16, col / 16, row / 16, (row + 1) / 16)
+end
+
+local function ConfigureClockOverlay(frame)
+	frame.clockOverlay:ClearAllPoints()
+	if P.verticalClock then
+		-- Vertical style: flat swatch that grows down from the icon's top edge.
+		frame.clockOverlay:SetPoint("TOPLEFT", frame.icon)
+		frame.clockOverlay:SetPoint("TOPRIGHT", frame.icon)
+		frame.clockOverlay:SetHeight(0.00001)
+		frame.clockOverlay:SetTexture(COOLDOWN_VERTICAL_TEXTURE)
+	else
+		-- Radial style: 256-frame sprite sheet, advanced via SetTexCoord.
+		-- The old "CooldownFrameTemplate" swipe is gone for good
+		frame.clockOverlay:SetAllPoints(frame.icon)
+		frame.clockOverlay:SetTexture(COOLDOWN_RADIAL_TEXTURE)
+		SetCooldownSpriteFrame(frame.clockOverlay, 0)
+	end
+	frame.clockOverlay:SetVertexColor(0, 0, 0)
+	frame.clockOverlay:SetAlpha(P.clockOverlayAlpha)
+	frame.clockOverlay:SetBlendMode("BLEND") -- keeps the radial sprite's edges anti-aliased
+end
+
 -- Called when spell frames are shown.
 local function iconOnShow(self)
 	self:SetAlpha(1)
+    self.cdText, self.cdR, self.cdG, self.cdB = nil
+	self.cd2Text, self.cd2R, self.cd2G, self.cd2B = nil
+    self.lastAlpha = 1
+	self.lastUpdate = 0
 	self.clockOverlay:Hide()
 	self.stack:Hide()
 	self.skin:Hide()
@@ -226,13 +256,19 @@ local function iconOnShow(self)
 	self.overLimit2 = P.durationLimit2 > 0 and timeLeft > P.durationLimit2
 	UpdateDurationVisibility(self)
 
-	if self.expirationTime > 0 then
-		if P.showCooldownTexture then
+	if P.showClockOverlay and self.expirationTime > 0 then
+		self.cooldownTextureElapsed = 0
+		self.cooldownFrameIndex = -1
+		if not P.clockTargetOnly or IsTargetPlate(self.realPlate) then
+			self.clockOverlayShown = true
 			self.clockOverlay:Show()
-			if P.legacyCooldownTexture and self.clockOverlay.SetCooldown then
-				self.clockOverlay:SetCooldown(self.expirationTime - self.duration, self.duration)
-			end
+		else
+			self.clockOverlayShown = false
+			self.clockOverlay:Hide()
 		end
+	else
+		self.clockOverlayShown = false
+		self.clockOverlay:Hide()
 	end
 
 	local increase = P.increase
@@ -293,95 +329,174 @@ local function iconOnShow(self)
 	end
 end
 
--- Called when spell frames are shown.
+-- Called when spell frames are hidden.
 local function iconOnHide(self)
 	self:SetAlpha(1)
+	self.lastAlpha = 1
+	self.lastUpdate = 0
+	self.clockOverlayShown = false
 	self.durationText:Hide()
-	self.clockOverlay:Hide()
-	if not P.legacyCooldownTexture then
-		self.clockOverlay:SetHeight(0.00001)
-	end
 	self.durationText2Bg:Hide()
 	self.durationText2:Hide()
 	self.stack:Hide()
 	self.skin:Hide()
 	self.msqborder:Hide()
 	UpdateIconSize(self, P.iconSize, P.iconSize2)
+	self.clockOverlay:Hide()
+	self.cooldownTextureElapsed = 0
+	if P.verticalClock then
+		self.clockOverlay:SetHeight(0.00001)
+	else
+		self.cooldownFrameIndex = 0
+		SetCooldownSpriteFrame(self.clockOverlay, 0)		
+	end
 end
 
--- Fires for spell frames.
 local function iconOnUpdate(self, elapsed)
+	local realPlate = self.realPlate
+	if realPlate.PB_stopIconUpdate then return end
+
+	local expirationTime = self.expirationTime
+	if expirationTime <= 0 then return end
+
+	local duration = self.duration
+	local isTarget, rawTimeLeft
+
+	if P.showClockOverlay then
+		self.cooldownTextureElapsed = self.cooldownTextureElapsed + elapsed
+		if self.cooldownTextureElapsed >= 0.03 then
+			self.cooldownTextureElapsed = 0
+
+			if P.clockTargetOnly then
+				isTarget = IsTargetPlate(realPlate)
+			end
+			if not P.clockTargetOnly or isTarget then
+				if not self.clockOverlayShown then
+					self.clockOverlayShown = true
+					self.clockOverlay:Show()
+				end
+
+				rawTimeLeft = expirationTime - GetTime()
+				local progress = 1
+				if duration > 0 then
+					progress = rawTimeLeft / duration
+					if progress < 0 then
+						progress = 0
+					elseif progress > 1 then
+						progress = 1
+					end
+				end
+				
+				local frameIndex = math_floor(progress * 255)
+				if frameIndex ~= self.cooldownFrameIndex then
+					self.cooldownFrameIndex = frameIndex
+					if P.verticalClock then
+						self.clockOverlay:SetHeight(math_max(0.00001, (1 - progress) * self.icon:GetHeight()))
+					else
+						SetCooldownSpriteFrame(self.clockOverlay, frameIndex)
+					end
+				end
+			elseif self.clockOverlayShown then
+				self.clockOverlayShown = false
+				self.clockOverlay:Hide()
+			end
+		end
+	elseif self.clockOverlayShown then
+		self.clockOverlayShown = false
+		self.clockOverlay:Hide()
+	end
+
 	self.lastUpdate = self.lastUpdate + elapsed
-	if self.lastUpdate > P.UpdateRate then
+	if self.lastUpdate > 0.1 then
 		self.lastUpdate = 0
-		if self.expirationTime > 0 then
-			local rawTimeLeft = self.expirationTime - GetTime()
 
-			local overLimit = P.durationLimit > 0 and rawTimeLeft > P.durationLimit
-			local overLimit2 = P.durationLimit2 > 0 and rawTimeLeft > P.durationLimit2
-			if overLimit ~= self.overLimit or overLimit2 ~= self.overLimit2 then
-				self.overLimit, self.overLimit2 = overLimit, overLimit2
-				UpdateDurationVisibility(self)
-			end
+		rawTimeLeft = rawTimeLeft or (expirationTime - GetTime())
 
-			if P.showCooldown and not overLimit then
-				local decimals = (rawTimeLeft < P.decimalThreshold or P.decimalThreshold == 0) and P.digitsnumber or 0
-				self.durationText:SetText(SecondsToString(rawTimeLeft, decimals))
-				self.durationText:SetTextColor(RedToGreen(rawTimeLeft))
-			end
-
-			if P.showCooldown2 and not overLimit2 then
-				local decimals = (rawTimeLeft < P.decimalThreshold2 or P.decimalThreshold2 == 0) and P.digitsnumber2 or 0
-				self.durationText2:SetText(SecondsToString(rawTimeLeft, decimals))
-				self.durationText2:SetTextColor(RedToGreen(rawTimeLeft))
-			end
-
-			if P.showCooldownTexture and not P.legacyCooldownTexture then
-				if not self.clockOverlay.SetCooldown then
-					self.clockOverlay:SetHeight(math_max(0.00001, (1 - rawTimeLeft / self.duration) * self.icon:GetHeight()))
+		if rawTimeLeft < 0 then
+			self:Hide()
+			local GUID = GetPlateGUID(realPlate)
+			if GUID then
+				core:RemoveOldSpells(GUID)
+				core:AddBuffsToPlate(realPlate, GUID)
+			else
+				local plateName = GetPlateName(realPlate)
+				if plateName and nametoGUIDs[plateName] then
+					core:RemoveOldSpells(nametoGUIDs[plateName])
+					core:AddBuffsToPlate(realPlate, nametoGUIDs[plateName])
 				end
 			end
+			return
+		end
 
-			if P.enableBlinkFade and self.duration > P.blinkFadeMinDuration then
-				local bth, fth = 1, 1
-				local blinkAllowed = not P.blinkTargetOnly
-				local fadeAllowed = not P.fadeTargetOnly
-				if P.blinkTargetOnly or P.fadeTargetOnly then
-					local isTarget = UnitExists("target") and (self.realPlate:GetAlpha() == 1)
-					if P.blinkTargetOnly then
-						blinkAllowed = isTarget
-					end
-					if P.fadeTargetOnly then
-						fadeAllowed = isTarget
+		local overLimit = P.durationLimit > 0 and rawTimeLeft > P.durationLimit
+		local overLimit2 = P.durationLimit2 > 0 and rawTimeLeft > P.durationLimit2
+		if overLimit ~= self.overLimit or overLimit2 ~= self.overLimit2 then
+			self.overLimit, self.overLimit2 = overLimit, overLimit2
+			UpdateDurationVisibility(self)
+		end
+
+		local r, g, b
+		if (P.showCooldown and not overLimit) or (P.showCooldown2 and not overLimit2) then
+			r, g, b = RedToGreen(rawTimeLeft)
+		end
+
+		if P.showCooldown and not overLimit then
+			local decimals = (rawTimeLeft < P.decimalThreshold or P.decimalThreshold == 0) and P.digitsnumber or 0
+			local text = SecondsToString(rawTimeLeft, decimals)
+			if self.cdText ~= text then
+				self.cdText = text
+				self.durationText:SetText(text)
+			end
+			if self.cdR ~= r or self.cdG ~= g or self.cdB ~= b then
+				self.cdR, self.cdG, self.cdB = r, g, b
+				self.durationText:SetTextColor(r, g, b)
+			end
+		end
+
+		if P.showCooldown2 and not overLimit2 then
+			local decimals = (rawTimeLeft < P.decimalThreshold2 or P.decimalThreshold2 == 0) and P.digitsnumber2 or 0
+			local text = SecondsToString(rawTimeLeft, decimals)
+			if self.cd2Text ~= text then
+				self.cd2Text = text
+				self.durationText2:SetText(text)
+			end
+			if self.cd2R ~= r or self.cd2G ~= g or self.cd2B ~= b then
+				self.cd2R, self.cd2G, self.cd2B = r, g, b
+				self.durationText2:SetTextColor(r, g, b)
+			end
+		end
+
+		local enableFade = P.enableFade
+		local enableBlink = P.enableBlink
+		if enableFade or enableBlink then
+			local fth, bth = 1, 1
+			local fadeCheck = enableFade and duration > P.fadeMinDuration and rawTimeLeft < P.fadeThreshold
+			local blinkCheck = enableBlink and duration > P.blinkMinDuration and rawTimeLeft < (P.blinkThreshold + 1 / 3)
+			if fadeCheck or blinkCheck then
+				if (fadeCheck and P.fadeTargetOnly) or (blinkCheck and P.blinkTargetOnly) then
+					if isTarget == nil then
+						isTarget = IsTargetPlate(realPlate)
 					end
 				end
-				if blinkAllowed and rawTimeLeft < (P.blinkThreshold + 1/3) then
-					bth = rawTimeLeft % 1 
+				if fadeCheck and (not P.fadeTargetOnly or isTarget) then
+					fth = (rawTimeLeft / P.fadeThreshold) * 0.7 + 0.3
+				end
+				if blinkCheck and (not P.blinkTargetOnly or isTarget) then
+					bth = rawTimeLeft % 1
 					if bth > 0.5 then
 						bth = 1 - bth
 					end
 					bth = math_min(math_max(bth * 3, 0), 1)
 				end
-				if fadeAllowed and rawTimeLeft < P.fadeThreshold then
-					fth = (rawTimeLeft / P.fadeThreshold) * 0.7 + 0.3
-				end
-				self:SetAlpha(bth * fth)
 			end
-
-			if rawTimeLeft < 0 then
-				self:Hide()
-				local GUID = GetPlateGUID(self.realPlate)
-				if GUID then
-					core:RemoveOldSpells(GUID)
-					core:AddBuffsToPlate(self.realPlate, GUID)
-				else
-					local plateName = GetPlateName(self.realPlate)
-					if plateName and nametoGUIDs[plateName] then
-						core:RemoveOldSpells(nametoGUIDs[plateName])
-						core:AddBuffsToPlate(self.realPlate, nametoGUIDs[plateName])
-					end
-				end
+			local alpha = bth * fth
+			if alpha ~= self.lastAlpha then
+				self.lastAlpha = alpha
+				self:SetAlpha(alpha)
 			end
+		elseif self.lastAlpha ~= 1 then
+			self.lastAlpha = 1
+			self:SetAlpha(1)
 		end
 	end
 end
@@ -423,18 +538,10 @@ local function CreateBuffFrame(parentFrame, realPlate)
 	f.durationText2Bg:SetPoint("TOPLEFT", f.durationText2, -1, 0)
 	f.durationText2Bg:SetPoint("BOTTOMRIGHT", f.durationText2, 1, -1)
 
-	if P.legacyCooldownTexture then
-		f.clockOverlay = CreateFrame("Cooldown", nil, f.icon, "CooldownFrameTemplate")
-		f.clockOverlay:SetAllPoints(true)
-		f.clockOverlay:SetReverse(true)
-	else
-		f.clockOverlay = f.icon:CreateTexture(nil, "BORDER")
-		f.clockOverlay:SetPoint("TOPLEFT")
-		f.clockOverlay:SetPoint("TOPRIGHT")
-		f.clockOverlay:SetHeight(0.00001)
-		f.clockOverlay:SetTexture([[Interface\Buttons\WHITE8X8]])
-		f.clockOverlay:SetVertexColor(0, 0, 0, 0.65)
-	end
+	f.clockOverlay = f.icon:CreateTexture(nil, "BORDER")
+	ConfigureClockOverlay(f)
+	f.cooldownTextureElapsed = 0
+	f.cooldownFrameIndex = -1 -- forces an immediate redraw on the first OnUpdate
 
 	core:SetFrameLevel(f)
 
@@ -490,7 +597,7 @@ end
 
 -- Create and return a bar frame.
 local function CreateBarFrame(parentFrame, realPlate)
-	local f = CreateFrame("frame", nil, parentFrame)
+	local f = CreateFrame("Frame", nil, parentFrame)
 	f.realPlate = realPlate
 	--f:SetFrameStrata("BACKGROUND")
 
@@ -725,6 +832,25 @@ function core:UpdateAllDuration2()
 	end
 end
 
+function core:UpdateAllClockOverlays()
+	for _, frames in pairs(buffFrames) do
+		for i = 1, #frames do
+			local f = frames[i]
+			if f and f.clockOverlay then
+				ConfigureClockOverlay(f)
+				f.cooldownTextureElapsed = 0
+				f.cooldownFrameIndex = -1
+				f.clockOverlayShown = false
+				f.clockOverlay:Hide()
+				if f:IsShown() and f.expirationTime > 0 and P.showClockOverlay then
+					f.lastUpdate = 0
+					iconOnUpdate(f, 1)
+				end
+			end
+		end
+	end
+end
+
 -- This will reset all the anchors on the spell frames.
 function core:ResetAllPlateIcons()
 	for plate in pairs(buffFrames) do
@@ -734,7 +860,12 @@ end
 
 -- Create our buff frames on a plate.
 function core:BuildBuffFrame(plate, reset, onlyOne)
-	local visibleFrame = plate
+	if not plate.PB_parentFrame then
+		plate.PB_parentFrame = CreateFrame("Frame", nil, plate)
+		plate.PB_parentFrame:SetAllPoints(plate)
+	end
+	local visibleFrame = plate.PB_parentFrame
+
 	if not buffBars[plate] then
 		BuildPlateBars(plate, visibleFrame)
 	end
@@ -756,7 +887,6 @@ function core:BuildBuffFrame(plate, reset, onlyOne)
 		buffFrames[plate][total] = CreateBuffFrame(buffBars[plate][1], plate)
 	end
 	buffFrames[plate][total]:SetParent(buffBars[plate][1])
-
 	buffFrames[plate][total]:ClearAllPoints()
 
 	if Testreversepos then
@@ -773,10 +903,9 @@ function core:BuildBuffFrame(plate, reset, onlyOne)
 		if not buffFrames[plate][total] then
 			buffFrames[plate][total] = CreateBuffFrame(buffBars[plate][1], plate)
 		end
+
 		buffFrames[plate][total]:SetParent(buffBars[plate][1])
-
 		buffFrames[plate][total]:ClearAllPoints()
-
 		buffFrames[plate][total]:SetPoint("BOTTOMLEFT", prevFrame, "BOTTOMRIGHT", -P.intervalY)
 
 		prevFrame = buffFrames[plate][total]
@@ -812,9 +941,10 @@ end
 
 -- Reset a bar's anchor point.
 function core:ResetBarPoint(barFrame, plate)
+	local visibleFrame = plate.PB_parentFrame or plate
 	barFrame:ClearAllPoints()
-	barFrame:SetParent(plate)
-	barFrame:SetPoint(P.barAnchorPoint, plate, P.plateAnchorPoint, P.barOffsetX, P.barOffsetY)
+	barFrame:SetParent(visibleFrame)
+	barFrame:SetPoint(P.barAnchorPoint, visibleFrame, P.plateAnchorPoint, P.barOffsetX, P.barOffsetY)
 end
 
 -- Reset all icon sizes. Called when user changes settings.

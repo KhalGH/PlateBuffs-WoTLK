@@ -102,16 +102,18 @@ defaultSettings.durationLimit2 = 0
 defaultSettings.interruptsScale = 1.4
 defaultSettings.interruptsReduction = 0.3
 defaultSettings.color7 = {0.20, 0.80, 0.60, 1.00}
-defaultSettings.enableBlinkFade = true
-defaultSettings.blinkThreshold = 3
-defaultSettings.fadeThreshold = 3
-defaultSettings.blinkFadeMinDuration = 6
-defaultSettings.blinkTargetOnly = true
+defaultSettings.showClockOverlay = true
+defaultSettings.clockOverlayAlpha = 0.8
+defaultSettings.clockTargetOnly = false
+defaultSettings.verticalClock = false
+defaultSettings.enableFade = true
 defaultSettings.fadeTargetOnly = false
-defaultSettings.showCooldownTexture = false
-defaultSettings.legacyCooldownTexture = false
-defaultSettings.enableAdjustFreq = false
-defaultSettings.UpdateRate = 0.1
+defaultSettings.fadeThreshold = 3
+defaultSettings.fadeMinDuration = 6
+defaultSettings.enableBlink = false
+defaultSettings.blinkTargetOnly = true
+defaultSettings.blinkThreshold = 3
+defaultSettings.blinkMinDuration = 6
 
 defaultSettings.increase = 1
 
@@ -174,56 +176,66 @@ core.DisplayOptionsTable = {
 			name = L["Unit type"],
 			order = 5
 		},
+		blank1 = {
+			type = "description",
+			name = "",
+			order = 6
+		},
 		abovePlayers = {
 			type = "toggle",
 			name = L["Players"],
 			desc = L["Add buffs above players. 'Class Color in Nameplates' must be enabled."],
-			order = 6
+			order = 7
 		},
 		aboveNPC = {
 			type = "toggle",
 			name = L["NPC"],
 			desc = L["Add buffs above NPCs"],
-			order = 7
+			order = 8
 		},
 		reactionHeader = {
 			name = L["Unit reaction"],
 			type = "header",
-			order = 8
+			order = 9
 		},
+		blank2 = {
+			type = "description",
+			name = "",
+			order = 10
+		},		
 		aboveFriendly = {
 			type = "toggle",
 			name = L["Friendly"],
 			desc = L["Add buffs above friendly plates"],
-			order = 9
+			order = 11
 		},
 		aboveNeutral = {
 			type = "toggle",
 			name = L["Neutral"],
 			desc = L["Add buffs above neutral plates"],
-			order = 10
+			order = 12
 		},
 		aboveHostile = {
 			type = "toggle",
 			name = L["Hostile"],
 			desc = L["Add buffs above hostile plates"],
-			order = 11
+			order = 13
 		},
 		otherHeader = {
 			name = L["Misc"],
 			type = "header",
-			order = 12
+			order = 14
 		},
-		blank1 = {
+		blank3 = {
 			type = "description",
 			name = "",
-			order = 13
+			order = 15
 		},
 		watchCombatlog = {
 			type = "toggle",
 			name = L["Watch Combatlog"],
 			desc = L["Watch combatlog for people gaining/losing spells.\nDisable this if you're having performance issues."],
-			order = 14,
+			order = 16,
 			get = function()
 				return P.watchCombatlog
 			end,
@@ -236,7 +248,7 @@ core.DisplayOptionsTable = {
 			type = "toggle",
 			name = L["Save player GUID"],
 			desc = L["Remember player GUID's so target/mouseover isn't needed every time nameplate appears.\nKeep this enabled"],
-			order = 15,
+			order = 17,
 			get = function(info)
 				return P.saveNameToGUID
 			end,
@@ -248,19 +260,19 @@ core.DisplayOptionsTable = {
 			type = "toggle",
 			name = L["Show question mark"],
 			desc = L["Displays a question mark above unidentified nameplates. Identify them by target or mouseover."],
-			order = 16
+			order = 18
 		},
 		blacklistTotems = {
 			type = "toggle",
 			name = L["Blacklist Totems"],
 			desc = L["Ignore PlateBuffs on totem nameplates"],
-			order = 17
+			order = 19
 		},
 		playerCombatWithOnly = {
 			type = "toggle",
 			name = L["Player combat only"],
 			desc = L["Only show spells above nameplates that are in combat."],
-			order = 18,
+			order = 20,
 			set = function(info, val)
 				P.playerCombatWithOnly = val
 				core:Disable()
@@ -271,7 +283,7 @@ core.DisplayOptionsTable = {
 			type = "toggle",
 			name = L["NPC combat only"],
 			desc = L["Only show spells above nameplates that are in combat."],
-			order = 19,
+			order = 21,
 			set = function(info, val)
 				P.npcCombatWithOnly = val
 				core:Disable()
@@ -282,7 +294,7 @@ core.DisplayOptionsTable = {
 			type = "toggle",
 			name = L["Target Only"],
 			desc = L["Only show spell icons above your current target."],
-			order = 20,
+			order = 22,
 			set = function(info, val)
 				P.targetOnly = val
 				core:UpdateAllPlates()
@@ -292,7 +304,7 @@ core.DisplayOptionsTable = {
 			type = "toggle",
 			name = L["Disable addon"],
 			desc = L["Disables all processes until the checkbox is unchecked or you reload the UI."],
-			order = 21,
+			order = 23,
 			get = function()
 				return not core:IsEnabled()
 			end,
@@ -303,223 +315,17 @@ core.DisplayOptionsTable = {
 					core:Enable()
 				end
 			end
-		}
-	}
-}
-
-core.BarOptionsTable = {
-	type = "group",
-	name = L["Position settings"],
-	order = 4,
-	childGroups = "tab",
-	get = function(info)
-		local key = info[#info]
-		return P[key]
-	end,
-	set = function(info, v)
-		local key = info[#info]
-		P[key] = v
-	end,
-	args = {
-		positionHeader = {
-			type = "header",
-			name = L["Position settings"],
-			order = 1
-		},
-		blank1 = {
-			type = "description",
-			name = "",
-			order = 2
-		},
-		barAnchorPoint = {
-			type = "select",
-			name = L["Buff frame's Anchor Point"],
-			order = 3,
-			desc = L["Point of the buff frame that gets anchored to the nameplate.\ndefault = Bottom"],
-			values = {
-				TOP = L["Top"],
-				BOTTOM = L["Bottom"],
-				TOPLEFT = L["Top Left"],
-				BOTTOMLEFT = L["Bottom Left"],
-				TOPRIGHT = L["Top Right"],
-				BOTTOMRIGHT = L["Bottom Right"]
-			},
-			set = function(info, val)
-				P.barAnchorPoint = val
-				core:ResetAllBarPoints()
-			end
-		},
-		plateAnchorPoint = {
-			type = "select",
-			name = L["Nameplate's Anchor Point"],
-			order = 4,
-			desc = L["Point of the nameplate our buff frame gets anchored to.\ndefault = Top"],
-			values = {
-				TOP = L["Top"],
-				BOTTOM = L["Bottom"],
-				TOPLEFT = L["Top Left"],
-				BOTTOMLEFT = L["Bottom Left"],
-				TOPRIGHT = L["Top Right"],
-				BOTTOMRIGHT = L["Bottom Right"]
-			},
-			set = function(info, val)
-				P.plateAnchorPoint = val
-				core:ResetAllBarPoints()
-			end
-		},
-		blank2 = {
-			type = "description",
-			name = "",
-			order = 5
-		},
-		barOffsetX = {
-			type = "range",
-			name = L["Offset X"],
-			desc = L["Offset of the buff frame containing all icons."],
-			order = 6,
-			min = -150,
-			max = 150,
-			step = 1,
-			set = function(info, val)
-				P.barOffsetX = val
-				core:ResetAllBarPoints()
-			end
-		},
-		barOffsetY = {
-			type = "range",
-			name = L["Offset Y"],
-			desc = L["Offset of the buff frame containing all icons."],
-			order = 7,
-			min = -150,
-			max = 150,
-			step = 1,
-			set = function(info, val)
-				P.barOffsetY = val
-				core:ResetAllBarPoints()
-			end
-		},
-		blank3 = {
-			type = "description",
-			name = "",
-			order = 8
-		},
-		iconsPerBar = {
-			type = "range",
-			name = L["Icons per row"],
-			desc = L["Number of icons to display per row."],
-			order = 9,
-			min = 1,
-			max = 16,
-			step = 1,
-			set = function(info, val)
-				P.iconsPerBar = val
-				core:ResetAllPlateIcons()
-				core:ShowAllKnownSpells()
-			end
-		},
-		numBars = {
-			type = "range",
-			name = L["Max rows"],
-			desc = L["Max number of rows to show."],
-			order = 10,
-			min = 1,
-			max = 4,
-			step = 1,
-			set = function(info, val)
-				P.numBars = val
-				core:ResetAllPlateIcons()
-				core:UpdateBarsBackground()
-				core:ShowAllKnownSpells()
-			end
 		},
 		blank4 = {
 			type = "description",
 			name = "",
-			order = 11
-		},
-		intervalX = {
-			type = "range",
-			name = L["Spacing X"],
-			desc = L["Change spacing between icons."],
-			order = 12,
-			min = 0,
-			max = 80,
-			step = 1,
-			set = function(info, val)
-				P.intervalX = val
-				core:ResetIconSizes()
-				core:ResetAllPlateIcons()
-				core:ShowAllKnownSpells()
-			end
-		},
-		intervalY = {
-			type = "range",
-			name = L["Spacing Y"],
-			desc = L["Change spacing between icons."],
-			order = 13,
-			min = 0,
-			max = 80,
-			step = 1,
-			set = function(info, val)
-				P.intervalY = val
-				core:ResetIconSizes()
-				core:ResetAllPlateIcons()
-				core:ShowAllKnownSpells()
-			end
+			order = 24
 		},
 		blank5 = {
 			type = "description",
 			name = "",
-			order = 14
+			order = 25
 		},
-		barGrowth = {
-			type = "select",
-			name = L["Row Growth"],
-			desc = L["Which way do the bars grow, up or down."],
-			order = 15,
-			values = {L["Up"], L["Down"]},
-			set = function(info, val)
-				P.barGrowth = val
-				core:ResetAllBarPoints()
-			end
-		},
-		shrinkBar = {
-			type = "toggle",
-			name = L["Center Horizontally"],
-			desc = L["Horizontally center the bar if not full."],
-			order = 16,
-			set = function(info, val)
-				P.shrinkBar = val
-				core:UpdateAllPlateBarSizes()
-			end
-		},
-		blank6 = {
-			type = "description",
-			name = "\n",
-			order = 17
-		},
-		iconTestMode = {
-			type = "toggle",
-			name = L["Test Mode"],
-			desc = L["For each spell on someone, multiply it by the number of icons per bar.\nThis option won't be saved at logout."],
-			order = 18,
-			get = function()
-				return core.iconTestMode
-			end,
-			set = function()
-				core.iconTestMode = not core.iconTestMode
-			end
-		},
-		showBarBackground = {
-			type = "toggle",
-			name = L["Show bar background"],
-			desc = L["Show the area where spell icons will be. This is to help you configure the bars."],
-			order = 19,
-			set = function(info, val)
-				P.showBarBackground = val
-				core:UpdateBarsBackground()
-			end
-		}
 	}
 }
 
@@ -1050,108 +856,357 @@ core.DefaultSpellOptionsTable = {
 			name = L["Animation settings"],
 			order = 50
 		},
-		enableBlinkFade = {
+		showClockOverlay = {
 			type = "toggle",
-			name = L["Enable Blink/Fade"],
-			desc = L["Enable Blink/Fade animation when duration is expiring"],
-			order = 51,
-			width = "full"
+			name = L["Show 'clock' overlay"],
+			desc = L["Show a radial 'clock' overlay over spell icons indicating the time remaining."],
+			order = 51
+		},
+		clockOverlayAlpha = {
+			type = "range",
+			name = L["Clock Opacity"],
+			desc = L["Set the opacity of the clock overlay."],
+			order = 52, 
+			min = 0,
+			max = 1,
+			step = 0.05,
+			isPercent = true,
+			set = function(info, val)
+				P.clockOverlayAlpha = val
+				core:UpdateAllClockOverlays()
+			end,
+			disabled = function() return not P.showClockOverlay end,
+		},
+		clockTargetOnly = {
+			type = "toggle",
+			name = L["Only show on target"],
+			desc = L["Restrict the 'clock' overlay to auras on the target's nameplate only"],
+			order = 53,
+			disabled = function() return not P.showClockOverlay end
+		},
+		verticalClock = {
+			type = "toggle",
+			name = L["Vertical 'clock' overlay"],
+			desc = L["Use a vertical fill instead of the default radial sweep."],
+			order = 54,
+			set = function(info, val)
+				P.verticalClock = val
+				core:UpdateAllClockOverlays()
+			end,
+			disabled = function() return not P.showClockOverlay end
 		},
 		blank11 = {
 			type = "description",
 			name = "",
-			order = 52,
-		},
-		blinkThreshold = {
-			type = "range",
-			name = L["Blink threshold time"],
-			desc = L["Blink icon below x seconds"],
-			order = 53,
-			min = 0,
-			max = 10,
-			step = 1,
-			disabled = function() return not P.enableBlinkFade end
-		},
-		fadeThreshold = {
-			type = "range",
-			name = L["Fade threshold time"],
-			desc = L["Progressive fade out icon below x seconds"],
-			order = 54,
-			min	= 0,
-			max	= 10,
-			step = 1,
-			disabled = function() return not P.enableBlinkFade end
-		},
-		blinkFadeMinDuration = {
-			type = "range",
-			name = L["Min duration for Blink/Fade"],
-			desc = L["Blink and fade effects will only apply to auras with a duration longer than this value."],
 			order = 55,
-			min = 3,
-			max = 10,
-			step = 1,
-			disabled = function() return not P.enableBlinkFade end
 		},
-		blinkTargetOnly = {
+		enableFade = {
 			type = "toggle",
-			name = L["Only blink on target"],
-			desc = L["Restrict blinking effect to auras on the target's nameplate only"],
+			name = L["Enable Fade"],
+			desc = L["Progressively fade out the icon as its duration expires"],
 			order = 56,
-			disabled = function() return not P.enableBlinkFade end
 		},
 		fadeTargetOnly = {
 			type = "toggle",
 			name = L["Only fade on target"],
 			desc = L["Restrict fade effect to auras on the target's nameplate only"],
-			width = "double",
 			order = 57,
-			disabled = function() return not P.enableBlinkFade end
+			disabled = function() return not P.enableFade end
+		},
+		fadeThreshold = {
+			type = "range",
+			name = L["Fade threshold time"],
+			desc = L["Progressive fade out icon below x seconds"],
+			order = 58,
+			min	= 0,
+			max	= 10,
+			step = 1,
+			disabled = function() return not P.enableFade end
+		},
+		fadeMinDuration = {
+			type = "range",
+			name = L["Min duration for Fade"],
+			desc = L["Fade effect will only apply to auras with a duration longer than this value."],
+			order = 59,
+			min = 3,
+			max = 10,
+			step = 1,
+			disabled = function() return not P.enableFade end
 		},
 		blank12 = {
 			type = "description",
 			name = "",
-			order = 58,
+			order = 60,
 		},
-		showCooldownTexture = {
+		enableBlink = {
 			type = "toggle",
-			name = L["Show 'clock' overlay"],
-			desc = L["Show a vertical 'clock' overlay over spell textures showing the time remaining."] ,
-			order = 59
+			name = L["Enable Blink"],
+			desc = L["Blink the icon as its duration expires"],
+			order = 61,
 		},
-		legacyCooldownTexture = {
+		blinkTargetOnly = {
 			type = "toggle",
-			name = L["Legacy 'clock' overlay"],
-			desc = L["Use the old radial clock overlay which tends to disappear when the frame's moving.\nRequires UI Reload."],
-			disabled = function() return (UnitAffectingCombat("player") or InCombatLockdown() or not P.showCooldownTexture) end,
-			order = 60
+			name = L["Only blink on target"],
+			desc = L["Restrict blinking effect to auras on the target's nameplate only"],
+			order = 62,
+			disabled = function() return not P.enableBlink end
+		},
+		blinkThreshold = {
+			type = "range",
+			name = L["Blink threshold time"],
+			desc = L["Blink icon below x seconds"],
+			order = 63,
+			min = 0,
+			max = 10,
+			step = 1,
+			disabled = function() return not P.enableBlink end
+		},
+		blinkMinDuration = {
+			type = "range",
+			name = L["Min duration for Blink"],
+			desc = L["Blink effect will only apply to auras with a duration longer than this value."],
+			order = 64,
+			min = 3,
+			max = 10,
+			step = 1,
+			disabled = function() return not P.enableBlink end
 		},
 		blank13 = {
 			type = "description",
 			name = "",
-			order = 61,
+			order = 65,
 		},
-		enableAdjustFreq = {
-			type = "toggle",
-			name = L["Adjust Update Interval"],
-			desc = L["Allows changing the time interval (in seconds) between updates for each icon."],
-			order = 62,
-			set = function(_, val)
-				P.enableAdjustFreq = val
-				if not val then
-					P.UpdateRate = defaultSettings.UpdateRate
-				end
+		blank14 = {
+			type = "description",
+			name = "",
+			order = 66,
+		},
+	}
+}
+
+core.BarOptionsTable = {
+	type = "group",
+	name = L["Position settings"],
+	order = 4,
+	childGroups = "tab",
+	get = function(info)
+		local key = info[#info]
+		return P[key]
+	end,
+	set = function(info, v)
+		local key = info[#info]
+		P[key] = v
+	end,
+	args = {
+		positionHeader = {
+			type = "header",
+			name = L["Position settings"],
+			order = 1
+		},
+		blank1 = {
+			type = "description",
+			name = "",
+			order = 2
+		},
+		barAnchorPoint = {
+			type = "select",
+			name = L["Buff frame's Anchor Point"],
+			order = 3,
+			desc = L["Point of the buff frame that gets anchored to the nameplate.\ndefault = Bottom"],
+			values = {
+				TOP = L["Top"],
+				BOTTOM = L["Bottom"],
+				TOPLEFT = L["Top Left"],
+				BOTTOMLEFT = L["Bottom Left"],
+				TOPRIGHT = L["Top Right"],
+				BOTTOMRIGHT = L["Bottom Right"]
+			},
+			set = function(info, val)
+				P.barAnchorPoint = val
+				core:ResetAllBarPoints()
 			end
 		},
-		UpdateRate = {
+		plateAnchorPoint = {
+			type = "select",
+			name = L["Nameplate's Anchor Point"],
+			order = 4,
+			desc = L["Point of the nameplate our buff frame gets anchored to.\ndefault = Top"],
+			values = {
+				TOP = L["Top"],
+				BOTTOM = L["Bottom"],
+				TOPLEFT = L["Top Left"],
+				BOTTOMLEFT = L["Bottom Left"],
+				TOPRIGHT = L["Top Right"],
+				BOTTOMRIGHT = L["Bottom Right"]
+			},
+			set = function(info, val)
+				P.plateAnchorPoint = val
+				core:ResetAllBarPoints()
+			end
+		},
+		blank2 = {
+			type = "description",
+			name = "",
+			order = 5
+		},
+		barOffsetX = {
 			type = "range",
-			name = L["Update Interval"],
-			desc = L["Lower values make animations smoother but can significantly increase CPU usage."],
-			order = 63,
+			name = L["Offset X"],
+			desc = L["Offset of the buff frame containing all icons."],
+			order = 6,
+			min = -150,
+			max = 150,
+			step = 1,
+			set = function(info, val)
+				P.barOffsetX = val
+				core:ResetAllBarPoints()
+			end
+		},
+		barOffsetY = {
+			type = "range",
+			name = L["Offset Y"],
+			desc = L["Offset of the buff frame containing all icons."],
+			order = 7,
+			min = -150,
+			max = 150,
+			step = 1,
+			set = function(info, val)
+				P.barOffsetY = val
+				core:ResetAllBarPoints()
+			end
+		},
+		blank3 = {
+			type = "description",
+			name = "",
+			order = 8
+		},
+		iconsPerBar = {
+			type = "range",
+			name = L["Icons per row"],
+			desc = L["Number of icons to display per row."],
+			order = 9,
+			min = 1,
+			max = 16,
+			step = 1,
+			set = function(info, val)
+				P.iconsPerBar = val
+				core:ResetAllPlateIcons()
+				core:ShowAllKnownSpells()
+			end
+		},
+		numBars = {
+			type = "range",
+			name = L["Max rows"],
+			desc = L["Max number of rows to show."],
+			order = 10,
+			min = 1,
+			max = 4,
+			step = 1,
+			set = function(info, val)
+				P.numBars = val
+				core:ResetAllPlateIcons()
+				core:UpdateBarsBackground()
+				core:ShowAllKnownSpells()
+			end
+		},
+		blank4 = {
+			type = "description",
+			name = "",
+			order = 11
+		},
+		intervalX = {
+			type = "range",
+			name = L["Spacing X"],
+			desc = L["Change spacing between icons."],
+			order = 12,
 			min = 0,
-			max = 0.2,
-			step = 0.01,
-			disabled = function() return not P.enableAdjustFreq end
-		}
+			max = 80,
+			step = 1,
+			set = function(info, val)
+				P.intervalX = val
+				core:ResetIconSizes()
+				core:ResetAllPlateIcons()
+				core:ShowAllKnownSpells()
+			end
+		},
+		intervalY = {
+			type = "range",
+			name = L["Spacing Y"],
+			desc = L["Change spacing between icons."],
+			order = 13,
+			min = 0,
+			max = 80,
+			step = 1,
+			set = function(info, val)
+				P.intervalY = val
+				core:ResetIconSizes()
+				core:ResetAllPlateIcons()
+				core:ShowAllKnownSpells()
+			end
+		},
+		blank5 = {
+			type = "description",
+			name = "",
+			order = 14
+		},
+		barGrowth = {
+			type = "select",
+			name = L["Row Growth"],
+			desc = L["Which way do the bars grow, up or down."],
+			order = 15,
+			values = {L["Up"], L["Down"]},
+			set = function(info, val)
+				P.barGrowth = val
+				core:ResetAllBarPoints()
+			end
+		},
+		shrinkBar = {
+			type = "toggle",
+			name = L["Center Horizontally"],
+			desc = L["Horizontally center the bar if not full."],
+			order = 16,
+			set = function(info, val)
+				P.shrinkBar = val
+				core:UpdateAllPlateBarSizes()
+			end
+		},
+		blank6 = {
+			type = "description",
+			name = "\n",
+			order = 17
+		},
+		iconTestMode = {
+			type = "toggle",
+			name = L["Test Mode"],
+			desc = L["For each spell on someone, multiply it by the number of icons per bar.\nThis option won't be saved at logout."],
+			order = 18,
+			get = function()
+				return core.iconTestMode
+			end,
+			set = function()
+				core.iconTestMode = not core.iconTestMode
+			end
+		},
+		showBarBackground = {
+			type = "toggle",
+			name = L["Show bar background"],
+			desc = L["Show the area where spell icons will be. This is to help you configure the bars."],
+			order = 19,
+			set = function(info, val)
+				P.showBarBackground = val
+				core:UpdateBarsBackground()
+			end
+		},
+		blank7 = {
+			type = "description",
+			name = "",
+			order = 20
+		},
+		blank8 = {
+			type = "description",
+			name = "",
+			order = 21
+		},
 	}
 }
 
@@ -1223,7 +1278,7 @@ do
 				_spelliconcache[spellID .. size] = "\124T" .. icon .. ":" .. size .. "\124t"
 				return _spelliconcache[spellID .. size]
 			else
-				return "\124TInterface\\Icons\\" .. core.unknownIcon .. ":" .. size .. "\124t"
+				return "\124TInterface\\Icons\\Inv_misc_questionmark" .. ":" .. size .. "\124t"
 			end
 		else
 			return _spelliconcache[spellID .. size]
@@ -1275,7 +1330,7 @@ do
 			end
 
 			spellDesc = L["To show a description you can assign a valid Spell ID.\nThis aura will still be tracked based on the Spell Name"]
-			spellTexture = "Interface\\Icons\\" .. core.unknownIcon
+			spellTexture = "Interface\\Icons\\Inv_misc_questionmark"
 
 			if spellID and type(spellID) == "number" then
 				tooltip:SetHyperlink("spell:" .. spellID)
