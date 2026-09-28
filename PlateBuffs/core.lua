@@ -14,6 +14,8 @@ if not LibNameplates then
 	return
 end
 core.LibNameplates = LibNameplates
+core.hasModernAPI = LibNameplates.hasModernAPI
+local hasModernAPI = core.hasModernAPI
 
 local LSM = LibStub("LibSharedMedia-3.0")
 if not LSM then
@@ -35,6 +37,7 @@ local pairs = pairs
 local UnitExists = UnitExists
 local UnitIsUnit = UnitIsUnit
 local table_getn = table.getn
+local string_sub = string.sub
 
 core.buffFrames = {}
 core.guidBuffs = {}
@@ -112,6 +115,11 @@ do
 		"PLAYER_ENTERING_WORLD"
 	}
 
+	local skipOnModernAPI = {
+		["UPDATE_MOUSEOVER_UNIT"] = true,
+		["UNIT_TARGET"] = true
+	}
+
 	local OnEnable = core.OnEnable
 	function core:OnEnable(...)
 		if OnEnable then
@@ -122,7 +130,9 @@ do
 		P = db.profile
 
 		for i, event in pairs(regEvents) do
-			self:RegisterEvent(event)
+			if not (hasModernAPI and skipOnModernAPI[event]) then
+				self:RegisterEvent(event)
+			end
 		end
 
 		LibNameplates.RegisterCallback(self, "LibNameplates_NewNameplate")
@@ -242,12 +252,16 @@ end
 
 function core:LibNameplates_FoundGUID(event, plate, GUID, unitID)
 	if self:ShouldAddBuffs(plate) == true then
-		if not guidBuffs[GUID] then
+		if hasModernAPI then
+			self:RemoveOldSpells(GUID)
 			self:CollectUnitInfo(unitID)
+		else
+			if not guidBuffs[GUID] then
+				self:CollectUnitInfo(unitID)
+			end
+			self:RemoveOldSpells(GUID)
+			self:AddBuffsToPlate(plate, GUID)
 		end
-
-		self:RemoveOldSpells(GUID)
-		self:AddBuffsToPlate(plate, GUID)
 	end
 end
 
@@ -267,10 +281,16 @@ function core:HaveSpellOpts(spellName, spellID)
 end
 
 function core:PLAYER_TARGET_CHANGED(event, ...)
-	if UnitExists("target") then
-		self:CollectUnitInfo("target")
-	elseif P.targetOnly then
-		self:UpdateAllPlates()
+	if hasModernAPI then
+		if P.targetOnly and not UnitExists("target") then
+			self:UpdateAllPlates()
+		end
+	else
+		if UnitExists("target") then
+			self:CollectUnitInfo("target")
+		elseif P.targetOnly then
+			self:UpdateAllPlates()
+		end
 	end
 end
 
@@ -312,6 +332,7 @@ function core:UPDATE_MOUSEOVER_UNIT(event, ...)
 end
 
 function core:UNIT_AURA(event, unitID)
+	if hasModernAPI and string_sub(unitID, 1, 9) ~= "nameplate" then return end
 	if UnitExists(unitID) then
 		self:CollectUnitInfo(unitID)
 	end

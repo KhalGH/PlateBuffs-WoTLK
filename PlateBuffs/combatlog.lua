@@ -18,6 +18,7 @@ local drSpells 				= core.drSpells
 local guidBuffs 			= core.guidBuffs
 local nametoGUIDs 			= core.nametoGUIDs
 local InterruptsDuration	= core.InterruptsDuration
+local hasModernAPI 		= core.hasModernAPI
 
 local GUIDDurations = {}
 local GUIDDrEffects = {}
@@ -46,7 +47,7 @@ local pveDR = {
 
 local resetDRTime = 15
 local playerGUID = UnitGUID("player")
-local eventFrame = CreateFrame("Frame")
+local EventFrame = CreateFrame("Frame")
 
 local P
 do
@@ -64,10 +65,10 @@ do
 	local CombatLogClearEntries = CombatLogClearEntries
 	function core:RegisterCLEU()
 		if P.watchCombatlog == true then
-			eventFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+			EventFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 			CombatLogClearEntries()
 		else
-			eventFrame:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+			EventFrame:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 		end
 	end
 end
@@ -78,7 +79,7 @@ do
 		if prev_OnDisable then
 			prev_OnDisable(self, ...)
 		end
-		eventFrame:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+		EventFrame:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 		core:StopSweeper()
 	end
 end
@@ -244,23 +245,25 @@ local function GUIDSeenDRAura(dstGUID, drType, expirationTime, dstIsPlayerContro
 end
 
 local function CollectAuras(unitID, GUID, filter)
-	local name, icon, count, duration, expirationTime, unitCaster, spellId, debuffType, debuffKey, srcGUID, drType, shouldAdd, scale, spellOpts, _
+	local name, icon, count, duration, expirationTime, unitCaster, spellId, debuffType, srcGUID, drType, shouldAdd, scale, spellOpts, _
 	local isDebuff = filter == "HARMFUL" or nil
 	local defaultShow = isDebuff and P.defaultDebuffShow or P.defaultBuffShow
 	if defaultShow == 5 then return end
-	local isPlayerControlled = UnitPlayerControlled(unitID)
+	local trackDR = isDebuff and not hasModernAPI
+	local isPlayerControlled = trackDR and UnitPlayerControlled(unitID)
 	local i = 1
 	while true do
 		name, _, icon, count, debuffType, duration, expirationTime, unitCaster, _, _, spellId = UnitAura(unitID, i, filter)
 		if not name then break end
 		duration = math_floor(duration + .5)
-		debuffKey = debuffTypes[debuffType]
 		srcGUID = unitCaster and UnitGUID(unitCaster)
-		LearnAura(spellId, icon, duration, debuffKey, srcGUID)
-		if isDebuff then
-			drType = drSpells[spellId]
-			if drType and expirationTime > 0 then
-				GUIDSeenDRAura(GUID, drType, expirationTime, isPlayerControlled)
+		if not hasModernAPI then
+			LearnAura(spellId, icon, duration, debuffTypes[debuffType], srcGUID)
+			if trackDR then
+				drType = drSpells[spellId]
+				if drType and expirationTime > 0 then
+					GUIDSeenDRAura(GUID, drType, expirationTime, isPlayerControlled)
+				end
 			end
 		end
 		shouldAdd = false
@@ -415,11 +418,11 @@ end
 
 function core:StartSweeper()
 	sweepElapsed = 0
-	eventFrame:SetScript("OnUpdate", SweeperOnUpdate)
+	EventFrame:SetScript("OnUpdate", SweeperOnUpdate)
 end
 
 function core:StopSweeper()
-	eventFrame:SetScript("OnUpdate", nil)
+	EventFrame:SetScript("OnUpdate", nil)
 end
 
 function core:PLAYER_ENTERING_WORLD()
@@ -486,7 +489,7 @@ local function HandleAuraApply(srcGUID, srcFlags, dstGUID, dstName, dstFlags, sp
 	return duration
 end
 
-function eventFrame:SPELL_AURA_APPLIED(srcGUID, srcFlags, dstGUID, dstName, dstFlags, spellID, spellName, auraType, amount)
+function EventFrame:SPELL_AURA_APPLIED(srcGUID, srcFlags, dstGUID, dstName, dstFlags, spellID, spellName, auraType, amount)
 	local duration
 	if spellDuration[spellID] then
 		duration = HandleAuraApply(srcGUID, srcFlags, dstGUID, dstName, dstFlags, spellID, spellName, auraType, amount)
@@ -497,7 +500,7 @@ function eventFrame:SPELL_AURA_APPLIED(srcGUID, srcFlags, dstGUID, dstName, dstF
 	end
 end
 
-function eventFrame:SPELL_AURA_REMOVED(srcGUID, srcFlags, dstGUID, dstName, dstFlags, spellID, spellName, auraType, amount)
+function EventFrame:SPELL_AURA_REMOVED(srcGUID, srcFlags, dstGUID, dstName, dstFlags, spellID, spellName, auraType, amount)
 	local drType = drSpells[spellID]
 	if drType then
 		GUIDRemovedDRAura(dstGUID, drType)
@@ -509,7 +512,7 @@ function eventFrame:SPELL_AURA_REMOVED(srcGUID, srcFlags, dstGUID, dstName, dstF
 	end
 end
 
-function eventFrame:SPELL_AURA_REFRESH(srcGUID, srcFlags, dstGUID, dstName, dstFlags, spellID, spellName, auraType, amount)
+function EventFrame:SPELL_AURA_REFRESH(srcGUID, srcFlags, dstGUID, dstName, dstFlags, spellID, spellName, auraType, amount)
 	local dstIsPlayerControlled = FlagIsPlayerControlled(dstFlags)
 	local drType = drSpells[spellID]
 	local duration
@@ -530,7 +533,7 @@ function eventFrame:SPELL_AURA_REFRESH(srcGUID, srcFlags, dstGUID, dstName, dstF
 	end
 end
 
-function eventFrame:SPELL_AURA_APPLIED_DOSE(srcGUID, srcFlags, dstGUID, dstName, dstFlags, spellID, spellName, auraType, amount)
+function EventFrame:SPELL_AURA_APPLIED_DOSE(srcGUID, srcFlags, dstGUID, dstName, dstFlags, spellID, spellName, auraType, amount)
 	local i = GUIDBuffIndex(dstGUID, spellID, srcGUID)
 	if i then
 		local rec = guidBuffs[dstGUID][i]
@@ -545,7 +548,7 @@ function eventFrame:SPELL_AURA_APPLIED_DOSE(srcGUID, srcFlags, dstGUID, dstName,
 	end
 end
 
-function eventFrame:SPELL_AURA_REMOVED_DOSE(srcGUID, srcFlags, dstGUID, dstName, dstFlags, spellID, spellName, auraType, amount)
+function EventFrame:SPELL_AURA_REMOVED_DOSE(srcGUID, srcFlags, dstGUID, dstName, dstFlags, spellID, spellName, auraType, amount)
 	local i = GUIDBuffIndex(dstGUID, spellID, srcGUID)
 	if i then
 		local rec = guidBuffs[dstGUID][i]
@@ -554,7 +557,7 @@ function eventFrame:SPELL_AURA_REMOVED_DOSE(srcGUID, srcFlags, dstGUID, dstName,
 	end
 end
 
-function eventFrame:SPELL_INTERRUPT(srcGUID, srcFlags, dstGUID, dstName, dstFlags, spellID, spellName)
+function EventFrame:SPELL_INTERRUPT(srcGUID, srcFlags, dstGUID, dstName, dstFlags, spellID, spellName)
 	if not P.showInterrupts then return end
 	local duration = InterruptsDuration[spellID]
 	if not duration then return end
@@ -580,7 +583,7 @@ function eventFrame:SPELL_INTERRUPT(srcGUID, srcFlags, dstGUID, dstName, dstFlag
 	ForceNameplateUpdate(dstGUID, dstName, dstFlags)
 end
 
-function eventFrame:UNIT_DIED(srcGUID, srcFlags, dstGUID, dstName, dstFlags)
+function EventFrame:UNIT_DIED(srcGUID, srcFlags, dstGUID, dstName, dstFlags)
 	GUIDDrEffects[dstGUID] = nil
 	local t = guidBuffs[dstGUID]
 	if t and #t > 0 then
@@ -592,14 +595,22 @@ function eventFrame:UNIT_DIED(srcGUID, srcFlags, dstGUID, dstName, dstFlags)
 	end
 end
 
-eventFrame.SPELL_AURA_BROKEN		= eventFrame.SPELL_AURA_REMOVED
-eventFrame.SPELL_AURA_BROKEN_SPELL	= eventFrame.SPELL_AURA_REMOVED
-eventFrame.UNIT_DESTROYED	= eventFrame.UNIT_DIED
-eventFrame.UNIT_DISSIPATES	= eventFrame.UNIT_DIED
-eventFrame.PARTY_KILL		= eventFrame.UNIT_DIED
+EventFrame.SPELL_AURA_BROKEN		= EventFrame.SPELL_AURA_REMOVED
+EventFrame.SPELL_AURA_BROKEN_SPELL	= EventFrame.SPELL_AURA_REMOVED
+EventFrame.UNIT_DESTROYED	= EventFrame.UNIT_DIED
+EventFrame.UNIT_DISSIPATES	= EventFrame.UNIT_DIED
+EventFrame.PARTY_KILL		= EventFrame.UNIT_DIED
 
-eventFrame:SetScript("OnEvent", function(self, event, timestamp, eventType, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellID, spellName, spellSchool, auraType, amount)
-    if dstGUID ~= playerGUID and self[eventType] then
-        self[eventType](self, srcGUID, srcFlags, dstGUID, dstName, dstFlags, spellID, spellName, auraType, amount)
-    end
-end)
+local function OnOldAPI(self, event, timestamp, eventType, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellID, spellName, spellSchool, auraType, amount)
+	if dstGUID ~= playerGUID and self[eventType] then
+		self[eventType](self, srcGUID, srcFlags, dstGUID, dstName, dstFlags, spellID, spellName, auraType, amount)
+	end
+end
+
+local function OnModernAPI(self, event, timestamp, eventType, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellID, spellName)
+	if eventType == "SPELL_INTERRUPT" and dstGUID ~= playerGUID then
+		self:SPELL_INTERRUPT(srcGUID, srcFlags, dstGUID, dstName, dstFlags, spellID, spellName)
+	end
+end
+
+EventFrame:SetScript("OnEvent", hasModernAPI and OnModernAPI or OnOldAPI)
