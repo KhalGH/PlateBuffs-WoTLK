@@ -8,7 +8,7 @@
 	Dependencies: LibStub, CallbackHandler-1.0
 ]]
 
-local MAJOR, MINOR = "LibNameplates-1.0", 37
+local MAJOR, MINOR = "LibNameplates-1.0", 40
 if not LibStub then
 	error(MAJOR .. " requires LibStub.")
 	return
@@ -42,10 +42,9 @@ local UnitHealth = UnitHealth
 local UnitHealthMax = UnitHealthMax
 local _
 
-local hasNameplateAPI
-local C_NamePlate = C_NamePlate
-if C_NamePlate and C_NamePlate.GetNamePlateForUnit then
-	hasNameplateAPI = true
+local C_NamePlate_GetNamePlateForUnit = C_NamePlate and C_NamePlate.GetNamePlateForUnit
+if C_NamePlate_GetNamePlateForUnit then
+	lib.hasModernAPI = true
 end
 
 local fastOnFinishThrottle = 0.25 -- check combat & threat every x seconds.
@@ -84,6 +83,7 @@ end
 
 local callbackOnHide = "LibNameplates_RecycleNameplate"
 local callbackOnShow = "LibNameplates_NewNameplate"
+local callbackPlateCreated = "LibNameplates_NameplateCreated"
 local callbackFoundGUID = "LibNameplates_FoundGUID"
 local callbackOnTarget = "LibNameplates_TargetNameplate"
 local callbackHealthChanged = "LibNameplates_HealthChange"
@@ -97,6 +97,8 @@ lib.isOnScreen = lib.isOnScreen or {}
 lib.nameplates = lib.nameplates or {}
 lib.realPlate = lib.realPlate or {}
 lib.threatStatus = lib.threatStatus or {}
+lib.isTarget = lib.isTarget or {}
+lib.hasTarget = false
 
 local debugPrint
 do
@@ -193,12 +195,14 @@ do
 		local WorldFrame = WorldFrame
 		local prevChildren, curChildren = 0
 		local function IsNamePlate(frame)
-			if frame.RealPlate  -- RefinedBlizzPlates
-			or frame.extended   -- TidyPlates
+			if frame.extended   -- TidyPlates
 			or frame.UnitFrame  -- ElvUI
+			or frame.RealPlate  -- RefinedBlizzPlates
 			or frame.npHooked   -- NotPlater
 			or frame.kui        -- KuiNameplates
 			or frame.aloftData  -- Aloft
+			or frame.done       -- sNamePlates
+			or frame.myPlate    -- PrettyNameplates
 			then
 				return true
 			end
@@ -220,7 +224,23 @@ do
 	end
 end
 
+local function UpdateTargetState(frame)
+	if not frame then return false end
+	frame = lib.realPlate[frame] or frame
+	local isTarget = false
+	if lib.hasTarget and frame:IsShown() then
+		if frame.UnitFrame then
+			isTarget = frame.UnitFrame.alpha == 1
+		else
+			isTarget = frame:GetAlpha() == 1
+		end
+	end
+	lib.isTarget[frame] = isTarget
+	return isTarget
+end
+
 local function FoundPlateGUID(frame, GUID, unitID)
+	if not GUID then return end
 	playerGUID = playerGUID or UnitGUID("player")
 	if GUID == playerGUID then return end
 	lib.nameplates[frame] = GUID
@@ -234,7 +254,7 @@ do
 		self:Hide()
 		for frame in pairs(checkFrames) do
 			CheckForFakePlate(frame)
-			if lib:IsTarget(frame) then
+			if UpdateTargetState(frame) then
 				lib.callbacks:Fire(callbackOnTarget, lib.fakePlate[frame] or frame)
 				local GUID = UnitGUID("target")
 				if lib.nameplates[frame] ~= GUID then
@@ -244,7 +264,6 @@ do
 		end
 		wipe(checkFrames)
 	end)
-
 	function lib:CheckFrameForTargetGUID(frame)
 		checkFrames[frame] = true
 		f:Show()
@@ -267,7 +286,7 @@ function lib:SetupNameplate(frame)
 
 	self:CheckFrameForTargetGUID(frame)
 
-	if hasNameplateAPI then
+	if self.hasModernAPI then
 		local nameplateID = (frame.RealPlate or frame).namePlateUnitToken
 		if nameplateID then
 			local GUID = UnitGUID(nameplateID)
@@ -284,10 +303,13 @@ end
 
 function lib:RecycleNameplate(frame)
 	self.nameplates[frame] = nil
+	local realFrame = self.fakePlate[frame]
+	self.isTarget[frame] = nil
 
-	if self.fakePlate[frame] then
-		self.callbacks:Fire(callbackOnHide, self.fakePlate[frame])
-		self.realPlate[self.fakePlate[frame]] = nil
+	if realFrame then
+		self.isTarget[realFrame] = nil
+		self.callbacks:Fire(callbackOnHide, realFrame)
+		self.realPlate[realFrame] = nil
 		self.fakePlate[frame] = nil
 	end
 
@@ -530,6 +552,7 @@ do
 		if not self.nameplates[frame] then
 			self:HookNameplate(frame)
 			self:SetupNameplate(frame)
+			self.callbacks:Fire(callbackPlateCreated, frame)
 			checkFrames[frame] = true
 			f:Show()
 		end
@@ -646,27 +669,31 @@ do
 	local f = CreateFrame("Frame")
 	f:Hide()
 	f:RegisterEvent("PLAYER_TARGET_CHANGED")
-	f:RegisterEvent("RAID_TARGET_UPDATE")
-	f:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
-	if hasNameplateAPI then
+	if lib.hasModernAPI then
 		f:RegisterEvent("NAME_PLATE_UNIT_ADDED")
+	else
+		f:RegisterEvent("RAID_TARGET_UPDATE")
+		f:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
 	end
 
 	local targetScanner = CreateFrame("Frame")
 	targetScanner:Hide()
 	targetScanner:SetScript("OnUpdate", function(self)
 		self:Hide()
-		for frame, guid in pairs(lib.nameplates) do	
-			if frame:IsShown() and lib:IsTarget(frame, true) then
-				lib.callbacks:Fire(callbackOnTarget, lib.fakePlate[frame] or frame)
-				local GUID = UnitGUID("target")
-				if guid ~= GUID then
-					FoundPlateGUID(frame, GUID, "target")
-				end
-				return
+		local targetFrame
+		for frame in pairs(lib.nameplates) do
+			if UpdateTargetState(frame) and not targetFrame then
+				targetFrame = frame
 			end
 		end
-	end)	
+		if targetFrame then
+			lib.callbacks:Fire(callbackOnTarget, lib.fakePlate[targetFrame] or targetFrame)
+			local GUID = UnitGUID("target")
+			if lib.nameplates[targetFrame] ~= GUID then
+				FoundPlateGUID(targetFrame, GUID, "target")
+			end
+		end
+	end)
 
 	local mouseoverScanner = CreateFrame("Frame")
 	mouseoverScanner:Hide()
@@ -692,9 +719,8 @@ do
 
 	f:SetScript("OnEvent", function(self, event, ...)
 		if event == "PLAYER_TARGET_CHANGED" then
-			if UnitExists("target") and not UnitIsUnit("target", "player") then
-				targetScanner:Show()
-			end
+			lib.hasTarget = UnitExists("target") == 1
+			targetScanner:Show()
 		elseif event == "RAID_TARGET_UPDATE" then
 			for frame, guid in pairs(lib.nameplates) do
 				if frame:IsShown() and guid == true and lib:IsMarked(frame) then
@@ -708,7 +734,7 @@ do
 			mouseoverScanner:Show()
 		elseif event == "NAME_PLATE_UNIT_ADDED" then
 			local nameplateID = ...
-			local Plate = C_NamePlate.GetNamePlateForUnit(nameplateID)
+			local Plate = C_NamePlate_GetNamePlateForUnit(nameplateID)
 			if not Plate then return end
 			Plate.namePlateUnitToken = nameplateID
 			local frame = Plate.VirtualPlate or Plate
@@ -854,20 +880,10 @@ function lib:GetRaidIconRegion(frame)
 	return select(regionIndex.raidIcon, frame:GetRegions())
 end
 
-function lib:IsTarget(frame, quick)
+function lib:IsTarget(frame)
 	if not frame then return end
-	quick = quick or (frame:IsShown() and UnitExists("target"))
-
-	if frame.UnitFrame then -- ElvUI
-		if not self.fakePlate[frame] then
-			self.fakePlate[frame] = frame.UnitFrame
-			self.realPlate[frame.UnitFrame] = frame
-		end
-		return quick and (frame.UnitFrame.alpha == 1) or false
-	end
-
 	frame = self.realPlate[frame] or frame
-	return quick and (frame:GetAlpha() == 1) or false
+	return self.isTarget[frame] or false
 end
 
 function lib:GetHealthBar(frame)
@@ -1083,15 +1099,13 @@ function lib:GetGUID(frame)
 	end
 end
 
--- Reads nameplate alpha, which Blizzard updates one frame after PLAYER_TARGET_CHANGED.
--- Use the LibNameplates_TargetNameplate callback when the timing matters.
+-- Returns the cached target nameplate, if any.
+-- The cache is updated by targetScanner and CheckFrameForTargetGUID.
 function lib:GetTargetNameplate()
-	if UnitExists("target") then
-		for frame in pairs(self.nameplates) do
-			local f = self.fakePlate[frame] or frame
-			if f:IsShown() and f:GetAlpha() == 1 then
-				return f
-			end
+	if not self.hasTarget then return end
+	for frame in pairs(self.nameplates) do
+		if self.isTarget[frame] then
+			return self.fakePlate[frame] or frame
 		end
 	end
 end
