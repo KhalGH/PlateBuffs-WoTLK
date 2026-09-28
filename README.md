@@ -13,6 +13,8 @@ This repository contains a modified version of Kader's backport, featuring enhan
 - Shows interrupt effects as simulated debuffs on players.
 - Optimized CPU and memory usage.
 - Enhanced DR tracking system.
+- Replaced the native cooldown "clock" overlay with a custom radial one that no longer resets or disappears when the nameplate moves.
+- Added C_NamePlate API support with lower CPU usage.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/KhalGH/PlateBuffs-WoTLK/refs/heads/assets/assets/screenshot.jpg" 
@@ -20,12 +22,12 @@ This repository contains a modified version of Kader's backport, featuring enhan
 </p>
 
 ## Installation
-1. [Download](https://github.com/KhalGH/PlateBuffs-WotLK/releases/download/r236/PlateBuffs-r236.zip) the addon
+1. [Download](https://github.com/KhalGH/PlateBuffs-WotLK/releases/download/r237/PlateBuffs-r237.zip) the addon
 2. Extract the **PlateBuffs** folder into `World of Warcraft/Interface/AddOns/`.  
 3. Restart the game and enable the addon.
 
 ## Information  
-- **Addon Version:** 1.19.3 (r236)
+- **Addon Version:** 1.19.3 (r237)
 - **Game Version:** 3.3.5a (WotLK)
 - **Original Author:** Cyprias
 - **Backported by:** Kader
