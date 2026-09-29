@@ -6,14 +6,14 @@ This repository contains a modified version of Kader's backport, featuring enhan
 ## Additional Features
 - Added some extra textures for the icon border.
 - Added an option to change the anchor point of the duration text.
-- Added new categories for Default Spells, plus a control list to filter specific spells by spellID (to handle spells that share name). Also included class-based logic to dynamically add more Default Spells depending on the player's class.
-- Improved the blink animation and added a complementary fade-out animation, both designed as timing cues to help the user better perceive when a buff or debuff is about to expire.
+- Default spells now adapt to the player's class.
+- Improved the blink animation and added a complementary fade-out animation.
 - Reorganized the user interface, arranging features in a more appropriate order.
 - Improved nameplate-GUID mapping via target and mouseover.
 - Shows interrupt effects as simulated debuffs on players.
 - Optimized CPU and memory usage.
 - Enhanced DR tracking system.
-- Replaced the native cooldown "clock" overlay with a custom radial one that no longer resets or disappears when the nameplate moves.
+- Added a custom "Swipe" overlay that no longer resets when the nameplate moves.
 - Added C_NamePlate API support with lower CPU usage.
 
 <p align="center">
