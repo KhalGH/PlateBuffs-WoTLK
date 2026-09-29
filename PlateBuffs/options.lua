@@ -67,8 +67,8 @@ defaultSettings.barGrowth = 1
 defaultSettings.shrinkBar = true
 defaultSettings.showBarBackground = false
 
-defaultSettings.iconSize = 26
-defaultSettings.iconSize2 = 26
+defaultSettings.iconSize = 28
+defaultSettings.iconSize2 = 28
 defaultSettings.textureSize = 0
 defaultSettings.biggerSelfSpells = false
 defaultSettings.borderTexture = "Interface\\Addons\\PlateBuffs\\media\\DefaultBorder.blp"
