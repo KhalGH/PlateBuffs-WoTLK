@@ -79,7 +79,7 @@ core.IsTargetPlate = IsTargetPlate
 core.IteratePlates = IteratePlates
 
 function core:OnInitialize()
-	self.db = LibStub("AceDB-3.0"):New("PB_DB", core.defaultSettings, true)
+	self.db = LibStub("AceDB-3.0"):New("PB_DB", core.defaultSettings, select(2, UnitClass("player")) or true)
 	self.db.RegisterCallback(self, "OnProfileChanged", "OnProfileChanged")
 	self.db.RegisterCallback(self, "OnProfileCopied", "OnProfileChanged")
 	self.db.RegisterCallback(self, "OnProfileReset", "OnProfileChanged")

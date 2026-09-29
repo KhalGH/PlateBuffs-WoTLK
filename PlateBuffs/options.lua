@@ -1433,7 +1433,7 @@ do
 				order = 6,
 				min = 1,
 				max = 3,
-				step = 0.1,
+				step = 0.05,
 				get = function(info)
 					return P.spellOpts[info[#info-1]].increase or P.increase
 				end,
