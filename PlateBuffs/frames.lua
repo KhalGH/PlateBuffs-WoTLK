@@ -35,7 +35,8 @@ local guidBuffs = core.guidBuffs
 
 local unknownIconPath = "Interface\\Icons\\Inv_misc_questionmark"
 local COOLDOWN_RADIAL_TEXTURE = "Interface\\AddOns\\PlateBuffs\\media\\Swipe"
-local COOLDOWN_VERTICAL_TEXTURE = "Interface\\Buttons\\WHITE8X8"
+local COOLDOWN_RADIAL_EDGE_TEXTURE = "Interface\\AddOns\\PlateBuffs\\media\\SwipeEdge"
+local COOLDOWN_VERTICAL_TEXTURE = "Interface\\AddOns\\PlateBuffs\\media\\SwipeVertical"
 
 local defaultSettings = core.defaultSettings
 defaultSettings.profile.skin_SkinID = "Blizzard"
@@ -193,14 +194,20 @@ local function ConfigureClockOverlay(frame)
 		frame.clockOverlay:SetPoint("TOPRIGHT", frame.icon)
 		frame.clockOverlay:SetHeight(0.00001)
 		frame.clockOverlay:SetTexture(COOLDOWN_VERTICAL_TEXTURE)
+		frame.swipeEdgeTarget = nil
 	else
 		-- Radial style: 256-frame sprite sheet, advanced via SetTexCoord.
 		-- The old "CooldownFrameTemplate" swipe is gone for good
+		if P.showSwipeEdge then
+			frame.clockOverlay:SetTexture(COOLDOWN_RADIAL_EDGE_TEXTURE)
+			frame.swipeEdgeTarget = true
+		else
+			frame.clockOverlay:SetTexture(COOLDOWN_RADIAL_TEXTURE)
+			frame.swipeEdgeTarget = false
+		end
 		frame.clockOverlay:SetAllPoints(frame.icon)
-		frame.clockOverlay:SetTexture(COOLDOWN_RADIAL_TEXTURE)
 		SetCooldownSpriteFrame(frame.clockOverlay, 0)
 	end
-	frame.clockOverlay:SetVertexColor(0, 0, 0)
 	frame.clockOverlay:SetAlpha(P.clockOverlayAlpha)
 	frame.clockOverlay:SetBlendMode("BLEND") -- keeps the radial sprite's edges anti-aliased
 end
@@ -208,9 +215,10 @@ end
 -- Called when spell frames are shown.
 local function iconOnShow(self)
 	self:SetAlpha(1)
-    self.cdText, self.cdR, self.cdG, self.cdB = nil
+	self.cdText, self.cdR, self.cdG, self.cdB = nil
 	self.cd2Text, self.cd2R, self.cd2G, self.cd2B = nil
-    self.lastAlpha = 1
+	self.swipeEdgeTarget = nil
+	self.lastAlpha = 1
 	self.lastUpdate = 0
 	self.clockOverlay:Hide()
 	self.stack:Hide()
@@ -256,10 +264,26 @@ local function iconOnShow(self)
 	self.overLimit2 = P.durationLimit2 > 0 and timeLeft > P.durationLimit2
 	UpdateDurationVisibility(self)
 
+	local isTarget = IsTargetPlate(self.realPlate)
+
 	if P.showClockOverlay and self.expirationTime > 0 then
 		self.cooldownTextureElapsed = 0
 		self.cooldownFrameIndex = -1
-		if not P.clockTargetOnly or IsTargetPlate(self.realPlate) then
+		if not P.verticalClock then
+			local useEdge = P.showSwipeEdge
+			if useEdge and P.swipeEdgeTargetOnly and not P.clockTargetOnly then
+				useEdge = isTarget
+			end
+			self.swipeEdgeTarget = useEdge
+			if useEdge then
+				self.clockOverlay:SetTexture(COOLDOWN_RADIAL_EDGE_TEXTURE)
+			else
+				self.clockOverlay:SetTexture(COOLDOWN_RADIAL_TEXTURE)
+			end
+		else
+			self.swipeEdgeTarget = nil
+		end
+		if not P.clockTargetOnly or isTarget then
 			self.clockOverlayShown = true
 			self.clockOverlay:Show()
 		else
@@ -335,6 +359,7 @@ local function iconOnHide(self)
 	self.lastAlpha = 1
 	self.lastUpdate = 0
 	self.clockOverlayShown = false
+	self.swipeEdgeTarget = nil
 	self.durationText:Hide()
 	self.durationText2Bg:Hide()
 	self.durationText2:Hide()
@@ -348,14 +373,13 @@ local function iconOnHide(self)
 		self.clockOverlay:SetHeight(0.00001)
 	else
 		self.cooldownFrameIndex = 0
-		SetCooldownSpriteFrame(self.clockOverlay, 0)		
+		SetCooldownSpriteFrame(self.clockOverlay, 0)
 	end
 end
 
 local function iconOnUpdate(self, elapsed)
 	local realPlate = self.realPlate
 	if realPlate.PB_stopIconUpdate then return end
-
 	local expirationTime = self.expirationTime
 	if expirationTime <= 0 then return end
 
@@ -367,9 +391,21 @@ local function iconOnUpdate(self, elapsed)
 		if self.cooldownTextureElapsed >= 0.03 then
 			self.cooldownTextureElapsed = 0
 
-			if P.clockTargetOnly then
+			local swipeEdgeTargetOnly = P.showSwipeEdge and P.swipeEdgeTargetOnly and not P.clockTargetOnly	and not P.verticalClock
+
+			if P.clockTargetOnly or swipeEdgeTargetOnly then
 				isTarget = IsTargetPlate(realPlate)
 			end
+
+			if swipeEdgeTargetOnly and isTarget ~= self.swipeEdgeTarget then
+				self.swipeEdgeTarget = isTarget
+				if isTarget then
+					self.clockOverlay:SetTexture(COOLDOWN_RADIAL_EDGE_TEXTURE)
+				else
+					self.clockOverlay:SetTexture(COOLDOWN_RADIAL_TEXTURE)
+				end
+			end
+
 			if not P.clockTargetOnly or isTarget then
 				if not self.clockOverlayShown then
 					self.clockOverlayShown = true
@@ -538,7 +574,7 @@ local function CreateBuffFrame(parentFrame, realPlate)
 	f.durationText2Bg:SetPoint("TOPLEFT", f.durationText2, -1, 0)
 	f.durationText2Bg:SetPoint("BOTTOMRIGHT", f.durationText2, 1, -1)
 
-	f.clockOverlay = f.icon:CreateTexture(nil, "BORDER")
+	f.clockOverlay = f.icon:CreateTexture(nil, "ARTWORK")
 	ConfigureClockOverlay(f)
 	f.cooldownTextureElapsed = 0
 	f.cooldownFrameIndex = -1 -- forces an immediate redraw on the first OnUpdate

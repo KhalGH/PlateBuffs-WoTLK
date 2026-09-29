@@ -103,17 +103,19 @@ defaultSettings.interruptsScale = 1.4
 defaultSettings.interruptsReduction = 0.3
 defaultSettings.color7 = {0.20, 0.80, 0.60, 1.00}
 defaultSettings.showClockOverlay = true
-defaultSettings.clockOverlayAlpha = 0.8
+defaultSettings.clockOverlayAlpha = 0.9
 defaultSettings.clockTargetOnly = false
+defaultSettings.showSwipeEdge = true
+defaultSettings.swipeEdgeTargetOnly = false
 defaultSettings.verticalClock = false
-defaultSettings.enableFade = true
-defaultSettings.fadeTargetOnly = false
-defaultSettings.fadeThreshold = 3
-defaultSettings.fadeMinDuration = 6
-defaultSettings.enableBlink = false
+defaultSettings.enableBlink = true
 defaultSettings.blinkTargetOnly = true
 defaultSettings.blinkThreshold = 3
 defaultSettings.blinkMinDuration = 6
+defaultSettings.enableFade = false
+defaultSettings.fadeTargetOnly = false
+defaultSettings.fadeThreshold = 3
+defaultSettings.fadeMinDuration = 6
 
 defaultSettings.increase = 1
 
@@ -858,15 +860,30 @@ core.DefaultSpellOptionsTable = {
 		},
 		showClockOverlay = {
 			type = "toggle",
-			name = L["Show 'clock' overlay"],
-			desc = L["Show a radial 'clock' overlay over spell icons indicating the time remaining."],
-			order = 51
+			name = L["Enable Swipe"],
+			desc = L["Show a radial swipe overlay over spell icons indicating the time remaining."],
+			order = 51,
+			set = function(info, val)
+				P.showClockOverlay = val
+				core:UpdateAllClockOverlays()
+			end
+		},
+		clockTargetOnly = {
+			type = "toggle",
+			name = L["Swipe on target only"],
+			desc = L["Restrict the swipe overlay to auras on the target's nameplate only."],
+			order = 52,
+			set = function(info, val)
+				P.clockTargetOnly = val
+				core:UpdateAllClockOverlays()
+			end,
+			disabled = function() return not P.showClockOverlay end
 		},
 		clockOverlayAlpha = {
 			type = "range",
-			name = L["Clock Opacity"],
-			desc = L["Set the opacity of the clock overlay."],
-			order = 52, 
+			name = L["Swipe Opacity"],
+			desc = L["Set the opacity of the swipe overlay."],
+			order = 53, 
 			min = 0,
 			max = 1,
 			step = 0.05,
@@ -877,18 +894,35 @@ core.DefaultSpellOptionsTable = {
 			end,
 			disabled = function() return not P.showClockOverlay end,
 		},
-		clockTargetOnly = {
+		showSwipeEdge = {
 			type = "toggle",
-			name = L["Only show on target"],
-			desc = L["Restrict the 'clock' overlay to auras on the target's nameplate only"],
-			order = 53,
-			disabled = function() return not P.showClockOverlay end
+			name = L["Show Edge"],
+			desc = L["Show a bright edge along the swipe as it progresses."],
+			order = 54,
+			set = function(info, val)
+				P.showSwipeEdge = val
+				core:UpdateAllClockOverlays()
+			end,
+			disabled = function() return not P.showClockOverlay or P.verticalClock end
+		},
+		swipeEdgeTargetOnly = {
+			type = "toggle",
+			name = L["Edge on target only"],
+			desc = L["Restrict the edge effect to auras on the target's nameplate only."],
+			order = 55,
+			set = function(info, val)
+				P.swipeEdgeTargetOnly = val
+				core:UpdateAllClockOverlays()
+			end,
+			disabled = function()
+				return not P.showClockOverlay or not P.showSwipeEdge or P.clockTargetOnly or P.verticalClock
+			end
 		},
 		verticalClock = {
 			type = "toggle",
-			name = L["Vertical 'clock' overlay"],
-			desc = L["Use a vertical fill instead of the default radial sweep."],
-			order = 54,
+			name = L["Vertical Swipe"],
+			desc = L["Use a vertical fill instead of the default radial swipe."],
+			order = 56,
 			set = function(info, val)
 				P.verticalClock = val
 				core:UpdateAllClockOverlays()
@@ -898,64 +932,26 @@ core.DefaultSpellOptionsTable = {
 		blank11 = {
 			type = "description",
 			name = "",
-			order = 55,
-		},
-		enableFade = {
-			type = "toggle",
-			name = L["Enable Fade"],
-			desc = L["Progressively fade out the icon as its duration expires"],
-			order = 56,
-		},
-		fadeTargetOnly = {
-			type = "toggle",
-			name = L["Only fade on target"],
-			desc = L["Restrict fade effect to auras on the target's nameplate only"],
 			order = 57,
-			disabled = function() return not P.enableFade end
-		},
-		fadeThreshold = {
-			type = "range",
-			name = L["Fade threshold time"],
-			desc = L["Progressive fade out icon below x seconds"],
-			order = 58,
-			min	= 0,
-			max	= 10,
-			step = 1,
-			disabled = function() return not P.enableFade end
-		},
-		fadeMinDuration = {
-			type = "range",
-			name = L["Min duration for Fade"],
-			desc = L["Fade effect will only apply to auras with a duration longer than this value."],
-			order = 59,
-			min = 3,
-			max = 10,
-			step = 1,
-			disabled = function() return not P.enableFade end
-		},
-		blank12 = {
-			type = "description",
-			name = "",
-			order = 60,
 		},
 		enableBlink = {
 			type = "toggle",
 			name = L["Enable Blink"],
 			desc = L["Blink the icon as its duration expires"],
-			order = 61,
+			order = 58,
 		},
 		blinkTargetOnly = {
 			type = "toggle",
 			name = L["Only blink on target"],
 			desc = L["Restrict blinking effect to auras on the target's nameplate only"],
-			order = 62,
+			order = 59,
 			disabled = function() return not P.enableBlink end
 		},
 		blinkThreshold = {
 			type = "range",
 			name = L["Blink threshold time"],
 			desc = L["Blink icon below x seconds"],
-			order = 63,
+			order = 60,
 			min = 0,
 			max = 10,
 			step = 1,
@@ -965,21 +961,59 @@ core.DefaultSpellOptionsTable = {
 			type = "range",
 			name = L["Min duration for Blink"],
 			desc = L["Blink effect will only apply to auras with a duration longer than this value."],
-			order = 64,
+			order = 61,
 			min = 3,
 			max = 10,
 			step = 1,
 			disabled = function() return not P.enableBlink end
 		},
+		blank12 = {
+			type = "description",
+			name = "",
+			order = 62,
+		},
+		enableFade = {
+			type = "toggle",
+			name = L["Enable Fade"],
+			desc = L["Progressively fade out the icon as its duration expires"],
+			order = 63,
+		},
+		fadeTargetOnly = {
+			type = "toggle",
+			name = L["Only fade on target"],
+			desc = L["Restrict fade effect to auras on the target's nameplate only"],
+			order = 64,
+			disabled = function() return not P.enableFade end
+		},
+		fadeThreshold = {
+			type = "range",
+			name = L["Fade threshold time"],
+			desc = L["Progressive fade out icon below x seconds"],
+			order = 65,
+			min	= 0,
+			max	= 10,
+			step = 1,
+			disabled = function() return not P.enableFade end
+		},
+		fadeMinDuration = {
+			type = "range",
+			name = L["Min duration for Fade"],
+			desc = L["Fade effect will only apply to auras with a duration longer than this value."],
+			order = 66,
+			min = 3,
+			max = 10,
+			step = 1,
+			disabled = function() return not P.enableFade end
+		},
 		blank13 = {
 			type = "description",
 			name = "",
-			order = 65,
+			order = 67,
 		},
 		blank14 = {
 			type = "description",
 			name = "",
-			order = 66,
+			order = 68,
 		},
 	}
 }
