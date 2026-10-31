@@ -134,6 +134,12 @@ core.CoreOptionsTable = {
 	args = {}
 }
 
+local refreshKeys = {
+    abovePlayers = true, aboveNPC = true,
+	aboveFriendly = true, aboveNeutral = true, aboveHostile = true, 
+	blacklistTotems = true, targetOnly = true,
+}
+
 core.DisplayOptionsTable = {
 	type = "group",
 	name = L["Display conditions"],
@@ -146,6 +152,7 @@ core.DisplayOptionsTable = {
 	set = function(info, v)
 		local key = info[#info]
 		P[key] = v
+		if refreshKeys[key] then core:UpdateAllPlates() end
 	end,
 	args = {
 		displayHeader = {
@@ -171,7 +178,11 @@ core.DisplayOptionsTable = {
 			type = "toggle",
 			name = L["Show Interrupts"],
 			desc = L["Show Interrupts as simulated debuffs above player nameplates."],
-			order = 4
+			order = 4,
+			set = function(info, val)
+				P.showInterrupts = val
+				core:UpdateCLEUReg()
+			end
 		},
 		typeHeader = {
 			type = "header",
@@ -238,25 +249,16 @@ core.DisplayOptionsTable = {
 			name = L["Watch Combatlog"],
 			desc = L["Watch combatlog for people gaining/losing spells.\nDisable this if you're having performance issues."],
 			order = 16,
-			get = function()
-				return P.watchCombatlog
-			end,
 			set = function(info, val)
-				P.watchCombatlog = not P.watchCombatlog
-				core:RegisterCLEU()
+				P.watchCombatlog = val
+				core:UpdateCLEUReg()
 			end
 		},
 		saveNameToGUID = {
 			type = "toggle",
 			name = L["Save player GUID"],
 			desc = L["Remember player GUID's so target/mouseover isn't needed every time nameplate appears.\nKeep this enabled"],
-			order = 17,
-			get = function(info)
-				return P.saveNameToGUID
-			end,
-			set = function(info, val)
-				P.saveNameToGUID = val
-			end
+			order = 17
 		},
 		unknownSpellDataIcon = {
 			type = "toggle",
@@ -297,10 +299,6 @@ core.DisplayOptionsTable = {
 			name = L["Target Only"],
 			desc = L["Only show spell icons above your current target."],
 			order = 22,
-			set = function(info, val)
-				P.targetOnly = val
-				core:UpdateAllPlates()
-			end
 		},
 		enabled = {
 			type = "toggle",

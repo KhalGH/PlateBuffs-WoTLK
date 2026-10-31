@@ -8,7 +8,7 @@
 	Dependencies: LibStub, CallbackHandler-1.0
 ]]
 
-local MAJOR, MINOR = "LibNameplates-1.0", 40
+local MAJOR, MINOR = "LibNameplates-1.0", 41
 if not LibStub then
 	error(MAJOR .. " requires LibStub.")
 	return
@@ -44,7 +44,7 @@ local _
 
 local C_NamePlate_GetNamePlateForUnit = C_NamePlate and C_NamePlate.GetNamePlateForUnit
 if C_NamePlate_GetNamePlateForUnit then
-	lib.hasModernAPI = true
+	lib.hasModernEngine = true
 end
 
 local fastOnFinishThrottle = 0.25 -- check combat & threat every x seconds.
@@ -97,7 +97,6 @@ lib.isOnScreen = lib.isOnScreen or {}
 lib.nameplates = lib.nameplates or {}
 lib.realPlate = lib.realPlate or {}
 lib.threatStatus = lib.threatStatus or {}
-lib.isTarget = lib.isTarget or {}
 lib.hasTarget = false
 
 local debugPrint
@@ -224,19 +223,20 @@ do
 	end
 end
 
-local function UpdateTargetState(frame)
+local function IsTargetedPlate(frame)
 	if not frame then return false end
 	frame = lib.realPlate[frame] or frame
-	local isTarget = false
 	if lib.hasTarget and frame:IsShown() then
-		if frame.UnitFrame then
-			isTarget = frame.UnitFrame.alpha == 1
+		if lib.hasModernEngine then
+			local plate = C_NamePlate_GetNamePlateForUnit("target")
+			return frame == (plate and (plate.VirtualPlate or plate))
+		elseif frame.UnitFrame then
+			return frame.UnitFrame.alpha == 1
 		else
-			isTarget = frame:GetAlpha() == 1
+			return frame:GetAlpha() == 1
 		end
 	end
-	lib.isTarget[frame] = isTarget
-	return isTarget
+	return false
 end
 
 local function FoundPlateGUID(frame, GUID, unitID)
@@ -254,12 +254,13 @@ do
 		self:Hide()
 		for frame in pairs(checkFrames) do
 			CheckForFakePlate(frame)
-			if UpdateTargetState(frame) then
-				lib.callbacks:Fire(callbackOnTarget, lib.fakePlate[frame] or frame)
+			if IsTargetedPlate(frame) then
+				lib.targetedPlate = frame
 				local GUID = UnitGUID("target")
 				if lib.nameplates[frame] ~= GUID then
 					FoundPlateGUID(frame, GUID, "target")
 				end
+				lib.callbacks:Fire(callbackOnTarget, lib.fakePlate[frame] or frame)
 			end
 		end
 		wipe(checkFrames)
@@ -286,7 +287,7 @@ function lib:SetupNameplate(frame)
 
 	self:CheckFrameForTargetGUID(frame)
 
-	if self.hasModernAPI then
+	if self.hasModernEngine then
 		local nameplateID = (frame.RealPlate or frame).namePlateUnitToken
 		if nameplateID then
 			local GUID = UnitGUID(nameplateID)
@@ -303,16 +304,15 @@ end
 
 function lib:RecycleNameplate(frame)
 	self.nameplates[frame] = nil
+	if self.targetedPlate == frame then
+		self.targetedPlate = nil
+	end
 	local realFrame = self.fakePlate[frame]
-	self.isTarget[frame] = nil
-
 	if realFrame then
-		self.isTarget[realFrame] = nil
 		self.callbacks:Fire(callbackOnHide, realFrame)
 		self.realPlate[realFrame] = nil
 		self.fakePlate[frame] = nil
 	end
-
 	self.callbacks:Fire(callbackOnHide, frame)
 end
 
@@ -669,7 +669,7 @@ do
 	local f = CreateFrame("Frame")
 	f:Hide()
 	f:RegisterEvent("PLAYER_TARGET_CHANGED")
-	if lib.hasModernAPI then
+	if lib.hasModernEngine then
 		f:RegisterEvent("NAME_PLATE_UNIT_ADDED")
 	else
 		f:RegisterEvent("RAID_TARGET_UPDATE")
@@ -680,18 +680,35 @@ do
 	targetScanner:Hide()
 	targetScanner:SetScript("OnUpdate", function(self)
 		self:Hide()
-		local targetFrame
-		for frame in pairs(lib.nameplates) do
-			if UpdateTargetState(frame) and not targetFrame then
-				targetFrame = frame
+		if not lib.hasTarget then
+			lib.targetedPlate = nil
+			lib.callbacks:Fire(callbackOnTarget, nil)
+			return
+		end
+		local targetedPlate
+		if lib.hasModernEngine then
+			local plate = C_NamePlate_GetNamePlateForUnit("target")
+			local frame = plate and (plate.VirtualPlate or plate)
+			if frame and lib.nameplates[frame] and frame:IsShown() then
+				targetedPlate = frame
+			end
+		else
+			for frame in pairs(lib.nameplates) do
+				if IsTargetedPlate(frame) then
+					targetedPlate = frame
+					break
+				end
 			end
 		end
-		if targetFrame then
-			lib.callbacks:Fire(callbackOnTarget, lib.fakePlate[targetFrame] or targetFrame)
+		lib.targetedPlate = targetedPlate
+		if targetedPlate then
 			local GUID = UnitGUID("target")
-			if lib.nameplates[targetFrame] ~= GUID then
-				FoundPlateGUID(targetFrame, GUID, "target")
+			if lib.nameplates[targetedPlate] ~= GUID then
+				FoundPlateGUID(targetedPlate, GUID, "target")
 			end
+			lib.callbacks:Fire(callbackOnTarget, lib.fakePlate[targetedPlate] or targetedPlate)
+		else
+			lib.callbacks:Fire(callbackOnTarget, nil)
 		end
 	end)
 
@@ -878,12 +895,6 @@ function lib:GetRaidIconRegion(frame)
 		return frame.aloftData.raidIconRegion
 	end
 	return select(regionIndex.raidIcon, frame:GetRegions())
-end
-
-function lib:IsTarget(frame)
-	if not frame then return end
-	frame = self.realPlate[frame] or frame
-	return self.isTarget[frame] or false
 end
 
 function lib:GetHealthBar(frame)
@@ -1099,19 +1110,27 @@ function lib:GetGUID(frame)
 	end
 end
 
+function lib:IsTarget(frame)
+	if not self.hasTarget or not frame then return false end
+	frame = self.realPlate[frame] or frame
+	return frame == self.targetedPlate
+end
+
 -- Returns the cached target nameplate, if any.
 -- The cache is updated by targetScanner and CheckFrameForTargetGUID.
 function lib:GetTargetNameplate()
-	if not self.hasTarget then return end
-	for frame in pairs(self.nameplates) do
-		if self.isTarget[frame] then
-			return self.fakePlate[frame] or frame
-		end
+	local frame = self.hasTarget and self.targetedPlate
+	if frame then
+		return self.fakePlate[frame] or frame
 	end
 end
 
 function lib:GetNameplateByGUID(GUID)
 	if not GUID then return end
+	local target = self.hasTarget and self.targetedPlate
+	if target and self.nameplates[target] == GUID then
+		return self.fakePlate[target] or target
+	end
 	for frame, guid in pairs(self.nameplates) do
 		if guid == GUID then
 			return self.fakePlate[frame] or frame

@@ -14,8 +14,8 @@ if not LibNameplates then
 	return
 end
 core.LibNameplates = LibNameplates
-core.hasModernAPI = LibNameplates.hasModernAPI
-local hasModernAPI = core.hasModernAPI
+core.hasModernEngine = LibNameplates.hasModernEngine
+local hasModernEngine = core.hasModernEngine
 
 local LSM = LibStub("LibSharedMedia-3.0")
 if not LSM then
@@ -61,7 +61,6 @@ local function PlateIsBoss(plate) return LibNameplates:IsBoss(plate) end
 local function PlateIsElite(plate) return LibNameplates:IsElite(plate) end
 local function GetPlateByGUID(guid)	return LibNameplates:GetNameplateByGUID(guid) end
 local function GetPlateByName(name, maxhp, filter) return LibNameplates:GetNameplateByName(name, maxhp, filter) end
-local function GetTargetPlate()	return LibNameplates:GetTargetNameplate() end
 local function IsTargetPlate(plate) return LibNameplates:IsTarget(plate) end
 local function IteratePlates(preferFake) return LibNameplates:IteratePlates(preferFake) end
 core.GetPlateName = GetPlateName
@@ -74,7 +73,6 @@ core.PlateIsBoss = PlateIsBoss
 core.PlateIsElite = PlateIsElite
 core.GetPlateByGUID = GetPlateByGUID
 core.GetPlateByName = GetPlateByName
-core.GetTargetPlate = GetTargetPlate
 core.IsTargetPlate = IsTargetPlate
 core.IteratePlates = IteratePlates
 
@@ -115,7 +113,8 @@ do
 		"PLAYER_ENTERING_WORLD"
 	}
 
-	local skipOnModernAPI = {
+	local skipOnModernEngine = {
+		["PLAYER_TARGET_CHANGED"] = true,
 		["UPDATE_MOUSEOVER_UNIT"] = true,
 		["UNIT_TARGET"] = true
 	}
@@ -130,7 +129,7 @@ do
 		P = db.profile
 
 		for i, event in pairs(regEvents) do
-			if not (hasModernAPI and skipOnModernAPI[event]) then
+			if not (hasModernEngine and skipOnModernEngine[event]) then
 				self:RegisterEvent(event)
 			end
 		end
@@ -251,17 +250,18 @@ function core:LibNameplates_NewNameplate(event, plate)
 end
 
 function core:LibNameplates_FoundGUID(event, plate, GUID, unitID)
-	if self:ShouldAddBuffs(plate) == true then
-		if hasModernAPI then
-			self:RemoveOldSpells(GUID)
-			self:CollectUnitInfo(unitID)
-		else
-			if not guidBuffs[GUID] then
-				self:CollectUnitInfo(unitID)
-			end
-			self:RemoveOldSpells(GUID)
-			self:AddBuffsToPlate(plate, GUID)
+	if hasModernEngine then
+		self:RemoveOldSpells(GUID)
+		self:CollectUnitInfo(unitID)
+		if not self:ShouldAddBuffs(plate) then
+			self:HidePlateSpells(plate)
 		end
+	elseif self:ShouldAddBuffs(plate) == true then
+		if not guidBuffs[GUID] then
+			self:CollectUnitInfo(unitID)
+		end
+		self:RemoveOldSpells(GUID)
+		self:AddBuffsToPlate(plate, GUID)
 	end
 end
 
@@ -281,16 +281,8 @@ function core:HaveSpellOpts(spellName, spellID)
 end
 
 function core:PLAYER_TARGET_CHANGED(event, ...)
-	if hasModernAPI then
-		if P.targetOnly and not UnitExists("target") then
-			self:UpdateAllPlates()
-		end
-	else
-		if UnitExists("target") then
-			self:CollectUnitInfo("target")
-		elseif P.targetOnly then
-			self:UpdateAllPlates()
-		end
+	if UnitExists("target") then
+		self:CollectUnitInfo("target")
 	end
 end
 
@@ -332,7 +324,7 @@ function core:UPDATE_MOUSEOVER_UNIT(event, ...)
 end
 
 function core:UNIT_AURA(event, unitID)
-	if hasModernAPI and string_sub(unitID, 1, 9) ~= "nameplate" then return end
+	if hasModernEngine and string_sub(unitID, 1, 9) ~= "nameplate" then return end
 	if UnitExists(unitID) then
 		self:CollectUnitInfo(unitID)
 	end
@@ -354,8 +346,10 @@ end
 
 function core:UpdatePlateByGUID(GUID)
 	local plate = GetPlateByGUID(GUID)
-	if plate and self:ShouldAddBuffs(plate) == true then
-		self:AddBuffsToPlate(plate, GUID)
+	if plate then
+		if self:ShouldAddBuffs(plate) == true then
+			self:AddBuffsToPlate(plate, GUID)
+		end
 		return true
 	end
 	return false
@@ -373,19 +367,6 @@ function core:UpdatePlateByName(name, maxhp)
 	if GUID then
 		local plate = GetPlateByName(name, maxhp, IsPlayerOrBossPlate)
 		if plate and self:ShouldAddBuffs(plate) == true then
-			self:AddBuffsToPlate(plate, GUID)
-			return true
-		end
-	end
-	return false
-end
-
--- This should speed up the look up and the display when it comes
--- to targeted units and their nameplates, hopefully.
-function core:UpdateTargetPlate(GUID)
-	if UnitExists("target") and UnitGUID("target") == GUID then
-		local plate = GetTargetPlate()
-		if plate and GetPlateGUID(plate) == GUID and self:ShouldAddBuffs(plate) == true then
 			self:AddBuffsToPlate(plate, GUID)
 			return true
 		end

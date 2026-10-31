@@ -550,21 +550,25 @@ function core:RemoveOldSpells(GUID)
 	end
 end
 
-local function CreateBuffFrame(parentFrame, realPlate)
-	local f = CreateFrame("Frame", nil, parentFrame)
-	f.realPlate = realPlate
+local function CreateBuffFrame(buffBar, realPlate)
+	local frameLevel = realPlate:GetFrameLevel() + 2
 
+	local f = CreateFrame("Frame", nil, buffBar)
+	f:SetFrameLevel(frameLevel)
+	f.realPlate = realPlate
+	
 	f.icon = CreateFrame("Frame", nil, f)
+	f.icon:SetFrameLevel(frameLevel)
 	f.icon:SetPoint("TOP", f)
 
-	f.texture = f.icon:CreateTexture(nil, "BACKGROUND")
+	f.texture = f.icon:CreateTexture(nil, "BORDER")
 	f.texture:SetAllPoints(true)
 
-	f.durationText = f.icon:CreateFontString(nil, "ARTWORK", "ChatFontNormal")
+	f.durationText = f.icon:CreateFontString(nil, "OVERLAY", "ChatFontNormal")
 	f.durationText:SetText("")
 	SetDurationAnchor(f)
 
-	f.durationText2 = f.icon:CreateFontString(nil, "ARTWORK", "ChatFontNormal")
+	f.durationText2 = f.icon:CreateFontString(nil, "OVERLAY", "ChatFontNormal")
 	f.durationText2:SetText("")
 	f.durationText2:SetPoint("TOP", f.icon, "BOTTOM", 0, P.cd2OffsetY - 1)
 
@@ -574,12 +578,10 @@ local function CreateBuffFrame(parentFrame, realPlate)
 	f.durationText2Bg:SetPoint("TOPLEFT", f.durationText2, -1, 0)
 	f.durationText2Bg:SetPoint("BOTTOMRIGHT", f.durationText2, 1, -1)
 
-	f.clockOverlay = f.icon:CreateTexture(nil, "ARTWORK")
+	f.clockOverlay = f.icon:CreateTexture(nil, "OVERLAY")
 	ConfigureClockOverlay(f)
 	f.cooldownTextureElapsed = 0
 	f.cooldownFrameIndex = -1 -- forces an immediate redraw on the first OnUpdate
-
-	core:SetFrameLevel(f)
 
 	f.stack = f.icon:CreateFontString(nil, "OVERLAY", "ChatFontNormal")
 	f.stack:SetText("")
@@ -590,7 +592,6 @@ local function CreateBuffFrame(parentFrame, realPlate)
 	f.duration = 0
 	f:SetScript("OnShow", iconOnShow)
 	f:SetScript("OnHide", iconOnHide)
-
 	f:SetScript("OnUpdate", iconOnUpdate)
 	f.stackCount = 0
 
@@ -601,9 +602,10 @@ local function CreateBuffFrame(parentFrame, realPlate)
 	f.stack:Hide()
 
 	f.msqborder = CreateFrame("Frame", nil, f.icon)
+	f.msqborder:SetFrameLevel(frameLevel)
 	f.msqborder:SetPoint("CENTER", f.icon, "CENTER")
-	f.msqborder:SetFrameLevel(f.icon:GetFrameLevel())
-	f.skin = f.msqborder:CreateTexture(nil, "BORDER")
+
+	f.skin = f.msqborder:CreateTexture(nil, "ARTWORK")
 	f.skin:SetAllPoints(f.msqborder)
 
 	--f.skin:SetBlendMode("ADD")
@@ -632,27 +634,27 @@ function core:UpdateBarsBackground()
 end
 
 -- Create and return a bar frame.
-local function CreateBarFrame(parentFrame, realPlate)
-	local f = CreateFrame("Frame", nil, parentFrame)
-	f.realPlate = realPlate
-	--f:SetFrameStrata("BACKGROUND")
+local function CreateBuffBar(parentFrame, realPlate)
+	local buffBar = CreateFrame("Frame", nil, parentFrame)
+	buffBar:SetFrameLevel(realPlate:GetFrameLevel() + 2)
+	buffBar.realPlate = realPlate
 
-	f:SetWidth(1)
-	f:SetHeight(1)
+	buffBar:SetWidth(1)
+	buffBar:SetHeight(1)
 
 	--Make the text easier to see.
-	f.barBG = f:CreateTexture(nil, "BACKGROUND")
-	f.barBG:SetAllPoints(true)
+	buffBar.barBG = buffBar:CreateTexture(nil, "BACKGROUND")
+	buffBar.barBG:SetAllPoints(true)
 
-	f.barBG:SetTexture(1, 1, 1, 0.3)
+	buffBar.barBG:SetTexture(1, 1, 1, 0.3)
 	if P.showBarBackground == true then
-		f.barBG:Show()
+		buffBar.barBG:Show()
 	else
-		f.barBG:Hide()
+		buffBar.barBG:Hide()
 	end
 
-	f:Show()
-	return f
+	buffBar:Show()
+	return buffBar
 end
 
 -- Points used to stack bar r onto bar r-1: honours Row Growth and keeps
@@ -667,23 +669,23 @@ end
 
 -- Build all our bar frames for a plate.
 -- We anchor these to the plate and our spell frames to the bar.
-local function BuildPlateBars(plate, visibleFrame)
+local function BuildPlateBars(plate, parentFrame)
 	buffBars[plate] = buffBars[plate] or {}
 	if not buffBars[plate][1] then
-		buffBars[plate][1] = CreateBarFrame(visibleFrame, plate)
+		buffBars[plate][1] = CreateBuffBar(parentFrame, plate)
 	end
 	buffBars[plate][1]:ClearAllPoints()
-	buffBars[plate][1]:SetPoint(P.barAnchorPoint, visibleFrame, P.plateAnchorPoint, P.barOffsetX, P.barOffsetY)
-	buffBars[plate][1]:SetParent(visibleFrame)
+	buffBars[plate][1]:SetPoint(P.barAnchorPoint, parentFrame, P.plateAnchorPoint, P.barOffsetX, P.barOffsetY)
+	buffBars[plate][1]:SetParent(parentFrame)
 
 	local barPoint, parentPoint = GetStackPoints()
 	for r = 2, P.numBars do
 		if not buffBars[plate][r] then
-			buffBars[plate][r] = CreateBarFrame(visibleFrame, plate)
+			buffBars[plate][r] = CreateBuffBar(parentFrame, plate)
 		end
 		buffBars[plate][r]:ClearAllPoints()
 		buffBars[plate][r]:SetPoint(barPoint, buffBars[plate][r - 1], parentPoint, 0, 0)
-		buffBars[plate][r]:SetParent(visibleFrame)
+		buffBars[plate][r]:SetParent(parentFrame)
 	end
 end
 
@@ -817,21 +819,6 @@ function core:AddUnknownIcon(plate)
 	UpdateAllBarSizes(plate)
 end
 
-function core:SetFrameLevel(frame)
-    local plate = frame.realPlate
-    if plate and plate:GetFrameLevel() then
-        frame:SetFrameLevel(plate:GetFrameLevel())
-    end
-end
-
-function core:UpdateAllFrameLevel()
-	for _, frames in pairs(buffFrames) do
-		for i = 1, #frames do
-			self:SetFrameLevel(frames[i])
-		end
-	end
-end
-
 function core:UpdateAllDurationAnchors()
 	local frame
     for _, frames in pairs(buffFrames) do
@@ -898,16 +885,17 @@ end
 function core:BuildBuffFrame(plate, reset, onlyOne)
 	if not plate.PB_parentFrame then
 		plate.PB_parentFrame = CreateFrame("Frame", nil, plate)
+		plate.PB_parentFrame:SetFrameLevel(plate:GetFrameLevel() + 2)
 		plate.PB_parentFrame:SetAllPoints(plate)
 	end
-	local visibleFrame = plate.PB_parentFrame
+	local parentFrame = plate.PB_parentFrame
 
 	if not buffBars[plate] then
-		BuildPlateBars(plate, visibleFrame)
+		BuildPlateBars(plate, parentFrame)
 	end
 
 	if not buffBars[plate][P.numBars] then --user increased the size.
-		BuildPlateBars(plate, visibleFrame)
+		BuildPlateBars(plate, parentFrame)
 	end
 
 	buffFrames[plate] = buffFrames[plate] or {}
@@ -977,10 +965,10 @@ end
 
 -- Reset a bar's anchor point.
 function core:ResetBarPoint(barFrame, plate)
-	local visibleFrame = plate.PB_parentFrame or plate
+	local parentFrame = plate.PB_parentFrame or plate
 	barFrame:ClearAllPoints()
-	barFrame:SetParent(visibleFrame)
-	barFrame:SetPoint(P.barAnchorPoint, visibleFrame, P.plateAnchorPoint, P.barOffsetX, P.barOffsetY)
+	barFrame:SetParent(parentFrame)
+	barFrame:SetPoint(P.barAnchorPoint, parentFrame, P.plateAnchorPoint, P.barOffsetX, P.barOffsetY)
 end
 
 -- Reset all icon sizes. Called when user changes settings.

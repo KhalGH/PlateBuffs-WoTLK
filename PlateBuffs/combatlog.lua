@@ -18,7 +18,7 @@ local drSpells 				= core.drSpells
 local guidBuffs 			= core.guidBuffs
 local nametoGUIDs 			= core.nametoGUIDs
 local InterruptsDuration	= core.InterruptsDuration
-local hasModernAPI 		= core.hasModernAPI
+local hasModernEngine 		= core.hasModernEngine
 
 local GUIDDurations = {}
 local GUIDDrEffects = {}
@@ -56,15 +56,15 @@ do
 		prev_OnEnable(self)
 		P = self.db.profile
 		playerGUID = UnitGUID("player")
-		core:RegisterCLEU()
+		core:UpdateCLEUReg()
 		core:StartSweeper()
 	end
 end
 
 do
 	local CombatLogClearEntries = CombatLogClearEntries
-	function core:RegisterCLEU()
-		if P.watchCombatlog == true then
+	function core:UpdateCLEUReg()
+		if P.watchCombatlog == true and (not hasModernEngine or P.showInterrupts == true) then
 			EventFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 			CombatLogClearEntries()
 		else
@@ -101,7 +101,7 @@ local function FlagIsPlayerControlled(flags)
 end
 
 local function ForceNameplateUpdate(dstGUID, dstName, dstFlags)
-	if not core:UpdateTargetPlate(dstGUID) and not core:UpdatePlateByGUID(dstGUID) then
+	if not core:UpdatePlateByGUID(dstGUID) then
 		-- No nameplate matches that GUID. Fall back to the plate whose name maps to it.
 		if dstName and FlagIsPlayer(dstFlags) then
 			local shortName = string_match(dstName, "(.+)-") or dstName -- Nameplates don't have server names.
@@ -249,7 +249,7 @@ local function CollectAuras(unitID, GUID, filter)
 	local isDebuff = filter == "HARMFUL" or nil
 	local defaultShow = isDebuff and P.defaultDebuffShow or P.defaultBuffShow
 	if defaultShow == 5 then return end
-	local trackDR = isDebuff and not hasModernAPI
+	local trackDR = isDebuff and not hasModernEngine
 	local isPlayerControlled = trackDR and UnitPlayerControlled(unitID)
 	local i = 1
 	while true do
@@ -257,7 +257,7 @@ local function CollectAuras(unitID, GUID, filter)
 		if not name then break end
 		duration = math_floor(duration + .5)
 		srcGUID = unitCaster and UnitGUID(unitCaster)
-		if not hasModernAPI then
+		if not hasModernEngine then
 			LearnAura(spellId, icon, duration, debuffTypes[debuffType], srcGUID)
 			if trackDR then
 				drType = drSpells[spellId]
@@ -597,20 +597,23 @@ end
 
 EventFrame.SPELL_AURA_BROKEN		= EventFrame.SPELL_AURA_REMOVED
 EventFrame.SPELL_AURA_BROKEN_SPELL	= EventFrame.SPELL_AURA_REMOVED
+EventFrame.PARTY_KILL		= EventFrame.UNIT_DIED
 EventFrame.UNIT_DESTROYED	= EventFrame.UNIT_DIED
 EventFrame.UNIT_DISSIPATES	= EventFrame.UNIT_DIED
-EventFrame.PARTY_KILL		= EventFrame.UNIT_DIED
 
-local function OnOldAPI(self, event, timestamp, eventType, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellID, spellName, spellSchool, auraType, amount)
+local function OnOldEngine(self, event, timestamp, eventType, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellID, spellName, spellSchool, auraType, amount)
 	if dstGUID ~= playerGUID and self[eventType] then
 		self[eventType](self, srcGUID, srcFlags, dstGUID, dstName, dstFlags, spellID, spellName, auraType, amount)
 	end
 end
 
-local function OnModernAPI(self, event, timestamp, eventType, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellID, spellName)
-	if eventType == "SPELL_INTERRUPT" and dstGUID ~= playerGUID then
+local function OnModernEngine(self, event, timestamp, eventType, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellID, spellName)
+	if dstGUID == playerGUID then return end
+	if eventType == "SPELL_INTERRUPT" then
 		self:SPELL_INTERRUPT(srcGUID, srcFlags, dstGUID, dstName, dstFlags, spellID, spellName)
+	elseif eventType == "UNIT_DIED" or eventType == "PARTY_KILL" or eventType == "UNIT_DESTROYED" or eventType == "UNIT_DISSIPATES" then
+		self:UNIT_DIED(srcGUID, srcFlags, dstGUID, dstName, dstFlags)
 	end
 end
 
-EventFrame:SetScript("OnEvent", hasModernAPI and OnModernAPI or OnOldAPI)
+EventFrame:SetScript("OnEvent", hasModernEngine and OnModernEngine or OnOldEngine)
