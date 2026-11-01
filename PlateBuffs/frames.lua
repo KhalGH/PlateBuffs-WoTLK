@@ -212,6 +212,13 @@ local function ConfigureClockOverlay(frame)
 	frame.clockOverlay:SetBlendMode("BLEND") -- keeps the radial sprite's edges anti-aliased
 end
 
+local function UpdateFrameLevel(frame)
+	local frameLevel = frame.realPlate:GetFrameLevel() + 2
+	frame:SetFrameLevel(frameLevel)
+	frame.icon:SetFrameLevel(frameLevel)
+	frame.msqborder:SetFrameLevel(frameLevel)
+end
+
 -- Called when spell frames are shown.
 local function iconOnShow(self)
 	self:SetAlpha(1)
@@ -224,6 +231,8 @@ local function iconOnShow(self)
 	self.stack:Hide()
 	self.skin:Hide()
 	self.msqborder:Hide()
+
+	UpdateFrameLevel(self)
 
 	local borderTexture = P.borderTexture
 	if not self.isDebuff then
@@ -551,41 +560,54 @@ function core:RemoveOldSpells(GUID)
 end
 
 local function CreateBuffFrame(buffBar, realPlate)
-	local frameLevel = realPlate:GetFrameLevel() + 2
-
 	local f = CreateFrame("Frame", nil, buffBar)
-	f:SetFrameLevel(frameLevel)
 	f.realPlate = realPlate
 	
 	f.icon = CreateFrame("Frame", nil, f)
-	f.icon:SetFrameLevel(frameLevel)
 	f.icon:SetPoint("TOP", f)
 
 	f.texture = f.icon:CreateTexture(nil, "BORDER")
 	f.texture:SetAllPoints(true)
 
 	f.durationText = f.icon:CreateFontString(nil, "OVERLAY", "ChatFontNormal")
+	f.durationText:Hide()
 	f.durationText:SetText("")
 	SetDurationAnchor(f)
 
 	f.durationText2 = f.icon:CreateFontString(nil, "OVERLAY", "ChatFontNormal")
+	f.durationText2:Hide()	
 	f.durationText2:SetText("")
 	f.durationText2:SetPoint("TOP", f.icon, "BOTTOM", 0, P.cd2OffsetY - 1)
 
 	f.durationText2Bg = f.icon:CreateTexture(nil,"BACKGROUND")
+	f.durationText2Bg:Hide()
 	f.durationText2Bg:SetTexture(0,0,0)
 	f.durationText2Bg:SetAlpha(P.cd2BgAlpha)
 	f.durationText2Bg:SetPoint("TOPLEFT", f.durationText2, -1, 0)
 	f.durationText2Bg:SetPoint("BOTTOMRIGHT", f.durationText2, 1, -1)
 
 	f.clockOverlay = f.icon:CreateTexture(nil, "OVERLAY")
-	ConfigureClockOverlay(f)
+	f.clockOverlay:Hide()
 	f.cooldownTextureElapsed = 0
 	f.cooldownFrameIndex = -1 -- forces an immediate redraw on the first OnUpdate
+	ConfigureClockOverlay(f)
 
 	f.stack = f.icon:CreateFontString(nil, "OVERLAY", "ChatFontNormal")
+	f.stack:Hide()
 	f.stack:SetText("")
 	f.stack:SetPoint("BOTTOMRIGHT", f.icon, "BOTTOMRIGHT", -1, 3)
+	f.stackCount = 0
+
+	f.msqborder = CreateFrame("Frame", nil, f.icon)
+	f.msqborder:Hide()
+	f.msqborder:SetPoint("CENTER", f.icon, "CENTER")
+	f.msqborder.bordersize = 1
+	f.msqborder.normalsize = 1
+	f.msqborder.bgtexture = nil
+
+	f.skin = f.msqborder:CreateTexture(nil, "ARTWORK")
+	f.skin:Hide()
+	f.skin:SetAllPoints(f.msqborder)
 
 	f.lastUpdate = 0
 	f.expirationTime = 0
@@ -593,29 +615,6 @@ local function CreateBuffFrame(buffBar, realPlate)
 	f:SetScript("OnShow", iconOnShow)
 	f:SetScript("OnHide", iconOnHide)
 	f:SetScript("OnUpdate", iconOnUpdate)
-	f.stackCount = 0
-
-	f.durationText2Bg:Hide()
-	f.durationText2:Hide()	
-	f.durationText:Hide()
-	f.clockOverlay:Hide()
-	f.stack:Hide()
-
-	f.msqborder = CreateFrame("Frame", nil, f.icon)
-	f.msqborder:SetFrameLevel(frameLevel)
-	f.msqborder:SetPoint("CENTER", f.icon, "CENTER")
-
-	f.skin = f.msqborder:CreateTexture(nil, "ARTWORK")
-	f.skin:SetAllPoints(f.msqborder)
-
-	--f.skin:SetBlendMode("ADD")
-	f.skin:Hide()
-
-	f.msqborder.bordersize = 1
-	f.msqborder.normalsize = 1
-
-	f.msqborder.bgtexture = nil
-	f.msqborder:Hide()
 
 	return f
 end

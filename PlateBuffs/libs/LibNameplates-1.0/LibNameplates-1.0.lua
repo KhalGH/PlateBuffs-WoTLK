@@ -8,7 +8,7 @@
 	Dependencies: LibStub, CallbackHandler-1.0
 ]]
 
-local MAJOR, MINOR = "LibNameplates-1.0", 41
+local MAJOR, MINOR = "LibNameplates-1.0", 42
 if not LibStub then
 	error(MAJOR .. " requires LibStub.")
 	return
@@ -33,7 +33,8 @@ local unpack = unpack
 local tonumber = tonumber
 local math_floor = math.floor
 local table_insert = table.insert
-local format = string.format
+local string_format = string.format
+local string_match = string.match
 local UnitExists = UnitExists
 local UnitGUID = UnitGUID
 local UnitName = UnitName
@@ -45,6 +46,7 @@ local _
 local C_NamePlate_GetNamePlateForUnit = C_NamePlate and C_NamePlate.GetNamePlateForUnit
 if C_NamePlate_GetNamePlateForUnit then
 	lib.hasModernEngine = true
+	lib.hasSwhAwesomeWotlk = GetCVar("nameplateOriginPos") ~= nil
 end
 
 local fastOnFinishThrottle = 0.25 -- check combat & threat every x seconds.
@@ -90,14 +92,21 @@ local callbackHealthChanged = "LibNameplates_HealthChange"
 local callbackCombatChanged = "LibNameplates_CombatChange"
 local callbackThreatChanged = "LibNameplates_ThreatChange"
 
-lib.combatStatus = lib.combatStatus or {}
 lib.fakePlate = lib.fakePlate or {}
-lib.healthOnValueChangedHooks = lib.healthOnValueChangedHooks or {}
 lib.isOnScreen = lib.isOnScreen or {}
 lib.nameplates = lib.nameplates or {}
+lib.guidToPlate = lib.guidToPlate or {}
 lib.realPlate = lib.realPlate or {}
+lib.combatStatus = lib.combatStatus or {}
 lib.threatStatus = lib.threatStatus or {}
 lib.hasTarget = false
+local fakePlate = lib.fakePlate
+local isOnScreen = lib.isOnScreen
+local nameplates = lib.nameplates
+local guidToPlate = lib.guidToPlate
+local realPlate = lib.realPlate
+local combatStatus = lib.combatStatus
+local threatStatus = lib.threatStatus
 
 local debugPrint
 do
@@ -144,9 +153,9 @@ do
 				unit = SelfIterator()
 				step = step or 3
 			elseif step == 3 then
-				unit, step = format("party%d", count), 4
+				unit, step = string_format("party%d", count), 4
 			elseif step == 4 then
-				unit = format("partypet%d", count)
+				unit = string_format("partypet%d", count)
 				count = count + 1
 				step = count <= pmem and 3 or nil
 			end
@@ -160,9 +169,9 @@ do
 		while step do
 			local unit
 			if step == 1 then
-				unit, step = format("raid%d", count), 2
+				unit, step = string_format("raid%d", count), 2
 			elseif step == 2 then
-				unit = format("raidpet%d", count)
+				unit = string_format("raidpet%d", count)
 				count = count + 1
 				step = count <= rmem and 1 or nil
 			end
@@ -225,7 +234,7 @@ end
 
 local function IsTargetedPlate(frame)
 	if not frame then return false end
-	frame = lib.realPlate[frame] or frame
+	frame = realPlate[frame] or frame
 	if lib.hasTarget and frame:IsShown() then
 		if lib.hasModernEngine then
 			local plate = C_NamePlate_GetNamePlateForUnit("target")
@@ -239,12 +248,43 @@ local function IsTargetedPlate(frame)
 	return false
 end
 
+local function IsAuthoritative(unitID)
+	-- target/mouseover/nameplateN identify the unit with certainty;
+	-- "party1target", "raid5target"... come from heuristics and do not correct each other.
+	if unitID == "target" or unitID == "mouseover" then return true end
+	return unitID ~= nil and string_match(unitID, "^nameplate%d+$") ~= nil
+end
+
 local function FoundPlateGUID(frame, GUID, unitID)
 	if not GUID then return end
 	playerGUID = playerGUID or UnitGUID("player")
 	if GUID == playerGUID then return end
-	lib.nameplates[frame] = GUID
-	lib.callbacks:Fire(callbackFoundGUID, lib.fakePlate[frame] or frame, GUID, unitID)
+
+	local prevFrame = guidToPlate[GUID]
+	if prevFrame and (prevFrame == frame or nameplates[prevFrame] ~= GUID) then
+		prevFrame = nil -- it's the same plate or the index entry was stale
+	end
+	if prevFrame and not IsAuthoritative(unitID) then
+		return -- a heuristic must not take the GUID away from another plate
+	end
+
+	local oldGUID = nameplates[frame]
+	if oldGUID and oldGUID ~= true and oldGUID ~= GUID and guidToPlate[oldGUID] == frame then
+		guidToPlate[oldGUID] = nil
+	end
+
+	nameplates[frame] = GUID
+	guidToPlate[GUID] = frame
+
+	if prevFrame then
+		debugPrint("GUID collision", GUID, unitID)
+		nameplates[prevFrame] = true
+		local exposed = fakePlate[prevFrame] or prevFrame
+		lib.callbacks:Fire(callbackOnHide, exposed)
+		lib.callbacks:Fire(callbackOnShow, exposed)
+	end
+
+	lib.callbacks:Fire(callbackFoundGUID, fakePlate[frame] or frame, GUID, unitID)
 end
 
 do
@@ -257,10 +297,10 @@ do
 			if IsTargetedPlate(frame) then
 				lib.targetedPlate = frame
 				local GUID = UnitGUID("target")
-				if lib.nameplates[frame] ~= GUID then
+				if nameplates[frame] ~= GUID then
 					FoundPlateGUID(frame, GUID, "target")
 				end
-				lib.callbacks:Fire(callbackOnTarget, lib.fakePlate[frame] or frame)
+				lib.callbacks:Fire(callbackOnTarget, fakePlate[frame] or frame)
 			end
 		end
 		wipe(checkFrames)
@@ -273,8 +313,16 @@ end
 
 function lib:SetupNameplate(frame)
 
-	self.isOnScreen[frame] = true
-	self.nameplates[frame] = true
+	isOnScreen[frame] = true
+	local oldGUID = nameplates[frame]
+	if oldGUID and oldGUID ~= true then
+		if guidToPlate[oldGUID] == frame then
+			guidToPlate[oldGUID] = nil
+		else
+			debugPrint("index mismatch on setup", oldGUID)
+		end
+	end
+	nameplates[frame] = true
 
 	local groups = self.onFinishedGroups[frame]
 	if groups then
@@ -283,7 +331,7 @@ function lib:SetupNameplate(frame)
 
 	CheckForFakePlate(frame)
 
-	self.callbacks:Fire(callbackOnShow, self.fakePlate[frame] or frame)
+	self.callbacks:Fire(callbackOnShow, fakePlate[frame] or frame)
 
 	self:CheckFrameForTargetGUID(frame)
 
@@ -303,15 +351,30 @@ function lib:NameplateOnShow(frame)
 end
 
 function lib:RecycleNameplate(frame)
-	self.nameplates[frame] = nil
+	local oldGUID = nameplates[frame]
+	if oldGUID and oldGUID ~= true then
+		if guidToPlate[oldGUID] == frame then
+			guidToPlate[oldGUID] = nil
+		else
+			debugPrint("index mismatch on recycle", oldGUID)
+		end
+	end
+	nameplates[frame] = nil
+
+	if self.hasModernEngine then
+		-- AwesomeWotlk (FrostAtom) compatibility fix: clear stale unit tokens on recycle.
+		local plate = frame.RealPlate or frame
+		plate.namePlateUnitToken = nil
+	end
+
 	if self.targetedPlate == frame then
 		self.targetedPlate = nil
 	end
-	local realFrame = self.fakePlate[frame]
+	local realFrame = fakePlate[frame]
 	if realFrame then
 		self.callbacks:Fire(callbackOnHide, realFrame)
-		self.realPlate[realFrame] = nil
-		self.fakePlate[frame] = nil
+		realPlate[realFrame] = nil
+		fakePlate[frame] = nil
 	end
 	self.callbacks:Fire(callbackOnHide, frame)
 end
@@ -320,7 +383,7 @@ lib.plateAnimations = lib.plateAnimations or {}
 function lib:NameplateOnHide(frame)
 	-- silly KuiNameplates
 	if frame and frame.MOVING then return end
-	self.isOnScreen[frame] = false
+	isOnScreen[frame] = false
 
 	local groups = self.onFinishedGroups[frame]
 	if groups then
@@ -336,15 +399,15 @@ do
 	local tostring = tostring
 
 	local function CheckRaidIconOnUnit(unitID, frame, raidNum)
-		local targetID = format("%starget", unitID)
+		local targetID = string_format("%starget", unitID)
 		if UnitExists(targetID) and not UnitIsUnit("target", targetID) then
 			local targetIndex = GetRaidTargetIndex(targetID)
 			if targetIndex and targetIndex == raidNum then
 				debugPrint(
 					"FindGUIDByRaidIcon",
-					format("Icon: %s", tostring(raidNum)),
-					format("unitID: %s", tostring(targetID)),
-					format("GUID: %s", tostring(UnitGUID(targetID)))
+					string_format("Icon: %s", tostring(raidNum)),
+					string_format("unitID: %s", tostring(targetID)),
+					string_format("GUID: %s", tostring(UnitGUID(targetID)))
 				)
 				FoundPlateGUID(frame, UnitGUID(targetID), targetID)
 				return true
@@ -366,18 +429,18 @@ do
 	local inCombat
 	local function CheckCombatStatus(frame)
 		inCombat = lib:IsInCombat(frame)
-		if lib.combatStatus[frame] ~= inCombat then
-			lib.combatStatus[frame] = inCombat
-			lib.callbacks:Fire(callbackCombatChanged, lib.fakePlate[frame] or frame, inCombat)
+		if combatStatus[frame] ~= inCombat then
+			combatStatus[frame] = inCombat
+			lib.callbacks:Fire(callbackCombatChanged, fakePlate[frame] or frame, inCombat)
 		end
 	end
 
 	local threatSit
 	local function CheckThreatStatus(frame)
 		threatSit = lib:GetThreatSituation(frame)
-		if lib.threatStatus[frame] ~= threatSit then
-			lib.threatStatus[frame] = threatSit
-			lib.callbacks:Fire(callbackThreatChanged, lib.fakePlate[frame] or frame, threatSit)
+		if threatStatus[frame] ~= threatSit then
+			threatStatus[frame] = threatSit
+			lib.callbacks:Fire(callbackThreatChanged, fakePlate[frame] or frame, threatSit)
 		end
 	end
 
@@ -389,11 +452,11 @@ end
 
 do
 	function CheckForFakePlate(frame)
-		if not lib.fakePlate[frame] then
+		if not fakePlate[frame] then
 			local f = frame and (frame.extended or frame.UnitFrame or frame.kui) or nil
 			if f then
-				lib.realPlate[f] = frame
-				lib.fakePlate[frame] = f
+				realPlate[f] = frame
+				fakePlate[frame] = f
 				lib.callbacks:Fire(callbackOnHide, frame)
 			end
 		end
@@ -406,7 +469,7 @@ do
 	-- This can be recreated by placing the mouse over a nameplate then holding rightclick and moving the camera.	--
 	------------------------------------------------------------------------------------------------------------------
 	local function FixMouseoverRegion(frame)
-		frame = lib.realPlate[frame] or frame
+		frame = realPlate[frame] or frame
 		local region = lib.plateRegions[frame].highlightTexture
 		if region and region.IsShown and region:IsShown() and lib:GetName(frame) ~= UnitName("mouseover") then
 			region:Hide()
@@ -421,7 +484,7 @@ end
 
 do
 	local function CheckUnitIDForMatchingHP(unitID, frameName, current, max)
-		local targetID = format("%starget", unitID)
+		local targetID = string_format("%starget", unitID)
 		if UnitName(targetID) == frameName then
 			local health = UnitHealth(targetID)
 			local maxHealth = UnitHealthMax(targetID)
@@ -466,9 +529,9 @@ do
 		local currentHP = ...
 
 		--strange, when a nameplate's not on screen, we still get HP changes. It's not relyable but might be of use somehow...
-		if plate and self.isOnScreen[plate] and (not self.prevHealth[plate] or self.prevHealth[plate] ~= currentHP) then
+		if plate and isOnScreen[plate] and (not self.prevHealth[plate] or self.prevHealth[plate] ~= currentHP) then
 			self.callbacks:Fire(callbackHealthChanged, plate, ...)
-			if not self.nameplates[plate] then
+			if not nameplates[plate] then
 				self:NewNameplateCheckHP(plate, ...)
 			end
 			self.prevHealth[plate] = currentHP
@@ -549,7 +612,7 @@ do
 	end)
 
 	function lib:NameplateFirstLoad(frame)
-		if not self.nameplates[frame] then
+		if not nameplates[frame] then
 			self:HookNameplate(frame)
 			self:SetupNameplate(frame)
 			self.callbacks:Fire(callbackPlateCreated, frame)
@@ -671,6 +734,9 @@ do
 	f:RegisterEvent("PLAYER_TARGET_CHANGED")
 	if lib.hasModernEngine then
 		f:RegisterEvent("NAME_PLATE_UNIT_ADDED")
+		if lib.hasSwhAwesomeWotlk then
+			f:RegisterEvent("NAME_PLATE_OWNER_CHANGED")
+		end
 	else
 		f:RegisterEvent("RAID_TARGET_UPDATE")
 		f:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
@@ -689,11 +755,11 @@ do
 		if lib.hasModernEngine then
 			local plate = C_NamePlate_GetNamePlateForUnit("target")
 			local frame = plate and (plate.VirtualPlate or plate)
-			if frame and lib.nameplates[frame] and frame:IsShown() then
+			if frame and nameplates[frame] and frame:IsShown() then
 				targetedPlate = frame
 			end
 		else
-			for frame in pairs(lib.nameplates) do
+			for frame in pairs(nameplates) do
 				if IsTargetedPlate(frame) then
 					targetedPlate = frame
 					break
@@ -703,10 +769,10 @@ do
 		lib.targetedPlate = targetedPlate
 		if targetedPlate then
 			local GUID = UnitGUID("target")
-			if lib.nameplates[targetedPlate] ~= GUID then
+			if nameplates[targetedPlate] ~= GUID then
 				FoundPlateGUID(targetedPlate, GUID, "target")
 			end
-			lib.callbacks:Fire(callbackOnTarget, lib.fakePlate[targetedPlate] or targetedPlate)
+			lib.callbacks:Fire(callbackOnTarget, fakePlate[targetedPlate] or targetedPlate)
 		else
 			lib.callbacks:Fire(callbackOnTarget, nil)
 		end
@@ -716,12 +782,12 @@ do
 	mouseoverScanner:Hide()
 	mouseoverScanner:SetScript("OnUpdate", function(self)
 		local mouseoverGUID = UnitGUID("mouseover")
-		if not mouseoverGUID then self:Hide() return end
-		for frame, guid in pairs(lib.nameplates) do
-			if guid == mouseoverGUID then
-				self:Hide()
-				return
-			elseif guid == true then
+		if not mouseoverGUID or lib:GetNameplateByGUID(mouseoverGUID) then
+			self:Hide()
+			return
+		end
+		for frame, guid in pairs(nameplates) do
+			if guid == true then
 				local region = lib.plateRegions[frame].highlightTexture
 				if region and region.IsShown and region:IsShown() then
 					if lib:GetName(frame) == UnitName("mouseover") then
@@ -739,7 +805,7 @@ do
 			lib.hasTarget = UnitExists("target") == 1
 			targetScanner:Show()
 		elseif event == "RAID_TARGET_UPDATE" then
-			for frame, guid in pairs(lib.nameplates) do
+			for frame, guid in pairs(nameplates) do
 				if frame:IsShown() and guid == true and lib:IsMarked(frame) then
 					local raidNum = lib:GetRaidIcon(frame)
 					if raidNum and raidNum > 0 then
@@ -749,13 +815,13 @@ do
 			end
 		elseif event == "UPDATE_MOUSEOVER_UNIT" then
 			mouseoverScanner:Show()
-		elseif event == "NAME_PLATE_UNIT_ADDED" then
+		elseif event == "NAME_PLATE_UNIT_ADDED" or event == "NAME_PLATE_OWNER_CHANGED" then
 			local nameplateID = ...
 			local Plate = C_NamePlate_GetNamePlateForUnit(nameplateID)
 			if not Plate then return end
 			Plate.namePlateUnitToken = nameplateID
 			local frame = Plate.VirtualPlate or Plate
-			local plateData = lib.nameplates[frame]
+			local plateData = nameplates[frame]
 			if not plateData then return end
 			local GUID = UnitGUID(nameplateID)
 			if GUID and plateData ~= GUID then
@@ -769,16 +835,16 @@ do
 	local throttle = 1 --Fire our fix hooks every second.
 
 	local function onFinished(animation)
-		for frame, value in pairs(lib.isOnScreen) do
+		for frame, value in pairs(isOnScreen) do
 			if (value == true and not frame:IsShown()) then --OnHide fail
 				lib.onHideHooks[frame] = false
-				lib.isOnScreen[frame] = false
+				isOnScreen[frame] = false
 				lib:NameplateOnHide(frame)
 				lib:HookNameplate(frame)
 			elseif (value == false and frame:IsShown()) then --OnShow fail
 				debugPrint("OnShow fail", frame, value, frame:IsShown())
 				lib.onShowHooks[frame] = false
-				lib.isOnScreen[frame] = false
+				isOnScreen[frame] = false
 				lib:HookNameplate(frame)
 				lib:SetupNameplate(frame, true)
 			end
@@ -924,7 +990,7 @@ end
 
 function lib:GetName(frame)
 	if not frame then return end
-	frame = self.realPlate[frame] or frame
+	frame = realPlate[frame] or frame
 	local region = self.plateRegions[frame].nameText
 	if region and region.GetText then
 		return noColorText[region:GetText()]
@@ -933,7 +999,7 @@ end
 
 function lib:IsInCombat(frame)
 	if not frame then return end
-	frame = self.realPlate[frame] or frame
+	frame = realPlate[frame] or frame
 	local region = self.plateRegions[frame].nameText
 	if region and region.GetTextColor then
 		return combatByColor(region:GetTextColor()) and true or false
@@ -943,7 +1009,7 @@ end
 do
 	function lib:GetLevel(frame)
 		if not frame then return end
-		frame = self.realPlate[frame] or frame
+		frame = realPlate[frame] or frame
 		local region = self.plateRegions[frame].levelText
 		if region and region.GetText then
 			return noColorNum[region:GetText()]
@@ -971,7 +1037,7 @@ do
 end
 
 function lib:IsBoss(frame)
-	frame = self.realPlate[frame] or frame
+	frame = realPlate[frame] or frame
 	local region = self.plateRegions[frame].bossIcon
 	if region and region.IsShown then
 		return region:IsShown() and true or false
@@ -980,7 +1046,7 @@ function lib:IsBoss(frame)
 end
 
 function lib:IsElite(frame)
-	frame = self.realPlate[frame] or frame
+	frame = realPlate[frame] or frame
 	local region = self.plateRegions[frame].eliteIcon
 	if region and region.IsShown then
 		return region:IsShown() and true or false
@@ -989,7 +1055,7 @@ function lib:IsElite(frame)
 end
 
 function lib:GetThreatSituation(frame)
-	frame = self.realPlate[frame] or frame
+	frame = realPlate[frame] or frame
 	local region = self.plateRegions[frame].threatTexture
 	if region and region.GetVertexColor then
 		return threatByColor(region)
@@ -997,7 +1063,7 @@ function lib:GetThreatSituation(frame)
 end
 
 function lib:IsMouseover(frame)
-	frame = self.realPlate[frame] or frame
+	frame = realPlate[frame] or frame
 	local region = self.plateRegions[frame].highlightTexture
 	return region and region.IsShown and region:IsShown() and self:GetName(frame) == UnitName("mouseover") or false
 end
@@ -1025,7 +1091,7 @@ do
 	}
 
 	function lib:GetRaidIcon(frame)
-		frame = self.realPlate[frame] or frame
+		frame = realPlate[frame] or frame
 		local region = self.plateRegions[frame].raidIcon
 		if region and region.IsShown and region:IsShown() and region.GetTexCoord then
 			local ULx, ULy = region:GetTexCoord()
@@ -1036,7 +1102,7 @@ do
 	end
 
 	function lib:IsMarked(frame)
-		frame = self.realPlate[frame] or frame
+		frame = realPlate[frame] or frame
 		local region = self.plateRegions[frame].raidIcon
 		if region and region.IsShown then
 			return region:IsShown() and true or false
@@ -1045,7 +1111,7 @@ do
 end
 
 function lib:IsCasting(frame)
-	frame = self.realPlate[frame] or frame
+	frame = realPlate[frame] or frame
 	local bar = self.plateChildren[frame].castBar
 	if bar and bar.IsShown then
 		return bar:IsShown() and true or false
@@ -1053,7 +1119,7 @@ function lib:IsCasting(frame)
 end
 
 function lib:GetType(frame)
-	frame = self.realPlate[frame] or frame
+	frame = realPlate[frame] or frame
 	local r, g, b = GetHealthBarColor(frame)
 	if r then
 		return select(2, reactionByColor(r, g, b))
@@ -1061,7 +1127,7 @@ function lib:GetType(frame)
 end
 
 function lib:GetReaction(frame)
-	frame = self.realPlate[frame] or frame
+	frame = realPlate[frame] or frame
 	local r, g, b = GetHealthBarColor(frame)
 	if r then
 		return reactionByColor(r, g, b)
@@ -1078,7 +1144,7 @@ do
 	end
 
 	function lib:GetClass(frame)
-		frame = self.realPlate[frame] or frame
+		frame = realPlate[frame] or frame
 		local r, g, b = GetHealthBarColor(frame)
 		if r then
 			return colorToClass["C" .. pctToInt(r) + pctToInt(g) + pctToInt(b)] or nil
@@ -1087,7 +1153,7 @@ do
 end
 
 function lib:GetHealthMax(frame)
-	frame = self.realPlate[frame] or frame
+	frame = realPlate[frame] or frame
 	local bar = self.plateChildren[frame].healthBar
 	if bar and bar.GetMinMaxValues then
 		local _, max = bar:GetMinMaxValues()
@@ -1096,7 +1162,7 @@ function lib:GetHealthMax(frame)
 end
 
 function lib:GetHealth(frame)
-	frame = self.realPlate[frame] or frame
+	frame = realPlate[frame] or frame
 	local bar = self.plateChildren[frame].healthBar
 	if bar and bar.GetValue then
 		return bar:GetValue()
@@ -1104,15 +1170,15 @@ function lib:GetHealth(frame)
 end
 
 function lib:GetGUID(frame)
-	frame = self.realPlate[frame] or frame
-	if self.nameplates[frame] and self.nameplates[frame] ~= true then
-		return self.nameplates[frame]
+	frame = realPlate[frame] or frame
+	if nameplates[frame] and nameplates[frame] ~= true then
+		return nameplates[frame]
 	end
 end
 
 function lib:IsTarget(frame)
 	if not self.hasTarget or not frame then return false end
-	frame = self.realPlate[frame] or frame
+	frame = realPlate[frame] or frame
 	return frame == self.targetedPlate
 end
 
@@ -1121,28 +1187,26 @@ end
 function lib:GetTargetNameplate()
 	local frame = self.hasTarget and self.targetedPlate
 	if frame then
-		return self.fakePlate[frame] or frame
+		return fakePlate[frame] or frame
 	end
 end
 
 function lib:GetNameplateByGUID(GUID)
-	if not GUID then return end
-	local target = self.hasTarget and self.targetedPlate
-	if target and self.nameplates[target] == GUID then
-		return self.fakePlate[target] or target
-	end
-	for frame, guid in pairs(self.nameplates) do
-		if guid == GUID then
-			return self.fakePlate[frame] or frame
+	local frame = GUID and guidToPlate[GUID]
+	if frame then
+		if nameplates[frame] == GUID then
+			return fakePlate[frame] or frame
 		end
+		guidToPlate[GUID] = nil
+		debugPrint("stale guidToPlate entry", GUID)
 	end
 end
 
 function lib:GetNameplateByName(name, maxHp, filter)
-	for frame in pairs(self.nameplates) do
+	for frame in pairs(nameplates) do
 		if frame:IsShown() then
 			if name == lib:GetName(frame) then
-				local f = self.fakePlate[frame] or frame
+				local f = fakePlate[frame] or frame
 				if not filter or filter(f) then
 					if not maxHp then
 						return f
@@ -1175,8 +1239,8 @@ do
 	local frames = {}
 	function lib:GetAllNameplates(preferFake)
 		wipe(frames)
-		for frame in pairs(self.nameplates) do
-			table_insert(frames, preferFake and (self.fakePlate[frame] or frame) or frame)
+		for frame in pairs(nameplates) do
+			table_insert(frames, preferFake and (fakePlate[frame] or frame) or frame)
 		end
 		return unpack(frames)
 	end
@@ -1186,8 +1250,8 @@ do
 	local frames = {}
 	function lib:IteratePlates(preferFake)
 		wipe(frames)
-		for frame in pairs(self.nameplates) do
-			table_insert(frames, preferFake and (self.fakePlate[frame] or frame) or frame)
+		for frame in pairs(nameplates) do
+			table_insert(frames, preferFake and (fakePlate[frame] or frame) or frame)
 		end
 		return pairs(frames)
 	end
@@ -1198,7 +1262,7 @@ do
 	function lib:GetNameplateByHealth(current, max)
 		wipe(possibleFrames)
 
-		for frame in pairs(self.nameplates) do
+		for frame in pairs(nameplates) do
 			if frame:IsShown() then
 				local bar = self.plateChildren[frame].healthBar
 
@@ -1213,7 +1277,7 @@ do
 			end
 		end
 		if #possibleFrames == 1 then
-			return self.fakePlate[possibleFrames[1]] or possibleFrames[1]
+			return fakePlate[possibleFrames[1]] or possibleFrames[1]
 		end
 	end
 end

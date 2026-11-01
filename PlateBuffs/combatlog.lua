@@ -19,6 +19,7 @@ local guidBuffs 			= core.guidBuffs
 local nametoGUIDs 			= core.nametoGUIDs
 local InterruptsDuration	= core.InterruptsDuration
 local hasModernEngine 		= core.hasModernEngine
+local GetPlateByGUID 		= core.GetPlateByGUID
 
 local GUIDDurations = {}
 local GUIDDrEffects = {}
@@ -275,7 +276,7 @@ local function CollectAuras(unitID, GUID, filter)
 						or (spellOpts.show == 4 and not UnitCanAttack("player", unitID))
 						or (spellOpts.show == 5 and UnitCanAttack("player", unitID))
 			scale = spellOpts.increase or 1
-		elseif duration > 0 then -- REVISAR
+		else
 			shouldAdd = defaultShow == 1
 						or (defaultShow == 2 and unitCaster == "player")
 						or (defaultShow == 4 and unitCaster == "player")
@@ -374,7 +375,6 @@ end
 -- Global purge of GUID state that nothing will read again.
 local sweepInterval = 60
 local sweepElapsed = 0
-local livePlateGUIDs = {}
 local function SweepGUIDTables()
 	local empty
 	local now = GetTime()
@@ -391,19 +391,11 @@ local function SweepGUIDTables()
 			GUIDDrEffects[guid] = nil
 		end
 	end
-	wipe(livePlateGUIDs)
-	local plateGUID
-	for _, plate in core.IteratePlates() do
-		plateGUID = core.GetPlateGUID(plate)
-		if plateGUID then
-			livePlateGUIDs[plateGUID] = true
-		end
-	end
 	for guid, t in pairs(guidBuffs) do
 		if #t > 0 then
 			core:RemoveOldSpells(guid)
 		end
-		if #t == 0 and not livePlateGUIDs[guid] then
+		if #t == 0 and not GetPlateByGUID(guid) then
 			guidBuffs[guid] = nil
 		end
 	end

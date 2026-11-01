@@ -1,7 +1,7 @@
 ## Interface: 30300
 ## Title: PlateBuffs
 ## Notes: Show buffs and debuffs on nameplates
-## Version: 1.19.5 (r238)
+## Version: 1.19.6 (r239)
 ## Author: Cyprias
 ## SavedVariables: PB_DB
 ## OptionalDeps: LibStub, CallbackHandler-1.0, LibNameplates-1.0
@@ -9,8 +9,8 @@
 ## X-Backporter: Kader
 ## X-Modder: Khal
 ## X-Website: https://github.com/KhalGH/PlateBuffs-WoTLK
-## X-Packaged-Version: r238
-## X-Date: 2026-09-31
+## X-Packaged-Version: r239
+## X-Date: 2026-11-01
 
 libs\embeds.xml
 locales\locales.xml
