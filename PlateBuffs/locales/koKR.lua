@@ -147,7 +147,7 @@ L["Hide the duration text while the remaining time is above this value (in secon
 L["Scale with Icon"] = "아이콘에 맞춰 크기 조절"
 L["Scales the alt. duration text using each spell's icon scale."] = "대체 지속시간 글자를 각 주문의 아이콘 크기에 맞춰 조절합니다."
 L["Target Only"] = "대상만"
-L["Only show spell icons above your current target."] = "현재 대상 위에만 주문 아이콘을 표시합니다."
+L["Only show spell icons above your current target.\nRecommended to reduce overhead and visual clutter in big battles with many nameplates on screen."] = "현재 대상 위에만 주문 아이콘을 표시합니다.\n화면에 많은 이름표가 있는 대규모 전투에서 부하와 시각적 혼잡을 줄이는 데 권장됩니다."
 L["Disable addon"] = "애드온 비활성화"
 L["Disables all processes until the checkbox is unchecked or you reload the UI."] = "체크를 해제하거나 UI를 다시 불러올 때까지 모든 프로세스를 비활성화합니다."
 L["Alt. Duration Text"] = "대체 지속시간 글자"

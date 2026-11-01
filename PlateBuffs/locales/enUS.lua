@@ -154,7 +154,7 @@ L["Hide the duration text while the remaining time is above this value (in secon
 L["Scale with Icon"] = true
 L["Scales the alt. duration text using each spell's icon scale."] = true
 L["Target Only"] = true
-L["Only show spell icons above your current target."] = true
+L["Only show spell icons above your current target.\nRecommended to reduce overhead and visual clutter in big battles with many nameplates on screen."] = true
 L["Disable addon"] = true
 L["Disables all processes until the checkbox is unchecked or you reload the UI."] = true
 L["Alt. Duration Text"] = true

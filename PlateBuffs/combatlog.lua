@@ -51,6 +51,11 @@ local playerGUID = UnitGUID("player")
 local EventFrame = CreateFrame("Frame")
 
 local P
+
+local function UsesAuraLog()
+	return not hasModernEngine and not P.targetOnly
+end
+
 do
 	local prev_OnEnable = core.OnEnable
 	function core:OnEnable()
@@ -59,18 +64,6 @@ do
 		playerGUID = UnitGUID("player")
 		core:UpdateCLEUReg()
 		core:StartSweeper()
-	end
-end
-
-do
-	local CombatLogClearEntries = CombatLogClearEntries
-	function core:UpdateCLEUReg()
-		if P.watchCombatlog == true and (not hasModernEngine or P.showInterrupts == true) then
-			EventFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-			CombatLogClearEntries()
-		else
-			EventFrame:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-		end
 	end
 end
 
@@ -250,7 +243,8 @@ local function CollectAuras(unitID, GUID, filter)
 	local isDebuff = filter == "HARMFUL" or nil
 	local defaultShow = isDebuff and P.defaultDebuffShow or P.defaultBuffShow
 	if defaultShow == 5 then return end
-	local trackDR = isDebuff and not hasModernEngine
+	local auraLog = UsesAuraLog()
+	local trackDR = isDebuff and auraLog
 	local isPlayerControlled = trackDR and UnitPlayerControlled(unitID)
 	local i = 1
 	while true do
@@ -258,7 +252,7 @@ local function CollectAuras(unitID, GUID, filter)
 		if not name then break end
 		duration = math_floor(duration + .5)
 		srcGUID = unitCaster and UnitGUID(unitCaster)
-		if not hasModernEngine then
+		if auraLog then
 			LearnAura(spellId, icon, duration, debuffTypes[debuffType], srcGUID)
 			if trackDR then
 				drType = drSpells[spellId]
@@ -302,6 +296,7 @@ end
 
 function core:CollectUnitInfo(unitID)
 	if not unitID or UnitIsUnit(unitID, "player") then return end
+	if P.targetOnly and unitID ~= "target" then return end
 	local GUID = UnitGUID(unitID)
 	if not GUID then return end
 	local unitName = UnitName(unitID)
@@ -323,7 +318,7 @@ function core:CollectUnitInfo(unitID)
 			end
 		end
 	end
-	if unitName and not self:UpdatePlateByGUID(GUID) and (UnitIsPlayer(unitID) or UnitClassification(unitID) == "worldboss") then
+	if unitName and not self:UpdatePlateByGUID(GUID) and not P.targetOnly and (UnitIsPlayer(unitID) or UnitClassification(unitID) == "worldboss") then
 		self:UpdatePlateByName(unitName, UnitHealthMax(unitID))
 	end
 end
@@ -608,4 +603,18 @@ local function OnModernEngine(self, event, timestamp, eventType, srcGUID, srcNam
 	end
 end
 
-EventFrame:SetScript("OnEvent", hasModernEngine and OnModernEngine or OnOldEngine)
+do
+	local CombatLogClearEntries = CombatLogClearEntries
+	function core:UpdateCLEUReg()
+		-- Full aura log only on the regular client with Target Only off.
+		-- Otherwise CLEU is only needed for the simulated interrupts (and deaths).
+		local fullAuraLog = UsesAuraLog()
+		if P.watchCombatlog == true and (fullAuraLog or P.showInterrupts == true) then
+			EventFrame:SetScript("OnEvent", fullAuraLog and OnOldEngine or OnModernEngine)
+			EventFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+			CombatLogClearEntries()
+		else
+			EventFrame:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+		end
+	end
+end

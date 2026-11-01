@@ -137,7 +137,7 @@ core.CoreOptionsTable = {
 local refreshKeys = {
     abovePlayers = true, aboveNPC = true,
 	aboveFriendly = true, aboveNeutral = true, aboveHostile = true, 
-	blacklistTotems = true, targetOnly = true,
+	blacklistTotems = true,
 }
 
 core.DisplayOptionsTable = {
@@ -297,8 +297,12 @@ core.DisplayOptionsTable = {
 		targetOnly = {
 			type = "toggle",
 			name = L["Target Only"],
-			desc = L["Only show spell icons above your current target."],
+			desc = L["Only show spell icons above your current target.\nRecommended to reduce overhead and visual clutter in big battles with many nameplates on screen."],
 			order = 22,
+			set = function(info, val)
+				P.targetOnly = val
+				core:OnTargetOnlyChanged()
+			end
 		},
 		enabled = {
 			type = "toggle",

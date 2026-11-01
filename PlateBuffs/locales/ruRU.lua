@@ -152,7 +152,7 @@ L["Hide the duration text while the remaining time is above this value (in secon
 L["Scale with Icon"] = "Масштабировать с иконкой"
 L["Scales the alt. duration text using each spell's icon scale."] = "Масштабирует альт. текст длительности по масштабу иконки каждого заклинания."
 L["Target Only"] = "Только цель"
-L["Only show spell icons above your current target."] = "Показывать иконки заклинаний только над текущей целью."
+L["Only show spell icons above your current target.\nRecommended to reduce overhead and visual clutter in big battles with many nameplates on screen."] = "Показывать иконки заклинаний только над текущей целью.\nРекомендуется для снижения нагрузки и визуального беспорядка в крупных сражениях с множеством индикаторов на экране."
 L["Disable addon"] = "Отключить аддон"
 L["Disables all processes until the checkbox is unchecked or you reload the UI."] = "Отключает все процессы, пока флажок не будет снят или вы не перезагрузите интерфейс."
 L["Alt. Duration Text"] = "Альт. текст длительности"

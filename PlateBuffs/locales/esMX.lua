@@ -151,7 +151,7 @@ L["Hide the duration text while the remaining time is above this value (in secon
 L["Scale with Icon"] = "Escalar con el icono"
 L["Scales the alt. duration text using each spell's icon scale."] = "Escala el texto de duración alternativo según la escala del icono de cada hechizo."
 L["Target Only"] = "Solo objetivo"
-L["Only show spell icons above your current target."] = "Muestra los iconos de hechizo solo sobre tu objetivo actual."
+L["Only show spell icons above your current target.\nRecommended to reduce overhead and visual clutter in big battles with many nameplates on screen."] = "Muestra los iconos de hechizo solo sobre tu objetivo actual.\nRecomendado para reducir la carga y la saturación visual en grandes batallas con muchas placas de nombre en pantalla."
 L["Disable addon"] = "Desactivar addon"
 L["Disables all processes until the checkbox is unchecked or you reload the UI."] = "Desactiva todos los procesos hasta que desmarques la casilla o recargues la interfaz."
 L["Alt. Duration Text"] = "Texto de duración alt."

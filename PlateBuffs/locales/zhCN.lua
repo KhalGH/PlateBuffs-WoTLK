@@ -150,7 +150,7 @@ L["Hide the duration text while the remaining time is above this value (in secon
 L["Scale with Icon"] = "随图标缩放"
 L["Scales the alt. duration text using each spell's icon scale."] = "根据每个法术的图标缩放比例调整备用持续时间文字的大小。"
 L["Target Only"] = "仅目标"
-L["Only show spell icons above your current target."] = "仅在当前目标上方显示法术图标。"
+L["Only show spell icons above your current target.\nRecommended to reduce overhead and visual clutter in big battles with many nameplates on screen."] = "仅在当前目标上方显示法术图标。\n推荐用于减少在大规模战斗中屏幕上出现大量姓名板时的负载和视觉混乱。"
 L["Disable addon"] = "禁用插件"
 L["Disables all processes until the checkbox is unchecked or you reload the UI."] = "取消勾选或重新加载界面前将停用所有进程。"
 L["Alt. Duration Text"] = "备用持续时间文字"

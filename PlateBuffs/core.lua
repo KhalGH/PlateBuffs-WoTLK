@@ -239,8 +239,41 @@ function core:AddOurStuffToPlate(plate)
 	end
 end
 
-function core:LibNameplates_RecycleNameplate(event, plate)
-	self:HidePlateSpells(plate)
+function core:UNIT_AURA(event, unitID)
+	if P.targetOnly then
+		if unitID == "target" and LibNameplates:GetTargetNameplate() then
+			self:CollectUnitInfo("target")
+		end
+		return
+	end
+	if hasModernEngine and string_sub(unitID, 1, 9) ~= "nameplate" then return end
+	if UnitExists(unitID) then
+		self:CollectUnitInfo(unitID)
+	end
+end
+
+function core:UNIT_TARGET(event, unitID)
+	if P.targetOnly then return end
+	if not UnitIsUnit(unitID, "player") then
+		local unitTargetID = unitID .. "target"
+		if UnitExists(unitTargetID) then
+			self:CollectUnitInfo(unitTargetID)
+		end
+	end
+end
+
+function core:PLAYER_TARGET_CHANGED(event, ...)
+	if P.targetOnly then return end
+	if UnitExists("target") then
+		self:CollectUnitInfo("target")
+	end
+end
+
+function core:UPDATE_MOUSEOVER_UNIT(event, ...)
+	if P.targetOnly then return end
+	if UnitExists("mouseover") then
+		self:CollectUnitInfo("mouseover")
+	end
 end
 
 function core:LibNameplates_NewNameplate(event, plate)
@@ -250,6 +283,7 @@ function core:LibNameplates_NewNameplate(event, plate)
 end
 
 function core:LibNameplates_FoundGUID(event, plate, GUID, unitID)
+	if P.targetOnly then return end
 	if hasModernEngine then
 		self:RemoveOldSpells(GUID)
 		self:CollectUnitInfo(unitID)
@@ -265,33 +299,16 @@ function core:LibNameplates_FoundGUID(event, plate, GUID, unitID)
 	end
 end
 
-function core:HaveSpellOpts(spellName, spellID)
-	if not P.ignoreDefaultSpell[spellName] and P.spellOpts[spellName] then
-		if P.spellOpts[spellName].grabid then
-			if P.spellOpts[spellName].spellID == spellID then
-				return P.spellOpts[spellName]
-			else
-				return false
-			end
-		else
-			return P.spellOpts[spellName]
-		end
-	end
-	return false
+function core:LibNameplates_RecycleNameplate(event, plate)
+	self:HidePlateSpells(plate)
 end
 
-function core:PLAYER_TARGET_CHANGED(event, ...)
-	if UnitExists("target") then
-		self:CollectUnitInfo("target")
-	end
-end
-
-function core:UNIT_TARGET(event, unitID)
-	if not UnitIsUnit(unitID, "player") then
-		local unitTargetID = unitID .. "target"
-		if UnitExists(unitTargetID) then
-			self:CollectUnitInfo(unitTargetID)
+function core:LibNameplates_TargetNameplate(event, plate)
+	if P.targetOnly then
+		if plate then
+			self:CollectUnitInfo("target")
 		end
+		self:UpdateAllPlates()
 	end
 end
 
@@ -311,23 +328,19 @@ function core:LibNameplates_ThreatChange(event, plate, threatSit)
 	end
 end
 
-function core:LibNameplates_TargetNameplate(event, plate)
-	if P.targetOnly then
-		self:UpdateAllPlates()
+function core:HaveSpellOpts(spellName, spellID)
+	if not P.ignoreDefaultSpell[spellName] and P.spellOpts[spellName] then
+		if P.spellOpts[spellName].grabid then
+			if P.spellOpts[spellName].spellID == spellID then
+				return P.spellOpts[spellName]
+			else
+				return false
+			end
+		else
+			return P.spellOpts[spellName]
+		end
 	end
-end
-
-function core:UPDATE_MOUSEOVER_UNIT(event, ...)
-	if UnitExists("mouseover") then
-		self:CollectUnitInfo("mouseover")
-	end
-end
-
-function core:UNIT_AURA(event, unitID)
-	if hasModernEngine and string_sub(unitID, 1, 9) ~= "nameplate" then return end
-	if UnitExists(unitID) then
-		self:CollectUnitInfo(unitID)
-	end
+	return false
 end
 
 function core:AddNewSpell(spellName, spellID)
@@ -383,6 +396,17 @@ function core:UpdateAllPlates()
 			self:HidePlateSpells(plate)
 		end
 	end
+end
+
+-- Called from the Target Only toggle: clean slate, tracking restarts from zero.
+function core:OnTargetOnlyChanged()
+	if not self:IsEnabled() then return end
+	self:PLAYER_ENTERING_WORLD() -- wipes every aura/GUID cache
+	self:UpdateCLEUReg()
+	if P.targetOnly and LibNameplates:GetTargetNameplate() then
+		self:CollectUnitInfo("target")
+	end
+	self:UpdateAllPlates()
 end
 
 function core:SkinCallback(skin, glossAlpha, gloss, _, _, colors)
