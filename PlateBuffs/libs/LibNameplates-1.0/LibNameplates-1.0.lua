@@ -8,7 +8,7 @@
 	Dependencies: LibStub, CallbackHandler-1.0
 ]]
 
-local MAJOR, MINOR = "LibNameplates-1.0", 42
+local MAJOR, MINOR = "LibNameplates-1.0", 43
 if not LibStub then
 	error(MAJOR .. " requires LibStub.")
 	return
@@ -39,7 +39,6 @@ local UnitExists = UnitExists
 local UnitGUID = UnitGUID
 local UnitName = UnitName
 local UnitIsUnit = UnitIsUnit
-local UnitHealth = UnitHealth
 local UnitHealthMax = UnitHealthMax
 local _
 
@@ -88,7 +87,6 @@ local callbackOnShow = "LibNameplates_NewNameplate"
 local callbackPlateCreated = "LibNameplates_NameplateCreated"
 local callbackFoundGUID = "LibNameplates_FoundGUID"
 local callbackOnTarget = "LibNameplates_TargetNameplate"
-local callbackHealthChanged = "LibNameplates_HealthChange"
 local callbackCombatChanged = "LibNameplates_CombatChange"
 local callbackThreatChanged = "LibNameplates_ThreatChange"
 
@@ -483,71 +481,11 @@ do
 end
 
 do
-	local function CheckUnitIDForMatchingHP(unitID, frameName, current, max)
-		local targetID = string_format("%starget", unitID)
-		if UnitName(targetID) == frameName then
-			local health = UnitHealth(targetID)
-			local maxHealth = UnitHealthMax(targetID)
-
-			if health == current and maxHealth == max then
-				return true
-			end
-		end
-		return false
-	end
-
-	local possibleUnits = {}
-	function lib:NewNameplateCheckHP(frame, current)
-		local bar = self.plateChildren[frame].healthBar
-		if bar and bar.GetValue then
-			local _, maxhp = bar:GetMinMaxValues()
-			if current > 0 and current ~= maxhp then
-				wipe(possibleUnits)
-				local frameName = self:GetName(frame)
-
-				for unitID in UnitIterator() do
-					if CheckUnitIDForMatchingHP(unitID, frameName, current, maxhp) then
-						table_insert(possibleUnits, #possibleUnits + 1, unitID .. "target")
-					end
-				end
-
-				if #possibleUnits == 1 then
-					FoundPlateGUID(frame, UnitGUID(possibleUnits[1]), possibleUnits[1])
-					return true
-				end
-			end
-		end
-	end
-
-	lib.prevHealth = lib.prevHealth or {}
-	--------------------------------------------------------------------------------------
-	function lib:healthOnValueChanged(bar, ...) --
-	-- This fires before OnShow fires and the regions haven't been updated yet. 		--
-	-- So I make sure lib.isOnScreen[plate] is true before working on the HP change.	--
-	--------------------------------------------------------------------------------------
-		local plate = bar:GetParent()
-		local currentHP = ...
-
-		--strange, when a nameplate's not on screen, we still get HP changes. It's not relyable but might be of use somehow...
-		if plate and isOnScreen[plate] and (not self.prevHealth[plate] or self.prevHealth[plate] ~= currentHP) then
-			self.callbacks:Fire(callbackHealthChanged, plate, ...)
-			if not nameplates[plate] then
-				self:NewNameplateCheckHP(plate, ...)
-			end
-			self.prevHealth[plate] = currentHP
-		end
-	end
-end
-
-do
 	local function ourOnShow(...)
 		lib:NameplateOnShow(...)
 	end
 	local function ourOnHide(...)
 		lib:NameplateOnHide(...)
-	end
-	local function ourHealthOnValueChanged(...)
-		return lib:healthOnValueChanged(...)
 	end
 	local function onFinishFastAnimation(animation)
 		lib:NameplateFastAnimation(animation.frame)
@@ -558,7 +496,6 @@ do
 
 	lib.onHideHooks = lib.onHideHooks or {}
 	lib.onShowHooks = lib.onShowHooks or {}
-	lib.healthOnValueChangedHooks = lib.healthOnValueChangedHooks or {}
 	lib.onFinishedGroups = lib.onFinishedGroups or {}
 
 	local aFrame = CreateFrame("Frame")
@@ -590,12 +527,6 @@ do
 			animation:SetScript("OnFinished", onFinishSlowAnimation)
 			animation.frame = frame
 			table_insert(self.onFinishedGroups[frame], group)
-		end
-
-		local healthBar = self.plateChildren[frame].healthBar
-		if healthBar and not self.healthOnValueChangedHooks[frame] then
-			self.healthOnValueChangedHooks[frame] = true
-			healthBar:HookScript("OnValueChanged", ourHealthOnValueChanged)
 		end
 	end
 end

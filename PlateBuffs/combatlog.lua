@@ -51,11 +51,6 @@ local playerGUID = UnitGUID("player")
 local EventFrame = CreateFrame("Frame")
 
 local P
-
-local function UsesAuraLog()
-	return not hasModernEngine and not P.targetOnly
-end
-
 do
 	local prev_OnEnable = core.OnEnable
 	function core:OnEnable()
@@ -236,6 +231,10 @@ local function GUIDSeenDRAura(dstGUID, drType, expirationTime, dstIsPlayerContro
 	if window > dr.reset then
 		dr.reset = window
 	end
+end
+
+local function UsesAuraLog()
+	return not hasModernEngine and not P.targetOnly
 end
 
 local function CollectAuras(unitID, GUID, filter)
