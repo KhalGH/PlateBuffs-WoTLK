@@ -8,7 +8,7 @@
 	Dependencies: LibStub, CallbackHandler-1.0
 ]]
 
-local MAJOR, MINOR = "LibNameplates-1.0", 43
+local MAJOR, MINOR = "LibNameplates-1.0", 44
 if not LibStub then
 	error(MAJOR .. " requires LibStub.")
 	return
@@ -90,6 +90,7 @@ local callbackOnTarget = "LibNameplates_TargetNameplate"
 local callbackCombatChanged = "LibNameplates_CombatChange"
 local callbackThreatChanged = "LibNameplates_ThreatChange"
 
+lib.loadedPlate = lib.loadedPlate or {}
 lib.fakePlate = lib.fakePlate or {}
 lib.isOnScreen = lib.isOnScreen or {}
 lib.nameplates = lib.nameplates or {}
@@ -98,6 +99,7 @@ lib.realPlate = lib.realPlate or {}
 lib.combatStatus = lib.combatStatus or {}
 lib.threatStatus = lib.threatStatus or {}
 lib.hasTarget = false
+local loadedPlate = lib.loadedPlate
 local fakePlate = lib.fakePlate
 local isOnScreen = lib.isOnScreen
 local nameplates = lib.nameplates
@@ -105,23 +107,6 @@ local guidToPlate = lib.guidToPlate
 local realPlate = lib.realPlate
 local combatStatus = lib.combatStatus
 local threatStatus = lib.threatStatus
-
-local debugPrint
-do
-	local DEBUG = false
-	local function CmdHandler()
-		DEBUG = not DEBUG
-	end
-	_G.SlashCmdList["LIBNAMEPLATEDEBUG"] = CmdHandler
-	_G.SLASH_LIBNAMEPLATEDEBUG1 = "/lnpbug"
-
-	local print = print
-	function debugPrint(...)
-		if DEBUG then
-			print(MAJOR, ...)
-		end
-	end
-end
 
 local UnitIterator
 do
@@ -220,7 +205,7 @@ do
 			if curChildren ~= prevChildren then
 				for i = prevChildren + 1, curChildren do
 					local child = select(i, WorldFrame:GetChildren())
-					if IsNamePlate(child) then
+					if not loadedPlate[child] and IsNamePlate(child) then
 						lib:NameplateFirstLoad(child)
 					end
 				end
@@ -253,6 +238,14 @@ local function IsAuthoritative(unitID)
 	return unitID ~= nil and string_match(unitID, "^nameplate%d+$") ~= nil
 end
 
+-- Removes the frame's old GUID from the reverse lookup, if it still points to this frame.
+local function ReleasePlateGUID(frame)
+	local oldGUID = nameplates[frame]
+	if oldGUID and oldGUID ~= true and guidToPlate[oldGUID] == frame then
+		guidToPlate[oldGUID] = nil
+	end
+end
+
 local function FoundPlateGUID(frame, GUID, unitID)
 	if not GUID then return end
 	playerGUID = playerGUID or UnitGUID("player")
@@ -266,16 +259,11 @@ local function FoundPlateGUID(frame, GUID, unitID)
 		return -- a heuristic must not take the GUID away from another plate
 	end
 
-	local oldGUID = nameplates[frame]
-	if oldGUID and oldGUID ~= true and oldGUID ~= GUID and guidToPlate[oldGUID] == frame then
-		guidToPlate[oldGUID] = nil
-	end
-
+	if nameplates[frame] ~= GUID then ReleasePlateGUID(frame) end
 	nameplates[frame] = GUID
 	guidToPlate[GUID] = frame
 
 	if prevFrame then
-		debugPrint("GUID collision", GUID, unitID)
 		nameplates[prevFrame] = true
 		local exposed = fakePlate[prevFrame] or prevFrame
 		lib.callbacks:Fire(callbackOnHide, exposed)
@@ -310,17 +298,9 @@ do
 end
 
 function lib:SetupNameplate(frame)
-
-	isOnScreen[frame] = true
-	local oldGUID = nameplates[frame]
-	if oldGUID and oldGUID ~= true then
-		if guidToPlate[oldGUID] == frame then
-			guidToPlate[oldGUID] = nil
-		else
-			debugPrint("index mismatch on setup", oldGUID)
-		end
-	end
+	ReleasePlateGUID(frame)
 	nameplates[frame] = true
+	isOnScreen[frame] = true
 
 	local groups = self.onFinishedGroups[frame]
 	if groups then
@@ -328,9 +308,7 @@ function lib:SetupNameplate(frame)
 	end	
 
 	CheckForFakePlate(frame)
-
 	self.callbacks:Fire(callbackOnShow, fakePlate[frame] or frame)
-
 	self:CheckFrameForTargetGUID(frame)
 
 	if self.hasModernEngine then
@@ -349,25 +327,17 @@ function lib:NameplateOnShow(frame)
 end
 
 function lib:RecycleNameplate(frame)
-	local oldGUID = nameplates[frame]
-	if oldGUID and oldGUID ~= true then
-		if guidToPlate[oldGUID] == frame then
-			guidToPlate[oldGUID] = nil
-		else
-			debugPrint("index mismatch on recycle", oldGUID)
-		end
-	end
+	ReleasePlateGUID(frame)
 	nameplates[frame] = nil
 
-	if self.hasModernEngine then
-		-- AwesomeWotlk (FrostAtom) compatibility fix: clear stale unit tokens on recycle.
-		local plate = frame.RealPlate or frame
-		plate.namePlateUnitToken = nil
+	if self.hasModernEngine and not frame.RealPlate then
+		frame.namePlateUnitToken = nil
 	end
 
 	if self.targetedPlate == frame then
 		self.targetedPlate = nil
 	end
+
 	local realFrame = fakePlate[frame]
 	if realFrame then
 		self.callbacks:Fire(callbackOnHide, realFrame)
@@ -401,12 +371,6 @@ do
 		if UnitExists(targetID) and not UnitIsUnit("target", targetID) then
 			local targetIndex = GetRaidTargetIndex(targetID)
 			if targetIndex and targetIndex == raidNum then
-				debugPrint(
-					"FindGUIDByRaidIcon",
-					string_format("Icon: %s", tostring(raidNum)),
-					string_format("unitID: %s", tostring(targetID)),
-					string_format("GUID: %s", tostring(UnitGUID(targetID)))
-				)
 				FoundPlateGUID(frame, UnitGUID(targetID), targetID)
 				return true
 			end
@@ -543,13 +507,13 @@ do
 	end)
 
 	function lib:NameplateFirstLoad(frame)
-		if not nameplates[frame] then
-			self:HookNameplate(frame)
-			self:SetupNameplate(frame)
-			self.callbacks:Fire(callbackPlateCreated, frame)
-			checkFrames[frame] = true
-			f:Show()
-		end
+		if loadedPlate[frame] then return end
+		loadedPlate[frame] = true
+		self:HookNameplate(frame)
+		self:SetupNameplate(frame)
+		self.callbacks:Fire(callbackPlateCreated, frame)
+		checkFrames[frame] = true
+		f:Show()
 	end
 end
 
@@ -664,7 +628,9 @@ do
 	f:Hide()
 	f:RegisterEvent("PLAYER_TARGET_CHANGED")
 	if lib.hasModernEngine then
+		f:RegisterEvent("NAME_PLATE_CREATED")
 		f:RegisterEvent("NAME_PLATE_UNIT_ADDED")
+		f:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
 		if lib.hasSwhAwesomeWotlk then
 			f:RegisterEvent("NAME_PLATE_OWNER_CHANGED")
 		end
@@ -746,6 +712,9 @@ do
 			end
 		elseif event == "UPDATE_MOUSEOVER_UNIT" then
 			mouseoverScanner:Show()
+		elseif event == "NAME_PLATE_CREATED" then
+			local Plate = ...
+			lib:NameplateFirstLoad(Plate.VirtualPlate or Plate)
 		elseif event == "NAME_PLATE_UNIT_ADDED" or event == "NAME_PLATE_OWNER_CHANGED" then
 			local nameplateID = ...
 			local Plate = C_NamePlate_GetNamePlateForUnit(nameplateID)
@@ -758,6 +727,11 @@ do
 			if GUID and plateData ~= GUID then
 				FoundPlateGUID(frame, GUID, nameplateID)
 			end
+		elseif event == "NAME_PLATE_UNIT_REMOVED" then
+			local nameplateID = ...
+			local Plate = C_NamePlate_GetNamePlateForUnit(nameplateID)
+			if not Plate then return end
+			Plate.namePlateUnitToken = nil
 		end
 	end)
 end
@@ -773,7 +747,6 @@ do
 				lib:NameplateOnHide(frame)
 				lib:HookNameplate(frame)
 			elseif (value == false and frame:IsShown()) then --OnShow fail
-				debugPrint("OnShow fail", frame, value, frame:IsShown())
 				lib.onShowHooks[frame] = false
 				isOnScreen[frame] = false
 				lib:HookNameplate(frame)
@@ -1129,7 +1102,6 @@ function lib:GetNameplateByGUID(GUID)
 			return fakePlate[frame] or frame
 		end
 		guidToPlate[GUID] = nil
-		debugPrint("stale guidToPlate entry", GUID)
 	end
 end
 
